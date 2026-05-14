@@ -685,7 +685,7 @@ async function renderToday() {
       <div class="macro-tile"><div class="macro-val" style="color:var(--yellow)">${nut.fat}g</div><div class="macro-lbl">Fat</div><div class="macro-sub">${nut.fat*9} kcal</div></div>
     </div>
     <div class="card" style="margin-bottom:10px">
-      <div class="card-row"><span class="lbl">Total Calories</span><span class="val"><em>${nut.kcal}</em> kcal · ${dayType==='double'?'Double':'dayType==="rest"?'Rest':'Single'} day</span></div>
+      <div class="card-row"><span class="lbl">Total Calories</span><span class="val"><em>${nut.kcal}</em> kcal · ${dayType==='double'?'Double':dayType==='rest'?'Rest':'Single'} day</span></div>
     </div>
 
     <div class="sec-label">Supplements</div>
