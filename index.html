@@ -299,7 +299,7 @@ body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;f
     <div class="modal-close" onclick="closeModal()">✕</div>
   </div>
   <div class="modal-body" id="modal-body"></div>
-  <div class="modal-footer"><button class="btn-primary" onclick="saveModal()">Save</button></div>
+  <div class="modal-footer" id="modal-footer"><button class="btn-primary" onclick="saveModal()">Save</button></div>
 </div>
 
 <script>
@@ -660,11 +660,16 @@ function openModal(title, bodyHTML, cb) {
   modalSaveCallback = cb || null;
   document.getElementById('modal-bg').classList.add('open');
   document.getElementById('main-modal').classList.add('open');
+  // Hide Save button for read-only detail views
+  const footer = document.getElementById('modal-footer');
+  if (footer) footer.style.display = cb ? '' : 'none';
 }
 function closeModal() {
   document.getElementById('modal-bg').classList.remove('open');
   document.getElementById('main-modal').classList.remove('open');
   modalSaveCallback = null;
+  const footer = document.getElementById('modal-footer');
+  if (footer) footer.style.display = '';
 }
 async function saveModal() { if (modalSaveCallback) await modalSaveCallback(); }
 
@@ -783,10 +788,10 @@ function buildSessionCard(s, wIdx, dIdx, slot, done, isDouble) {
       <div class="sblock-name">${s.n}</div>
       <div class="sblock-detail">${s.d}</div>
       ${s.dur?`<div class="sblock-dur">${s.dur}</div>`:''}
-      ${!done?`<div class="sblock-actions">
-        <button class="btn-log" onclick="openLogModal(${wIdx},${dIdx},'${slot}')">Log Session</button>
-        <button class="btn-done" onclick="markDone(${wIdx},${dIdx},'${slot}')">Mark Done</button>
-      </div>`:''}
+      <div class="sblock-actions">
+        <button class="btn-log" onclick="openLogModal(${wIdx},${dIdx},'${slot}')">${done?'Edit Log':'Log Session'}</button>
+        ${!done?`<button class="btn-done" onclick="markDone(${wIdx},${dIdx},'${slot}')">Mark Done</button>`:''}
+      </div>
     </div>`;
 }
 
@@ -904,12 +909,32 @@ function selectPlanWeek(idx) { planWeekIdx=idx; renderPlan(); }
 // ═══════════════════════════════════════════
 //  LOG MODAL
 // ═══════════════════════════════════════════
-function openLogModal(wIdx, dIdx, slot) {
+async function openLogModal(wIdx, dIdx, slot) {
   const s = slot==='pm' ? PLAN[wIdx].days[dIdx].pm : PLAN[wIdx].days[dIdx].am;
   if (!s || s.t==='rest') return;
   const sDate = sessionDate(wIdx, dIdx);
   const past = isPastSession(wIdx, dIdx);
   _logCtx = {wIdx, dIdx, slot, session:s, date:sDate, isPast:past};
+
+  // For strength: pull latest logged weights from Supabase and update USER.lifts
+  if (s.t === 'strength') {
+    const {data: latestLogs} = await sb.from('session_logs')
+      .select('data,created_at').eq('type','strength')
+      .order('created_at',{ascending:false}).limit(30);
+    if (latestLogs) {
+      const seen = {};
+      for (const log of latestLogs) {
+        for (const ex of log.data?.exercises||[]) {
+          if (!seen[ex.name] && ex.sets?.length) {
+            const maxKg = Math.max(...ex.sets.map(s=>s.kg||0));
+            const lastReps = ex.sets[ex.sets.length-1]?.reps;
+            if (maxKg > 0) { seen[ex.name] = true; USER.lifts[ex.name] = {w:maxKg, r:lastReps||5}; }
+          }
+        }
+      }
+    }
+  }
+
   let form = s.t==='strength' ? buildStrengthForm(s) : s.t.includes('run') ? buildRunForm(s) : s.t==='hyrox' ? buildHyroxForm(s) : s.t==='swim' ? buildSwimForm(s) : buildRunForm(s);
   const warning = past
     ? `<div class="alert yellow" style="margin-bottom:14px"><div class="alert-title">Past Session</div>Logging for <strong>${sDate}</strong> — this updates your historical record.</div>`
@@ -1055,21 +1080,85 @@ async function saveCustomSession() {
 // ═══════════════════════════════════════════
 //  LOG TAB
 // ═══════════════════════════════════════════
+let _recentLogs = [];
+
 async function renderLog() {
   const el = document.getElementById('log-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
   const { data: logs } = await sb.from('session_logs').select('*').order('created_at',{ascending:false}).limit(50);
   if (!logs?.length) { el.innerHTML='<div class="empty-state"><div class="empty-state-title">No Sessions Logged Yet</div><p>Log sessions from the Today or Plan tab.</p></div>'; return; }
-  el.innerHTML = `<div class="sec-label">Recent Sessions</div>`+logs.map(log=>{
+  _recentLogs = logs;
+  el.innerHTML = `<div class="sec-label">Recent Sessions</div>`+logs.map((log,idx)=>{
     const color=typeColor(log.type); let metrics='';
     if(log.data?.distance) metrics+=`<em>${log.data.distance}km</em>`;
-    if(log.data?.duration&&typeof log.data.duration==='string') metrics+=` ${log.data.duration}`;
+    if(log.data?.duration&&typeof log.data.duration==='string') metrics+=` · ${log.data.duration}`;
     if(log.data?.hr) metrics+=` · <em>${log.data.hr}bpm</em>`;
-    if(log.data?.exercises) metrics+=`<em>${log.data.exercises.length} exercises</em>`;
+    if(log.data?.exercises) metrics+=`<em>${log.data.exercises.length} exercise${log.data.exercises.length>1?'s':''}</em>`;
     if(log.data?.totalTime) metrics+=`Total: <em>${log.data.totalTime}</em>`;
     if(log.data?.completed&&!metrics) metrics='Marked done';
-    return `<div class="log-recent-item"><div class="log-ri-top"><span class="log-ri-name" style="color:${color}">${log.name}</span><span class="log-ri-date">${log.date}</span></div><div class="log-ri-metrics">${metrics||'Logged'}</div></div>`;
+    return `<div class="log-recent-item" onclick="openLogDetail(${idx})" style="cursor:pointer">
+      <div class="log-ri-top">
+        <span class="log-ri-name" style="color:${color}">${log.name}</span>
+        <span style="display:flex;align-items:center;gap:8px">
+          <span class="log-ri-date">${log.date}</span>
+          <span style="font-size:10px;color:var(--muted)">›</span>
+        </span>
+      </div>
+      <div class="log-ri-metrics">${metrics||'Logged'}</div>
+    </div>`;
   }).join('')+'<div style="height:16px"></div>';
+}
+
+function openLogDetail(idx) {
+  const log = _recentLogs[idx];
+  if (!log) return;
+  const color = typeColor(log.type);
+  let body = `<div style="margin-bottom:14px">
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px">${log.date} · ${log.type.replace('-',' ')}</div>
+    ${log.data?.notes?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">"${log.data.notes}"</div>`:''}
+  </div>`;
+
+  if (log.data?.exercises?.length) {
+    body += log.data.exercises.map(ex=>`
+      <div style="margin-bottom:14px">
+        <div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:6px">${ex.name}</div>
+        ${ex.sets?.length ? `
+          <div style="display:grid;grid-template-columns:28px 1fr 1fr;gap:4px;margin-bottom:2px">
+            <span style="font-size:9px;color:var(--muted);text-align:center">SET</span>
+            <span style="font-size:9px;color:var(--muted);text-align:center">REPS</span>
+            <span style="font-size:9px;color:var(--muted);text-align:center">KG</span>
+          </div>
+          ${ex.sets.map((set,i)=>`
+            <div style="display:grid;grid-template-columns:28px 1fr 1fr;gap:4px;padding:4px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--muted);text-align:center">${i+1}</span>
+              <span style="font-size:12px;color:var(--text);text-align:center">${set.reps||'—'}</span>
+              <span style="font-size:12px;color:${color};text-align:center;font-weight:500">${set.kg?set.kg+'kg':'—'}</span>
+            </div>`).join('')}` : '<div style="font-size:11px;color:var(--muted)">No sets recorded</div>'}
+      </div>`).join('<div class="divider"></div>');
+
+  } else if (log.data?.stations?.length) {
+    body += `<div style="font-size:12px;font-weight:500;color:#fff;margin-bottom:8px">Total: <span style="color:${color}">${log.data.totalTime||'—'}</span></div>`;
+    body += log.data.stations.map((t,i)=>`
+      <div class="card-row"><span class="lbl">${HYROX_STATIONS[i]||'Station '+(i+1)}</span><span class="val" style="color:${color}">${t||'—'}</span></div>`).join('');
+
+  } else {
+    if(log.data?.distance) body+=`<div class="card-row"><span class="lbl">Distance</span><span class="val" style="color:${color}">${log.data.distance} km</span></div>`;
+    if(log.data?.duration) body+=`<div class="card-row"><span class="lbl">Duration</span><span class="val">${log.data.duration}</span></div>`;
+    if(log.data?.hr) body+=`<div class="card-row"><span class="lbl">Avg HR</span><span class="val">${log.data.hr} bpm</span></div>`;
+    if(log.data?.maxHR) body+=`<div class="card-row"><span class="lbl">Max HR</span><span class="val">${log.data.maxHR} bpm</span></div>`;
+    if(log.data?.rpe) body+=`<div class="card-row"><span class="lbl">Feel</span><span class="val">${log.data.rpe}/10</span></div>`;
+    if(log.data?.distance&&log.data?.duration){
+      const parts=log.data.duration.split(':').map(Number);
+      const secs=parts.length===3?parts[0]*3600+parts[1]*60+parts[2]:parts[0]*60+(parts[1]||0);
+      const pace=(secs/log.data.distance/60).toFixed(2);
+      body+=`<div class="card-row"><span class="lbl">Avg Pace</span><span class="val" style="color:${color}">${Math.floor(pace)}:${String(Math.round((pace%1)*60)).padStart(2,'0')}/km</span></div>`;
+    }
+    if(log.data?.swolf) body+=`<div class="card-row"><span class="lbl">SWOLF</span><span class="val">${log.data.swolf}</span></div>`;
+    if(log.data?.completed) body+=`<div style="font-size:12px;color:var(--green);margin-top:8px">✓ Marked as done</div>`;
+  }
+
+  openModal(log.name, `<div class="card">${body}</div>`, null);
+  document.getElementById('modal-footer') && (document.getElementById('modal-footer').style.display='none');
 }
 
 // ═══════════════════════════════════════════
