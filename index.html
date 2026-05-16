@@ -915,6 +915,7 @@ async function openLogModal(wIdx, dIdx, slot) {
   const sDate = sessionDate(wIdx, dIdx);
   const past = isPastSession(wIdx, dIdx);
   _logCtx = {wIdx, dIdx, slot, session:s, date:sDate, isPast:past};
+  _extraExCount = 0;
 
   // For strength: pull latest logged weights from Supabase and update USER.lifts
   if (s.t === 'strength') {
@@ -991,7 +992,64 @@ function buildStrengthForm(s) {
         <button class="btn-add-set" onclick="addSet(${ei})">+ add set</button>
         <div class="divider"></div>
       </div>`;
-  }).join('')+`<div class="form-field"><div class="form-label">Notes</div><input class="form-input" id="f-notes" type="text" placeholder="Energy, PRs, how did it feel?"></div>`;
+  }).join('')+`
+  <div id="extra-exercises"></div>
+  <button class="btn-add-set" style="width:100%;margin-bottom:12px;font-size:12px;padding:10px 0;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--orange);cursor:pointer;letter-spacing:.5px" onclick="showExercisePicker()">＋ Add exercise</button>
+  <div id="ex-picker" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
+  <div class="form-field"><div class="form-label">Notes</div><input class="form-input" id="f-notes" type="text" placeholder="Energy, PRs, how did it feel?"></div>`;
+}
+
+let _extraExCount = 0;
+
+function showExercisePicker() {
+  const picker = document.getElementById('ex-picker');
+  if (!picker) return;
+  if (picker.style.display !== 'none') { picker.style.display = 'none'; return; }
+  // Build flat deduplicated list of all known exercises
+  const allEx = [];
+  const seen = new Set();
+  Object.values(EXERCISES).forEach(arr => arr.forEach(ex => {
+    if (!seen.has(ex.name)) { seen.add(ex.name); allEx.push(ex); }
+  }));
+  picker.innerHTML = allEx.map((ex,i) =>
+    `<div onclick="addExerciseBlock('${ex.name.replace(/'/g,"\\'")}',${ex.reps},'${(ex.note||'').replace(/'/g,"\\'")}');document.getElementById('ex-picker').style.display='none'"
+      style="padding:8px 6px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;color:var(--text)">
+      ${ex.name} <span style="color:var(--muted);font-size:11px">· ${ex.reps} reps</span>
+    </div>`
+  ).join('');
+  picker.style.display = 'block';
+}
+
+function addExerciseBlock(exName, targetReps, exNote) {
+  const container = document.getElementById('extra-exercises');
+  if (!container) return;
+  const phase = getPhaseForSession();
+  const ei = 1000 + _extraExCount++;
+  const lift = USER.lifts[exName];
+  const lastKg = lift ? lift.w : null;
+  const sets = 3;
+  const rows = Array.from({length:sets},(_,si)=>`
+    <div class="set-row">
+      <span class="set-num">${si+1}</span>
+      <input class="set-input" id="reps-${ei}-${si}" type="number" value="${targetReps}" placeholder="${targetReps}">
+      <input class="set-input" id="kg-${ei}-${si}" type="number" placeholder="${lastKg!==null?lastKg:'kg'}">
+      <span style="width:18px"></span>
+    </div>`).join('');
+  container.insertAdjacentHTML('beforeend', `
+    <div class="exercise-block" id="ex-block-${ei}">
+      <div class="exercise-name-row">
+        <span class="exercise-name">${exName}</span>
+        <span style="display:flex;align-items:center;gap:10px">
+          <span class="exercise-hint">${sets}×${targetReps}${lastKg!==null?' · Last: '+lastKg+'kg':''}</span>
+          <button onclick="removeExercise(${ei})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1;padding:0">✕</button>
+        </span>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;font-style:italic">${exNote}</div>
+      <div class="sets-header"><span class="sets-hdr-lbl">Set</span><span class="sets-hdr-lbl">Reps</span><span class="sets-hdr-lbl">kg</span><span></span></div>
+      <div id="sets-${ei}">${rows}</div>
+      <button class="btn-add-set" onclick="addSet(${ei})">+ add set</button>
+      <div class="divider"></div>
+    </div>`);
 }
 
 function addSet(ei) {
@@ -1037,15 +1095,24 @@ async function saveLogSession() {
 
   if (s.t==='strength') {
     const exList = getExercisesForSession(s.n).slice(0,5);
-    data.exercises = exList.map((ex,ei)=>{
-      const exName = typeof ex === 'object' ? ex.name : ex;
+    const collectExBlock = (ei, exName) => {
       const block = document.getElementById('ex-block-'+ei);
-      if (block && block.style.display === 'none') return null; // removed by user
-      const c=document.getElementById('sets-'+ei); const count=c?c.children.length:4;
-      const sets=[];
+      if (block && block.style.display === 'none') return null;
+      const c = document.getElementById('sets-'+ei); const count = c ? c.children.length : 0;
+      const sets = [];
       for(let si=0;si<count;si++){const r=document.getElementById('reps-'+ei+'-'+si)?.value; const k=document.getElementById('kg-'+ei+'-'+si)?.value; if(r||k)sets.push({reps:parseInt(r)||0,kg:parseFloat(k)||0});}
-      return {name:exName,sets};
-    }).filter(Boolean);
+      return sets.length ? {name:exName, sets} : null;
+    };
+    data.exercises = [
+      ...exList.map((ex,ei) => collectExBlock(ei, typeof ex==='object'?ex.name:ex)),
+      ...Array.from({length:_extraExCount},(_,i) => {
+        const ei = 1000+i;
+        const block = document.getElementById('ex-block-'+ei);
+        if (!block || block.style.display==='none') return null;
+        const nameEl = block.querySelector('.exercise-name');
+        return collectExBlock(ei, nameEl?.textContent||'Unknown');
+      })
+    ].filter(Boolean);
   } else if (s.t==='hyrox') {
     data.totalTime = document.getElementById('f-dur')?.value||'';
     data.stations  = HYROX_STATIONS.map((_,i)=>document.getElementById('hx-'+i)?.value||'');
