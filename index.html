@@ -395,13 +395,194 @@ const HYROX_STATIONS = [
   'Run 7 (1km)','Sandbag Lunges (100m)','Run 8 (1km)','Wall Balls (75 reps)',
 ];
 const SUPPS = [
-  {name:'Creatine 5g',          time:'Morning',              key:'creatine'},
-  {name:'Omega-3 3g',           time:'Morning',              key:'omega3'},
-  {name:'Vitamin D3 + K2',      time:'Morning',              key:'vitd'},
-  {name:'Collagen 10g + Vit C', time:'Pre-workout (45 min)', key:'collagen'},
-  {name:'Magnesium 400mg',      time:'Evening',              key:'mag'},
-  {name:'Casein 30g',           time:'Before bed',           key:'casein'},
+  {name:'Creatine 5g',          time:'Morning',              key:'creatine', why:'Fuels explosive efforts (lifts, sprints). Builds up in muscle over weeks — consistency is everything. Boosts strength +5–10% and speeds recovery between sets.'},
+  {name:'Omega-3 3g',           time:'Morning with food',    key:'omega3',   why:'Reduces inflammation after hard sessions. Supports joint health, heart efficiency, and brain function. Take with food for best absorption.'},
+  {name:'Vitamin D3 + K2',      time:'Morning with fat',     key:'vitd',     why:'D3 drives testosterone, immune function, and bone strength. K2 ensures calcium goes to bones, not arteries. Most athletes are deficient — this is non-negotiable.'},
+  {name:'Collagen 10g + Vit C', time:'45 min pre-workout',   key:'collagen', why:'Collagen peaks in the bloodstream 60 min after ingestion. Timing it 45 min before training means tendons and ligaments get the building blocks exactly when they\'re under load. Vit C activates the enzymes that stitch collagen fibres together — without it, this doesn\'t work.'},
+  {name:'Magnesium 400mg',      time:'Evening',              key:'mag',      why:'Depleted through sweat. Activates the parasympathetic nervous system — take at night for muscle relaxation, better deep sleep, and fewer cramps. Do NOT take in the morning, it causes drowsiness.'},
+  {name:'Casein 30g',           time:'Before bed',           key:'casein',   why:'Slow-digesting protein that feeds your muscles over 5–7 hours while you sleep. Prevents overnight muscle breakdown. Your longest fast is overnight — casein bridges it. Whey is too fast for this window.'},
 ];
+
+const HABITS = [
+  {key:'training',  label:'Training',      icon:'🏋️', auto:true,  desc:'Complete at least one session'},
+  {key:'water',     label:'Water',         icon:'💧', auto:true,  desc:'Hit your daily water target'},
+  {key:'supps',     label:'Supplements',   icon:'💊', auto:true,  desc:'All supplements checked'},
+  {key:'sleep',     label:'Sleep rated',   icon:'😴', auto:true,  desc:'Rate your sleep each morning'},
+  {key:'read',      label:'Read',          icon:'📖', auto:false, desc:'10 pages today'},
+  {key:'meditate',  label:'Meditate',      icon:'🧘', auto:false, desc:'10–15 minutes of stillness'},
+  {key:'stretch',   label:'Stretch',       icon:'🤸', auto:false, desc:'Morning or evening mobility'},
+  {key:'dutch',     label:'Dutch',         icon:'🇳🇱', auto:false, desc:'Any daily Dutch practice'},
+  {key:'journal',   label:'Journal',       icon:'✍️', auto:false, desc:'Morning journal entry'},
+];
+
+const QUOTES = [
+  {text:"You are in danger of living a life so comfortable and soft that you will die without ever realizing your true potential.",author:"David Goggins"},
+  {text:"Don't count the days, make the days count.",author:"Muhammad Ali"},
+  {text:"The impediment to action advances action. What stands in the way becomes the way.",author:"Marcus Aurelius"},
+  {text:"Hard work beats talent when talent doesn't work hard.",author:"Tim Notke"},
+  {text:"You have power over your mind, not outside events. Realize this, and you will find strength.",author:"Marcus Aurelius"},
+  {text:"I hated every minute of training, but I said, don't quit. Suffer now and live the rest of your life as a champion.",author:"Muhammad Ali"},
+  {text:"The only way to define your limits is by going beyond them.",author:"Arthur C. Clarke"},
+  {text:"Champions aren't made in gyms. Champions are made from something they have deep inside them.",author:"Muhammad Ali"},
+  {text:"Discipline equals freedom.",author:"Jocko Willink"},
+  {text:"Do not pray for an easy life. Pray for the strength to endure a difficult one.",author:"Bruce Lee"},
+  {text:"If you can't fly, then run. If you can't run, then walk. If you can't walk, then crawl. But whatever you do, keep moving.",author:"Martin Luther King Jr."},
+  {text:"Pain is temporary. It may last a minute, or an hour, or a day, or a year, but eventually it will subside and something else will take its place. If I quit, however, it lasts forever.",author:"Lance Armstrong"},
+  {text:"The man who can drive himself further once the effort gets painful is the man who will win.",author:"Roger Bannister"},
+  {text:"Success is not final, failure is not fatal: it is the courage to continue that counts.",author:"Winston Churchill"},
+  {text:"I've missed more than 9,000 shots in my career. I've lost almost 300 games. I've failed over and over and over again in my life. And that is why I succeed.",author:"Michael Jordan"},
+  {text:"Talent wins games, but teamwork and intelligence win championships.",author:"Michael Jordan"},
+  {text:"The body achieves what the mind believes.",author:"Napoleon Hill"},
+  {text:"Your body can stand almost anything. It's your mind that you have to convince.",author:"Anonymous"},
+  {text:"What hurts today makes you stronger tomorrow.",author:"Jay Cutler"},
+  {text:"Suffer the pain of discipline or suffer the pain of regret.",author:"Jim Rohn"},
+  {text:"If you want to be the best, you have to do things that other people aren't willing to do.",author:"Michael Phelps"},
+  {text:"No man has the right to be an amateur in the matter of physical training.",author:"Socrates"},
+  {text:"The only bad workout is the one that didn't happen.",author:"Anonymous"},
+  {text:"Push yourself because no one else is going to do it for you.",author:"Anonymous"},
+  {text:"Sweat is just fat crying.",author:"Anonymous"},
+  {text:"You don't get what you wish for. You get what you work for.",author:"Anonymous"},
+  {text:"The difference between the impossible and the possible lies in a person's determination.",author:"Tommy Lasorda"},
+  {text:"Once you learn to quit, it becomes a habit.",author:"Vince Lombardi"},
+  {text:"Stubbornness usually is considered a negative; but I think that trait has been life-saving.",author:"Carrie Fisher"},
+  {text:"We are what we repeatedly do. Excellence, then, is not an act but a habit.",author:"Aristotle"},
+  {text:"The secret of getting ahead is getting started.",author:"Mark Twain"},
+  {text:"You miss 100% of the shots you don't take.",author:"Wayne Gretzky"},
+  {text:"It always seems impossible until it's done.",author:"Nelson Mandela"},
+  {text:"Our greatest glory is not in never falling, but in rising every time we fall.",author:"Confucius"},
+  {text:"Strength does not come from winning. Your struggles develop your strengths.",author:"Arnold Schwarzenegger"},
+  {text:"If something stands between you and your success, move it. Never be denied.",author:"Dwayne Johnson"},
+  {text:"You can have results or excuses, but not both.",author:"Arnold Schwarzenegger"},
+  {text:"I fear not the man who has practiced 10,000 kicks once, but I fear the man who has practiced one kick 10,000 times.",author:"Bruce Lee"},
+  {text:"Be water, my friend.",author:"Bruce Lee"},
+  {text:"The key is not the will to win. Everybody has that. It is the will to prepare to win that is important.",author:"Bobby Knight"},
+  {text:"Some people want it to happen, some wish it would happen, others make it happen.",author:"Michael Jordan"},
+  {text:"If you're going through hell, keep going.",author:"Winston Churchill"},
+  {text:"A champion is defined not by their wins but by how they can recover when they fall.",author:"Serena Williams"},
+  {text:"You have to believe in yourself when no one else does.",author:"Serena Williams"},
+  {text:"Knowing is not enough; we must apply. Willing is not enough; we must do.",author:"Goethe"},
+  {text:"Waste no more time arguing about what a good man should be. Be one.",author:"Marcus Aurelius"},
+  {text:"The first and best victory is to conquer self.",author:"Plato"},
+  {text:"To dare is to lose one's footing momentarily. Not to dare is to lose oneself.",author:"Søren Kierkegaard"},
+  {text:"In the middle of every difficulty lies opportunity.",author:"Albert Einstein"},
+  {text:"It does not matter how slowly you go as long as you do not stop.",author:"Confucius"},
+];
+
+function getTodayQuote() {
+  const dayNum = Math.floor((new Date() - new Date('2026-05-11')) / 86400000);
+  return QUOTES[((dayNum % QUOTES.length) + QUOTES.length) % QUOTES.length];
+}
+
+function getHabitsDone(suppDone, doneLogs, bodyLog) {
+  const today = todayStr();
+  const waterTarget = getDayType ? (getDayType(getTodayInfo()?.weekIdx||0, getTodayInfo()?.dayIdx||0)==='rest'?10:12) : 12;
+  const waterCount = parseInt(localStorage.getItem('water_'+today)||'0');
+  const allSupps = SUPPS.every(s=>suppDone[s.key]);
+  const hasSleep = bodyLog?.sleep_score != null || localStorage.getItem('sleep_'+today) !== null;
+  const hasTraining = doneLogs?.some(l=>l.day_idx === (getTodayInfo()?.dayIdx)) || false;
+  const manual = JSON.parse(localStorage.getItem('habits_manual_'+today)||'{}');
+  return {
+    training: hasTraining,
+    water:    waterCount >= waterTarget,
+    supps:    allSupps,
+    sleep:    hasSleep,
+    read:     !!manual.read,
+    meditate: !!manual.meditate,
+    stretch:  !!manual.stretch,
+    dutch:    !!manual.dutch,
+    journal:  !!manual.journal,
+  };
+}
+
+function toggleHabit(key) {
+  const today = todayStr();
+  const manual = JSON.parse(localStorage.getItem('habits_manual_'+today)||'{}');
+  manual[key] = !manual[key];
+  localStorage.setItem('habits_manual_'+today, JSON.stringify(manual));
+  // Update streak display inline
+  updateHabitsUI();
+}
+
+function getHabitStreak(key) {
+  let streak = 0;
+  const today = new Date(todayStr()+'T12:00:00');
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const manual = JSON.parse(localStorage.getItem('habits_manual_'+ds)||'{}');
+    const wasDone = manual[key];
+    if (!wasDone && i > 0) break;
+    if (wasDone) streak++;
+  }
+  return streak;
+}
+
+function getHabit21Days(key) {
+  const result = [];
+  const today = new Date(todayStr()+'T12:00:00');
+  for (let i = 20; i >= 0; i--) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const manual = JSON.parse(localStorage.getItem('habits_manual_'+ds)||'{}');
+    result.push({date:ds, done:!!manual[key]});
+  }
+  return result;
+}
+
+function buildHabitsSection(suppDone, doneLogs, bodyLog) {
+  const done = getHabitsDone(suppDone, doneLogs, bodyLog);
+  const quote = getTodayQuote();
+
+  const rings = HABITS.map(h => {
+    const isDone = done[h.key];
+    const streak = getHabitStreak(h.key);
+    const clickAttr = h.auto ? '' : `onclick="toggleHabit('${h.key}')"`;
+    const cursor = h.auto ? 'default' : 'pointer';
+    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;cursor:${cursor}" ${clickAttr}>
+      <div style="width:44px;height:44px;border-radius:50%;border:2.5px solid ${isDone?'var(--green)':'var(--border)'};background:${isDone?'rgba(76,175,130,0.15)':'transparent'};display:flex;align-items:center;justify-content:center;font-size:18px;transition:all .2s">${h.icon}</div>
+      <div style="font-size:8px;color:${isDone?'var(--green)':'var(--muted)'};text-align:center;letter-spacing:.3px;max-width:40px;line-height:1.2">${h.label}</div>
+      ${streak>0?`<div style="font-size:9px;color:var(--orange);font-weight:500">${streak}d</div>`:'<div style="height:13px"></div>'}
+    </div>`;
+  }).join('');
+
+  const completedCount = HABITS.filter(h=>done[h.key]).length;
+
+  return `
+  <div class="sec-label" style="margin-top:16px">Daily Habits <span style="color:var(--muted);font-weight:400;font-size:10px">${completedCount}/${HABITS.length} today</span></div>
+  <div class="card" id="habits-card">
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;padding:4px 0 8px">
+      ${rings}
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+      ${HABITS.filter(h=>!h.auto).map(h=>`
+        <div style="display:flex;align-items:flex-start;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="toggleHabit('${h.key}')">
+          <div style="width:18px;height:18px;border:1.5px solid ${done[h.key]?'var(--green)':'var(--border)'};border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:${done[h.key]?'var(--green)':'transparent'};margin-top:1px">
+            ${done[h.key]?'<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>':''}
+          </div>
+          <div style="flex:1">
+            <div style="font-size:12px;color:var(--text)">${h.icon} ${h.label}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:1px">${h.desc}</div>
+          </div>
+          ${getHabitStreak(h.key)>0?`<div style="font-size:10px;color:var(--orange);font-weight:500;flex-shrink:0">${getHabitStreak(h.key)}d 🔥</div>`:''}
+        </div>`).join('')}
+    </div>
+  </div>
+  <div class="card" style="margin-top:10px;border-left:3px solid var(--orange)">
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;letter-spacing:.8px;text-transform:uppercase">Today's Quote</div>
+    <div style="font-size:13px;color:var(--text);line-height:1.6;font-style:italic">"${quote.text}"</div>
+    <div style="font-size:11px;color:var(--orange);margin-top:8px;font-weight:500">— ${quote.author}</div>
+  </div>`;
+}
+
+function updateHabitsUI() {
+  const info = getTodayInfo();
+  if (!info) return;
+  const suppDone = JSON.parse(localStorage.getItem('supps_'+todayStr())||'{}');
+  const card = document.getElementById('habits-card');
+  if (!card) return;
+  // Re-render just the habits section
+  renderToday();
+}
 
 // ═══════════════════════════════════════════
 //  16-WEEK PLAN
@@ -771,10 +952,16 @@ async function renderToday() {
       ${SUPPS.map(s=>`
         <div class="supp-item ${suppDone[s.key]?'done':''}" data-supp-key="${s.key}" onclick="toggleSupp('${s.key}')">
           <div class="supp-check"><svg class="supp-check-mark" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
-          <span class="supp-name">${s.name}</span>
-          <span class="supp-time">${s.time}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="supp-name">${s.name}</span>
+              <span class="supp-time">${s.time}</span>
+            </div>
+            <div style="font-size:10px;color:var(--muted);line-height:1.4;margin-top:2px">${s.why}</div>
+          </div>
         </div>`).join('')}
     </div>
+    ${buildHabitsSection(suppDone, doneLogs, bodyLog)}
     <div style="height:16px"></div>
   `;
 }
