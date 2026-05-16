@@ -779,18 +779,136 @@ async function renderToday() {
   `;
 }
 
+// --- Swap system ---
+function getSwaps() { try { return JSON.parse(localStorage.getItem('session_swaps')||'{}'); } catch(e) { return {}; } }
+function saveSwaps(s) { localStorage.setItem('session_swaps', JSON.stringify(s)); }
+function swapKey(wIdx,dIdx,slot) { return `${wIdx}-${dIdx}-${slot}`; }
+
+function resolveSession(wIdx, dIdx, slot) {
+  const swaps = getSwaps();
+  const key = swapKey(wIdx,dIdx,slot);
+  // Check if something was swapped INTO this slot
+  for (const [from, to] of Object.entries(swaps)) {
+    if (to === key) {
+      const [fw,fd,fs] = from.split('-');
+      const orig = PLAN[+fw]?.days[+fd];
+      return orig ? (fs==='pm'?orig.pm:orig.am) : null;
+    }
+  }
+  // Check if this slot was swapped OUT
+  if (swaps[key]) return null; // moved away — show placeholder
+  return slot==='pm' ? PLAN[wIdx]?.days[dIdx]?.pm : PLAN[wIdx]?.days[dIdx]?.am;
+}
+
+function isMovedOut(wIdx, dIdx, slot) {
+  return !!getSwaps()[swapKey(wIdx,dIdx,slot)];
+}
+
+function openMoveModal(wIdx, dIdx, slot) {
+  const s = resolveSession(wIdx, dIdx, slot);
+  if (!s) return;
+  const today = getTodayInfo();
+  const todayAbs = today ? today.weekIdx*7 + today.dayIdx : 0;
+  const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const swaps = getSwaps();
+
+  let rows = '';
+  PLAN.forEach((week, wi) => {
+    week.days.forEach((day, di) => {
+      const abs = wi*7+di;
+      if (abs < todayAbs) return; // skip past
+      if (wi===wIdx && di===dIdx) return; // skip self
+      const key = swapKey(wi,di,slot);
+      const existingSession = resolveSession(wi, di, slot);
+      const existingName = existingSession ? existingSession.n : '—';
+      const dateStr = sessionDate(wi, di);
+      rows += `<div onclick="confirmSwap(${wIdx},${dIdx},'${slot}',${wi},${di})" style="padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:13px;color:var(--text);font-weight:500">W${wi+1} ${dayNames[di]} <span style="color:var(--muted);font-weight:300;font-size:11px">${dateStr}</span></div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">${existingName}</div>
+        </div>
+        <span style="color:var(--orange);font-size:18px">→</span>
+      </div>`;
+    });
+  });
+
+  openModal(`Move · ${s.n}`, `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Choose where to move this session. If the target has a session, they will swap.</div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto">${rows}</div>
+  `, null);
+
+  window._moveCtx = {wIdx, dIdx, slot};
+}
+
+function confirmSwap(fromW, fromD, fromSlot, toW, toD) {
+  const swaps = getSwaps();
+  const fromK = swapKey(fromW, fromD, fromSlot);
+  const toK   = swapKey(toW, toD, fromSlot);
+
+  // Remove any existing swap where toK was "from" or "to"
+  for (const k of Object.keys(swaps)) {
+    if (swaps[k]===toK || k===toK) delete swaps[k];
+  }
+  // Remove original "from" swap if existed
+  delete swaps[fromK];
+
+  // Check if target had something swapped in
+  let targetOrigFrom = null;
+  for (const [k,v] of Object.entries(swaps)) { if(v===toK){targetOrigFrom=k; break;} }
+  if (targetOrigFrom) delete swaps[targetOrigFrom];
+
+  // If target has a native session, swap them
+  const targetNative = PLAN[toW]?.days[toD]?.[fromSlot==='pm'?'pm':'am'];
+  if (targetNative && targetNative.t !== 'rest') {
+    swaps[toK] = fromK; // target's native session moves to from slot
+  }
+  swaps[fromK] = toK; // from session moves to target
+
+  saveSwaps(swaps);
+  closeModal();
+  if (activePanel==='today') renderToday();
+  if (activePanel==='plan')  renderPlan();
+}
+
+function undoSwap(wIdx, dIdx, slot) {
+  const swaps = getSwaps();
+  const key = swapKey(wIdx,dIdx,slot);
+  // Find the original "from" key pointing here
+  for (const [k,v] of Object.entries(swaps)) {
+    if (v===key) { delete swaps[k]; delete swaps[key]; saveSwaps(swaps); break; }
+  }
+  if (swaps[key]) { delete swaps[key]; saveSwaps(swaps); }
+  if (activePanel==='today') renderToday();
+  if (activePanel==='plan')  renderPlan();
+}
+
 function buildSessionCard(s, wIdx, dIdx, slot, done, isDouble) {
-  if (s.t==='rest') return `<div class="sblock rest"><div class="sblock-tag">Rest</div><div class="sblock-name">${s.n}</div><div class="sblock-detail">${s.d}</div></div>`;
+  // Check if this slot was moved out
+  if (isMovedOut(wIdx, dIdx, slot)) {
+    return `<div class="sblock rest" style="opacity:.5;border-style:dashed">
+      <div class="sblock-tag" style="color:var(--muted)">Moved</div>
+      <div class="sblock-name" style="color:var(--muted)">${s.n}</div>
+      <div class="sblock-detail" style="font-size:10px">This session was moved to another day</div>
+      <div class="sblock-actions"><button class="btn-done" style="background:var(--card2)" onclick="undoSwap(${wIdx},${dIdx},'${slot}')">Undo Move</button></div>
+    </div>`;
+  }
+  // Use the resolved session (may have been swapped in from elsewhere)
+  const resolved = resolveSession(wIdx, dIdx, slot) || s;
+  if (resolved.t==='rest') return `<div class="sblock rest"><div class="sblock-tag">Rest</div><div class="sblock-name">${resolved.n}</div><div class="sblock-detail">${resolved.d}</div></div>`;
   const badge = isDouble&&slot==='am' ? '<span class="double-badge">AM</span> ' : isDouble&&slot==='pm' ? '<span class="pm-badge">PM</span> ' : '';
+  const isFuture = isFutureSession(wIdx, dIdx);
+  const isToday  = sessionDate(wIdx, dIdx) === todayStr();
+  const canMove  = (isFuture || isToday) && !done;
   return `
-    <div class="sblock ${s.t} ${done?'done':''}">
-      ${badge}<div class="sblock-tag">${s.t.replace('-',' ')}</div>
-      <div class="sblock-name">${s.n}</div>
-      <div class="sblock-detail">${s.d}</div>
-      ${s.dur?`<div class="sblock-dur">${s.dur}</div>`:''}
+    <div class="sblock ${resolved.t} ${done?'done':''}">
+      ${badge}<div class="sblock-tag">${resolved.t.replace('-',' ')}</div>
+      <div class="sblock-name">${resolved.n}</div>
+      <div class="sblock-detail">${resolved.d}</div>
+      ${resolved.dur?`<div class="sblock-dur">${resolved.dur}</div>`:''}
       <div class="sblock-actions">
         <button class="btn-log" onclick="openLogModal(${wIdx},${dIdx},'${slot}')">${done?'Edit Log':'Log Session'}</button>
         ${!done?`<button class="btn-done" onclick="markDone(${wIdx},${dIdx},'${slot}')">Mark Done</button>`:''}
+        ${canMove?`<button class="btn-done" style="background:var(--card2);color:var(--blue)" onclick="openMoveModal(${wIdx},${dIdx},'${slot}')">↔ Move</button>`:''}
       </div>
     </div>`;
 }
