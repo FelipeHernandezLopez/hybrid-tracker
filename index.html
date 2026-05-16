@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sub-2 Hyrox">
 <meta name="theme-color" content="#0f0e0c">
 <title>Sub-2 × Hyrox</title>
+<link rel="apple-touch-icon" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiAgPHJlY3Qgd2lkdGg9IjUxMiIgaGVpZ2h0PSI1MTIiIHJ4PSI4MCIgZmlsbD0iIzBmMGUwYyIvPgogIDxyZWN0IHg9IjMyIiB5PSIzMiIgd2lkdGg9IjQ0OCIgaGVpZ2h0PSI0NDgiIHJ4PSI2MCIgZmlsbD0iIzE4MTcxNCIvPgogIDwhLS0gT3JhbmdlIGFjY2VudCBiYXIgLS0+CiAgPHJlY3QgeD0iNTYiIHk9IjM2MCIgd2lkdGg9IjQwMCIgaGVpZ2h0PSI4IiByeD0iNCIgZmlsbD0iI0Y0NTQxRCIvPgogIDwhLS0gUy0yIHRleHQgLS0+CiAgPHRleHQgeD0iNTYiIHk9IjIyMCIgZm9udC1mYW1pbHk9IkFyaWFsIEJsYWNrLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iOTAwIiBmb250LXNpemU9IjE0MCIgZmlsbD0iI0Y0NTQxRCIgbGV0dGVyLXNwYWNpbmc9Ii04Ij5TLTwvdGV4dD4KICA8dGV4dCB4PSI1NiIgeT0iMzQwIiBmb250LWZhbWlseT0iQXJpYWwgQmxhY2ssIHNhbnMtc2VyaWYiIGZvbnQtd2VpZ2h0PSI5MDAiIGZvbnQtc2l6ZT0iMTQwIiBmaWxsPSIjZmZmZmZmIiBsZXR0ZXItc3BhY2luZz0iLTgiPjI8L3RleHQ+CiAgPCEtLSBIWVJPWCBsYWJlbCAtLT4KICA8dGV4dCB4PSIyODAiIHk9IjI2MCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXdlaWdodD0iNzAwIiBmb250LXNpemU9IjYyIiBmaWxsPSIjN2E3NTY4IiBsZXR0ZXItc3BhY2luZz0iNiI+SFlST1g8L3RleHQ+CiAgPCEtLSBTbWFsbCBkb3QgYWNjZW50IC0tPgogIDxjaXJjbGUgY3g9IjQzMCIgY3k9IjEyMCIgcj0iMjQiIGZpbGw9IiNGNDU0MUQiLz4KPC9zdmc+">
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiU3ViLTIgwrcgSHlyb3giLCJzaG9ydF9uYW1lIjoiU3ViLTIgSHlyb3giLCJzdGFydF91cmwiOiIvIiwiZGlzcGxheSI6InN0YW5kYWxvbmUiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBmMGUwYyIsInRoZW1lX2NvbG9yIjoiIzBmMGUwYyJ9">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -477,7 +480,9 @@ function getHabitsDone(suppDone, doneLogs, bodyLog) {
   const today = todayStr();
   const waterTarget = getDayType ? (getDayType(getTodayInfo()?.weekIdx||0, getTodayInfo()?.dayIdx||0)==='rest'?10:12) : 12;
   const waterCount = parseInt(localStorage.getItem('water_'+today)||'0');
-  const allSupps = SUPPS.every(s=>suppDone[s.key]);
+  const pausedSupps = JSON.parse(localStorage.getItem('supps_paused')||'{}');
+  const activeSupps = SUPPS.filter(s=>!pausedSupps[s.key]);
+  const allSupps = activeSupps.length > 0 && activeSupps.every(s=>suppDone[s.key]);
   const hasSleep = bodyLog?.sleep_score != null || localStorage.getItem('sleep_'+today) !== null;
   const hasTraining = doneLogs?.some(l=>l.day_idx === (getTodayInfo()?.dayIdx)) || false;
   const manual = JSON.parse(localStorage.getItem('habits_manual_'+today)||'{}');
@@ -947,19 +952,35 @@ async function renderToday() {
       <div class="card-row"><span class="lbl">Total Calories</span><span class="val"><em>${nut.kcal}</em> kcal · ${dayType==='double'?'Double':dayType==='rest'?'Rest':'Single'} day</span></div>
     </div>
 
-    <div class="sec-label">Supplements</div>
+    <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
+      Supplements
+      <span style="font-size:10px;color:var(--muted);font-weight:400">Hold to pause unavailable</span>
+    </div>
     <div class="card">
-      ${SUPPS.map(s=>`
-        <div class="supp-item ${suppDone[s.key]?'done':''}" data-supp-key="${s.key}" onclick="toggleSupp('${s.key}')">
-          <div class="supp-check"><svg class="supp-check-mark" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg></div>
+      ${SUPPS.map(s=>{
+        const paused = getSuppPaused(s.key);
+        return `
+        <div class="supp-item ${suppDone[s.key]&&!paused?'done':''} ${paused?'paused-supp':''}"
+          data-supp-key="${s.key}"
+          onclick="${paused?'':'toggleSupp(\''+s.key+'\')'}"
+          oncontextmenu="event.preventDefault();toggleSuppPause('${s.key}')"
+          ontouchstart="startSuppHold('${s.key}')" ontouchend="clearSuppHold()" ontouchmove="clearSuppHold()"
+          style="${paused?'opacity:.45;':''}">
+          <div class="supp-check" style="${paused?'border-color:var(--muted)':''}">
+            ${paused
+              ? `<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="3" x2="4" y2="9"/><line x1="8" y1="3" x2="8" y2="9"/></svg>`
+              : `<svg class="supp-check-mark" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>`
+            }
+          </div>
           <div style="flex:1;min-width:0">
             <div style="display:flex;justify-content:space-between;align-items:center">
-              <span class="supp-name">${s.name}</span>
+              <span class="supp-name">${s.name}${paused?` <span style="font-size:9px;color:var(--muted);background:var(--card2);padding:1px 5px;border-radius:4px;margin-left:4px">paused</span>`:''}</span>
               <span class="supp-time">${s.time}</span>
             </div>
             <div style="font-size:10px;color:var(--muted);line-height:1.4;margin-top:2px">${s.why}</div>
           </div>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>
     ${buildHabitsSection(suppDone, doneLogs, bodyLog)}
     ${buildMacroSection(dayType)}
@@ -1050,7 +1071,7 @@ function buildMacroSection(dayType) {
     </div>
     ${actual ? `
       <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:8px">
-        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between"><span>Logged today</span><button onclick="openMacroModal()" style="background:none;border:none;color:var(--orange);font-size:11px;cursor:pointer;padding:0">Edit</button></div>
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between"><span>Logged today</span><div style="display:flex;gap:10px"><button onclick="openMacroModal('add')" style="background:none;border:none;color:var(--green);font-size:11px;cursor:pointer;padding:0">＋ Add meal</button><button onclick="openMacroModal('edit')" style="background:none;border:none;color:var(--orange);font-size:11px;cursor:pointer;padding:0">Edit</button></div></div>
         ${macroBar('Kcal',    actual.kcal,    target.kcal,    'var(--orange)')}
         ${macroBar('Protein', actual.protein, target.protein, 'var(--blue)')}
         ${macroBar('Carbs',   actual.carbs,   target.carbs,   'var(--yellow)')}
@@ -1058,42 +1079,63 @@ function buildMacroSection(dayType) {
       </div>
       ${feedback.map(f=>`<div style="background:var(--card2);border-left:3px solid ${f.color};border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px;color:var(--text);line-height:1.5">${f.icon} ${f.text}</div>`).join('')}
     ` : `
-      <button onclick="openMacroModal()" style="width:100%;padding:10px;background:none;border:1px dashed var(--border);border-radius:8px;color:var(--orange);cursor:pointer;font-size:12px;letter-spacing:.5px">＋ Log today's nutrition</button>
+      <button onclick="openMacroModal('add')" style="width:100%;padding:10px;background:none;border:1px dashed var(--border);border-radius:8px;color:var(--orange);cursor:pointer;font-size:12px;letter-spacing:.5px">＋ Log today's nutrition</button>
       <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5">Log your totals at end of day. Staying on target drives fat loss without hurting performance.</div>
     `}
   </div>`;
 }
 
-function openMacroModal() {
+function openMacroModal(mode) {
+  // mode: 'add' = add to running total | 'edit' = replace totals
   const dayType = getDayType(getTodayInfo()?.weekIdx||0, getTodayInfo()?.dayIdx||0);
   const target = NUTRITION[dayType] || NUTRITION.single;
-  const existing = getMacroLog(todayStr()) || {};
+  const existing = getMacroLog(todayStr()) || {kcal:0,protein:0,carbs:0,fat:0};
+  const isAdd = mode === 'add' || !existing.kcal;
   const dayLabel = dayType==='double'?'Double Session':dayType==='single'?'Single Session':'Rest Day';
+  const remaining = {
+    kcal:    Math.max(0, target.kcal    - existing.kcal),
+    protein: Math.max(0, target.protein - existing.protein),
+    carbs:   Math.max(0, target.carbs   - existing.carbs),
+    fat:     Math.max(0, target.fat     - existing.fat),
+  };
 
-  openModal('Nutrition · Today', `
-    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">
-      ${dayLabel} targets: <strong style="color:var(--text)">${target.kcal} kcal · ${target.protein}g P · ${target.carbs}g C · ${target.fat}g F</strong>
+  openModal(isAdd ? '＋ Add meal' : 'Edit totals', `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div style="font-size:11px;color:var(--muted)">${dayLabel} · target ${target.kcal} kcal</div>
+      <button onclick="openMacroModal('${isAdd?'edit':'add'}')" style="background:none;border:none;color:var(--orange);font-size:11px;cursor:pointer;padding:0">Switch to ${isAdd?'edit totals':'add meal'}</button>
     </div>
-    <div style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:10px;color:var(--muted);line-height:1.6">
-      <strong style="color:var(--orange)">Why these numbers?</strong><br>
-      190g protein protects muscle even in a deficit. Carbs fuel your sessions — highest on doubles, lowest on rest. The modest calorie deficit (~300–400 kcal/day average) puts you on track for 0.3–0.5 kg fat loss per week without touching performance. Going too low on calories spikes cortisol, breaks down muscle, and tanks your runs.
+    ${existing.kcal && isAdd ? `<div style="background:var(--card2);border-radius:8px;padding:8px 10px;margin-bottom:12px;font-size:11px;color:var(--muted)">
+      Current total: <strong style="color:var(--text)">${existing.kcal} kcal · ${existing.protein}g P · ${existing.carbs}g C · ${existing.fat}g F</strong><br>
+      <span style="color:var(--green)">Remaining: ${remaining.kcal} kcal · ${remaining.protein}g P · ${remaining.carbs}g C · ${remaining.fat}g F</span>
+    </div>` : ''}
+    <div style="background:var(--card2);border-radius:8px;padding:10px;margin-bottom:12px;font-size:10px;color:var(--muted);line-height:1.5">
+      <strong style="color:var(--orange)">Why these numbers?</strong> 190g protein protects muscle in a deficit. Carbs are your fuel — highest on training days. The daily deficit drives ~0.35 kg fat loss/week without hurting performance.
     </div>
     ${[
-      {id:'f-kcal',    label:'Calories (kcal)', placeholder:target.kcal,   val:existing.kcal||''},
-      {id:'f-protein', label:'Protein (g)',      placeholder:target.protein, val:existing.protein||''},
-      {id:'f-carbs',   label:'Carbs (g)',        placeholder:target.carbs,   val:existing.carbs||''},
-      {id:'f-fat',     label:'Fat (g)',          placeholder:target.fat,     val:existing.fat||''},
-    ].map(f=>`<div class="form-field"><div class="form-label">${f.label} <span style="color:var(--muted)">· target ${f.placeholder}</span></div><input class="form-input" id="${f.id}" type="number" placeholder="${f.placeholder}" value="${f.val}"></div>`).join('')}
+      {id:'f-kcal',    label:'Calories (kcal)', hint: isAdd ? `add to ${existing.kcal}` : `target ${target.kcal}`},
+      {id:'f-protein', label:'Protein (g)',      hint: isAdd ? `add to ${existing.protein}g` : `target ${target.protein}g`},
+      {id:'f-carbs',   label:'Carbs (g)',        hint: isAdd ? `add to ${existing.carbs}g` : `target ${target.carbs}g`},
+      {id:'f-fat',     label:'Fat (g)',          hint: isAdd ? `add to ${existing.fat}g` : `target ${target.fat}g`},
+    ].map(f=>`<div class="form-field"><div class="form-label">${f.label} <span style="color:var(--muted);font-weight:300">· ${f.hint}</span></div><input class="form-input" id="${f.id}" type="number" placeholder="0"></div>`).join('')}
+    <input type="hidden" id="f-macro-mode" value="${isAdd?'add':'edit'}">
   `, saveMacroModal);
 }
 
 function saveMacroModal() {
-  const data = {
+  const mode = document.getElementById('f-macro-mode')?.value || 'add';
+  const existing = getMacroLog(todayStr()) || {kcal:0,protein:0,carbs:0,fat:0};
+  const input = {
     kcal:    parseInt(document.getElementById('f-kcal')?.value)||0,
     protein: parseInt(document.getElementById('f-protein')?.value)||0,
     carbs:   parseInt(document.getElementById('f-carbs')?.value)||0,
     fat:     parseInt(document.getElementById('f-fat')?.value)||0,
   };
+  const data = mode === 'add' ? {
+    kcal:    existing.kcal    + input.kcal,
+    protein: existing.protein + input.protein,
+    carbs:   existing.carbs   + input.carbs,
+    fat:     existing.fat     + input.fat,
+  } : input;
   saveMacroLog(data);
   closeModal();
   renderToday();
@@ -1270,6 +1312,22 @@ function logWater(count) {
   // Save to Supabase silently
   sb.from('body_logs').upsert({date:todayStr(), water_glasses:count},{onConflict:'date'}).then(()=>{});
 }
+function getSuppPaused(key) {
+  const paused = JSON.parse(localStorage.getItem('supps_paused')||'{}');
+  return !!paused[key];
+}
+function toggleSuppPause(key) {
+  const paused = JSON.parse(localStorage.getItem('supps_paused')||'{}');
+  paused[key] = !paused[key];
+  localStorage.setItem('supps_paused', JSON.stringify(paused));
+  renderToday();
+}
+let _suppHoldTimer = null;
+function startSuppHold(key) {
+  _suppHoldTimer = setTimeout(()=>{ toggleSuppPause(key); }, 600);
+}
+function clearSuppHold() { clearTimeout(_suppHoldTimer); }
+
 function toggleSupp(key) {
   const d = JSON.parse(localStorage.getItem('supps_'+todayStr())||'{}');
   d[key] = !d[key];
@@ -1308,8 +1366,12 @@ async function renderPlan() {
 
   const gridHTML = dayNames.map((d,i)=>{
     const day=week.days[i]; const isToday=isCurrentWeek&&info.dayIdx===i;
-    const amBlock=buildSmallBlock(day.am,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm);
-    const pmBlock=day.pm?buildSmallBlock(day.pm,planWeekIdx,i,'pm',isDone(i,'pm'),true):'';
+    const resolvedAm = resolveSession(planWeekIdx,i,'am') || day.am;
+    const resolvedPm = resolveSession(planWeekIdx,i,'pm') || day.pm;
+    const movedOutAm = isMovedOut(planWeekIdx,i,'am');
+    const movedOutPm = isMovedOut(planWeekIdx,i,'pm');
+    const amBlock=buildSmallBlock(resolvedAm,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm,movedOutAm);
+    const pmBlock=(resolvedPm||movedOutPm)?buildSmallBlock(resolvedPm||{t:'rest',n:'Moved'},planWeekIdx,i,'pm',isDone(i,'pm'),true,movedOutPm):'';
     return `<div class="dcol ${isToday?'today-col':''}"><div class="dhead">${d}</div>${amBlock}${pmBlock}</div>`;
   }).join('');
 
@@ -1333,8 +1395,9 @@ async function renderPlan() {
   `;
 }
 
-function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble) {
+function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut) {
   const slotLabel=isDouble&&slot==='am'?' AM':isDouble&&slot==='pm'?' PM':'';
+  if (movedOut) return `<div class="sblock-sm rest" style="opacity:.45;border-style:dashed"><div class="sm-tag" style="color:var(--muted)">moved${slotLabel}</div><div class="sm-name" style="color:var(--muted)">—</div></div>`;
   return `<div class="sblock-sm ${s.t} ${done?'done-sm':''}" onclick="${s.t!=='rest'?`openLogModal(${wIdx},${dIdx},'${slot}')`:''}" >
     <div class="sm-tag" style="color:${typeColor(s.t)}">${s.t.replace('-',' ')}${slotLabel}</div>
     <div class="sm-name">${s.n}</div>
