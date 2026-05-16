@@ -340,9 +340,9 @@ const USER = {
   }
 };
 const NUTRITION = {
-  double:{kcal:2750,protein:200,carbs:290,fat:60},
-  single:{kcal:2450,protein:200,carbs:210,fat:70},
-  rest:  {kcal:2000,protein:200,carbs:100,fat:80},
+  double:{kcal:3200,protein:190,carbs:390,fat:95},
+  single:{kcal:2800,protein:190,carbs:310,fat:90},
+  rest:  {kcal:2200,protein:190,carbs:175,fat:85},
 };
 const EXERCISES = {
   'Push A':[
@@ -962,8 +962,141 @@ async function renderToday() {
         </div>`).join('')}
     </div>
     ${buildHabitsSection(suppDone, doneLogs, bodyLog)}
+    ${buildMacroSection(dayType)}
     <div style="height:16px"></div>
   `;
+}
+
+// --- Macro logging ---
+function getMacroLog(date) {
+  try { return JSON.parse(localStorage.getItem('macros_'+(date||todayStr()))||'null'); } catch(e) { return null; }
+}
+function saveMacroLog(data) {
+  localStorage.setItem('macros_'+todayStr(), JSON.stringify(data));
+  sb.from('body_logs').upsert({date:todayStr(), macros:data},{onConflict:'date'}).then(()=>{});
+}
+
+function getMacroFeedback(actual, target, dayType) {
+  const msgs = [];
+  const kcalPct = actual.kcal / target.kcal;
+  const proteinDiff = actual.protein - target.protein;
+  const carbsDiff = actual.carbs - target.carbs;
+  const isTraining = dayType !== 'rest';
+
+  // Calories
+  if (kcalPct < 0.75) {
+    msgs.push({color:'var(--red)', icon:'⚠️', text:`You're significantly under-fuelled (${actual.kcal} vs ${target.kcal} kcal). Cortisol spikes, muscle breaks down, and your next session will suffer. Eat more — especially carbs.`});
+  } else if (kcalPct < 0.88) {
+    msgs.push({color:'var(--yellow)', icon:'⚡', text:`Slight calorie deficit. Good for fat loss, but if you have a hard session tomorrow, add a carb-rich snack tonight.`});
+  } else if (kcalPct >= 0.88 && kcalPct <= 1.12) {
+    msgs.push({color:'var(--green)', icon:'✅', text:`Calories on point. You're fuelling performance while creating the deficit to lean out.`});
+  } else if (kcalPct > 1.25) {
+    msgs.push({color:'var(--orange)', icon:'📈', text:`Surplus too high (+${actual.kcal - target.kcal} kcal). This slows fat loss without extra performance benefit. Reduce portions on your next rest day.`});
+  }
+
+  // Protein
+  if (proteinDiff < -30) {
+    msgs.push({color:'var(--red)', icon:'💪', text:`Protein too low (${actual.protein}g vs ${target.protein}g target). Below muscle protection threshold — you risk losing lean mass. Prioritise a protein source at every meal.`});
+  } else if (proteinDiff < -15) {
+    msgs.push({color:'var(--yellow)', icon:'💪', text:`Protein slightly low. Add a casein shake tonight or an extra chicken breast.`});
+  } else if (proteinDiff >= -15 && proteinDiff <= 20) {
+    msgs.push({color:'var(--green)', icon:'💪', text:`Protein nailed — muscle is protected and recovery is supported.`});
+  }
+
+  // Carbs on training days
+  if (isTraining && actual.carbs < target.carbs * 0.7) {
+    msgs.push({color:'var(--red)', icon:'🏃', text:`Carbs too low for a training day (${actual.carbs}g vs ${target.carbs}g). Carbs are your performance fuel — without them your runs will feel harder, lifts weaker, and recovery slower.`});
+  } else if (!isTraining && actual.carbs > target.carbs * 1.3) {
+    msgs.push({color:'var(--yellow)', icon:'🏃', text:`Carbs high for a rest day. Rest days are your best fat-burning window — lower carbs drive the deficit. Save the carbs for training days.`});
+  }
+
+  return msgs;
+}
+
+function buildMacroSection(dayType) {
+  const target = NUTRITION[dayType] || NUTRITION.single;
+  const actual = getMacroLog(todayStr());
+  const dayLabel = dayType==='double'?'Double Session':dayType==='single'?'Single Session':'Rest Day';
+
+  const macroBar = (label, val, tgt, color) => {
+    const pct = Math.min(100, Math.round((val/tgt)*100));
+    const over = val > tgt;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+        <span style="color:var(--muted)">${label}</span>
+        <span style="color:${over?'var(--orange)':'var(--text)'}">${val}<span style="color:var(--muted)"> / ${tgt}${label==='Kcal'?'':' g'}</span></span>
+      </div>
+      <div style="height:5px;background:var(--card2);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${over?'var(--orange)':color};border-radius:3px;transition:width .3s"></div>
+      </div>
+    </div>`;
+  };
+
+  const feedback = actual ? getMacroFeedback(actual, target, dayType) : [];
+
+  return `
+  <div class="sec-label" style="margin-top:16px">Nutrition <span style="color:var(--muted);font-weight:400;font-size:10px">${dayLabel} targets</span></div>
+  <div class="card" id="macro-card">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px">
+      ${[
+        {label:'Kcal',    val:target.kcal,    unit:'',  color:'var(--orange)'},
+        {label:'Protein', val:target.protein,  unit:'g', color:'var(--blue)'},
+        {label:'Carbs',   val:target.carbs,    unit:'g', color:'var(--yellow)'},
+        {label:'Fat',     val:target.fat,      unit:'g', color:'var(--purple)'},
+      ].map(m=>`<div style="background:var(--card2);border-radius:8px;padding:8px 6px;text-align:center">
+        <div style="font-size:15px;font-weight:500;color:${m.color}">${m.val}</div>
+        <div style="font-size:9px;color:var(--muted);margin-top:1px">${m.label}${m.unit?'·'+m.unit:''}</div>
+      </div>`).join('')}
+    </div>
+    ${actual ? `
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between"><span>Logged today</span><button onclick="openMacroModal()" style="background:none;border:none;color:var(--orange);font-size:11px;cursor:pointer;padding:0">Edit</button></div>
+        ${macroBar('Kcal',    actual.kcal,    target.kcal,    'var(--orange)')}
+        ${macroBar('Protein', actual.protein, target.protein, 'var(--blue)')}
+        ${macroBar('Carbs',   actual.carbs,   target.carbs,   'var(--yellow)')}
+        ${macroBar('Fat',     actual.fat,     target.fat,     'var(--purple)')}
+      </div>
+      ${feedback.map(f=>`<div style="background:var(--card2);border-left:3px solid ${f.color};border-radius:6px;padding:8px 10px;margin-bottom:6px;font-size:11px;color:var(--text);line-height:1.5">${f.icon} ${f.text}</div>`).join('')}
+    ` : `
+      <button onclick="openMacroModal()" style="width:100%;padding:10px;background:none;border:1px dashed var(--border);border-radius:8px;color:var(--orange);cursor:pointer;font-size:12px;letter-spacing:.5px">＋ Log today's nutrition</button>
+      <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px;line-height:1.5">Log your totals at end of day. Staying on target drives fat loss without hurting performance.</div>
+    `}
+  </div>`;
+}
+
+function openMacroModal() {
+  const dayType = getDayType(getTodayInfo()?.weekIdx||0, getTodayInfo()?.dayIdx||0);
+  const target = NUTRITION[dayType] || NUTRITION.single;
+  const existing = getMacroLog(todayStr()) || {};
+  const dayLabel = dayType==='double'?'Double Session':dayType==='single'?'Single Session':'Rest Day';
+
+  openModal('Nutrition · Today', `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:14px">
+      ${dayLabel} targets: <strong style="color:var(--text)">${target.kcal} kcal · ${target.protein}g P · ${target.carbs}g C · ${target.fat}g F</strong>
+    </div>
+    <div style="background:var(--card2);border-radius:10px;padding:12px;margin-bottom:14px;font-size:10px;color:var(--muted);line-height:1.6">
+      <strong style="color:var(--orange)">Why these numbers?</strong><br>
+      190g protein protects muscle even in a deficit. Carbs fuel your sessions — highest on doubles, lowest on rest. The modest calorie deficit (~300–400 kcal/day average) puts you on track for 0.3–0.5 kg fat loss per week without touching performance. Going too low on calories spikes cortisol, breaks down muscle, and tanks your runs.
+    </div>
+    ${[
+      {id:'f-kcal',    label:'Calories (kcal)', placeholder:target.kcal,   val:existing.kcal||''},
+      {id:'f-protein', label:'Protein (g)',      placeholder:target.protein, val:existing.protein||''},
+      {id:'f-carbs',   label:'Carbs (g)',        placeholder:target.carbs,   val:existing.carbs||''},
+      {id:'f-fat',     label:'Fat (g)',          placeholder:target.fat,     val:existing.fat||''},
+    ].map(f=>`<div class="form-field"><div class="form-label">${f.label} <span style="color:var(--muted)">· target ${f.placeholder}</span></div><input class="form-input" id="${f.id}" type="number" placeholder="${f.placeholder}" value="${f.val}"></div>`).join('')}
+  `, saveMacroModal);
+}
+
+function saveMacroModal() {
+  const data = {
+    kcal:    parseInt(document.getElementById('f-kcal')?.value)||0,
+    protein: parseInt(document.getElementById('f-protein')?.value)||0,
+    carbs:   parseInt(document.getElementById('f-carbs')?.value)||0,
+    fat:     parseInt(document.getElementById('f-fat')?.value)||0,
+  };
+  saveMacroLog(data);
+  closeModal();
+  renderToday();
 }
 
 // --- Swap system ---
