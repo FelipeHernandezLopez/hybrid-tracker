@@ -1695,28 +1695,78 @@ let _recentLogs = [];
 async function renderLog() {
   const el = document.getElementById('log-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
-  const { data: logs } = await sb.from('session_logs').select('*').order('created_at',{ascending:false}).limit(50);
+  const { data: logs } = await sb.from('session_logs').select('*').order('created_at',{ascending:false}).limit(100);
   if (!logs?.length) { el.innerHTML='<div class="empty-state"><div class="empty-state-title">No Sessions Logged Yet</div><p>Log sessions from the Today or Plan tab.</p></div>'; return; }
   _recentLogs = logs;
-  el.innerHTML = `<div class="sec-label">Recent Sessions</div>`+logs.map((log,idx)=>{
-    const color=typeColor(log.type); let metrics='';
-    if(log.data?.distance) metrics+=`<em>${log.data.distance}km</em>`;
-    if(log.data?.duration&&typeof log.data.duration==='string') metrics+=` · ${log.data.duration}`;
-    if(log.data?.hr) metrics+=` · <em>${log.data.hr}bpm</em>`;
-    if(log.data?.exercises) metrics+=`<em>${log.data.exercises.length} exercise${log.data.exercises.length>1?'s':''}</em>`;
-    if(log.data?.totalTime) metrics+=`Total: <em>${log.data.totalTime}</em>`;
-    if(log.data?.completed&&!metrics) metrics='Marked done';
-    return `<div class="log-recent-item" onclick="openLogDetail(${idx})" style="cursor:pointer">
-      <div class="log-ri-top">
-        <span class="log-ri-name" style="color:${color}">${log.name}</span>
-        <span style="display:flex;align-items:center;gap:8px">
-          <span class="log-ri-date">${log.date}</span>
-          <span style="font-size:10px;color:var(--muted)">›</span>
-        </span>
-      </div>
-      <div class="log-ri-metrics">${metrics||'Logged'}</div>
-    </div>`;
-  }).join('')+'<div style="height:16px"></div>';
+
+  const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
+  const phNames =['','Foundation','Development','Peak','Taper & Race'];
+
+  // Group logs by week_idx
+  const byWeek = {};
+  logs.forEach((log, idx) => {
+    const wk = log.week_idx ?? -1;
+    if (!byWeek[wk]) byWeek[wk] = [];
+    byWeek[wk].push({log, idx});
+  });
+
+  let html = '';
+  const weekKeys = Object.keys(byWeek).sort((a,b)=>b-a); // newest first
+
+  weekKeys.forEach(wk => {
+    const wIdx = parseInt(wk);
+    const week = PLAN[wIdx];
+    const entries = byWeek[wk];
+
+    // Week header
+    if (week) {
+      const ph = week.ph;
+      const sessionsDone = entries.length;
+      const sessionsPlanned = week.sessions;
+      const kmPlanned = week.km;
+      html += `
+        <div style="margin:14px 0 8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1.5px;color:var(--text)">${week.lbl}</div>
+            <span style="font-size:10px;color:${phColors[ph]};background:rgba(0,0,0,.3);border:1px solid ${phColors[ph]};border-radius:20px;padding:2px 8px">${phNames[ph]}</span>
+          </div>
+          <div style="display:flex;gap:12px;font-size:10px;color:var(--muted)">
+            <span>🏃 ${kmPlanned} km planned</span>
+            <span>📋 ${sessionsPlanned} sessions</span>
+            <span style="color:${sessionsDone>=sessionsPlanned?'var(--green)':'var(--orange)'}">✓ ${sessionsDone} logged</span>
+          </div>
+          <div style="height:1px;background:var(--border);margin-top:8px"></div>
+        </div>`;
+    } else {
+      html += `<div class="sec-label" style="margin-top:14px">Other Sessions</div>`;
+    }
+
+    // Session items for this week
+    entries.forEach(({log, idx}) => {
+      const color = typeColor(log.type);
+      let metrics = '';
+      if (log.data?.distance) metrics += `<em>${log.data.distance}km</em>`;
+      if (log.data?.duration && typeof log.data.duration==='string') metrics += ` · ${log.data.duration}`;
+      if (log.data?.hr) metrics += ` · <em>${log.data.hr}bpm</em>`;
+      if (log.data?.exercises) metrics += `<em>${log.data.exercises.length} ex</em>`;
+      if (log.data?.totalTime) metrics += `Total: <em>${log.data.totalTime}</em>`;
+      if (log.data?.completed && !metrics) metrics = 'Marked done';
+      const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const dayLabel = log.day_idx != null ? dayNames[log.day_idx] : '';
+      html += `<div class="log-recent-item" onclick="openLogDetail(${idx})" style="cursor:pointer;margin-bottom:6px">
+        <div class="log-ri-top">
+          <span class="log-ri-name" style="color:${color}">${log.name}</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span class="log-ri-date" style="color:var(--muted)">${dayLabel} ${log.date?.slice(5)||''}</span>
+            <span style="font-size:10px;color:var(--muted)">›</span>
+          </span>
+        </div>
+        <div class="log-ri-metrics">${metrics||'Logged'}</div>
+      </div>`;
+    });
+  });
+
+  el.innerHTML = html + '<div style="height:16px"></div>';
 }
 
 function openLogDetail(idx) {
