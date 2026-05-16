@@ -952,11 +952,11 @@ async function renderToday() {
       <div class="card-row"><span class="lbl">Total Calories</span><span class="val"><em>${nut.kcal}</em> kcal · ${dayType==='double'?'Double':dayType==='rest'?'Rest':'Single'} day</span></div>
     </div>
 
-    <div class="sec-label" style="display:flex;justify-content:space-between;align-items:center">
-      Supplements
-      <span style="font-size:10px;color:var(--muted);font-weight:400">Hold to pause unavailable</span>
-    </div>
+    <div class="sec-label">Supplements</div>
     <div class="card">
+      <div style="font-size:10px;color:var(--muted);background:var(--card2);border-radius:6px;padding:7px 10px;margin-bottom:10px;line-height:1.5">
+        💡 <strong style="color:var(--text)">Tip:</strong> Hold any supplement for 1 second to pause it if you don't currently have it. It will be excluded from your tracking until you reactivate it.
+      </div>
       ${SUPPS.map(s=>{
         const paused = getSuppPaused(s.key);
         return `
@@ -1320,7 +1320,24 @@ function toggleSuppPause(key) {
   const paused = JSON.parse(localStorage.getItem('supps_paused')||'{}');
   paused[key] = !paused[key];
   localStorage.setItem('supps_paused', JSON.stringify(paused));
-  renderToday();
+  // Update only the affected supp item in-place, no full re-render
+  const el = document.querySelector(`[data-supp-key="${key}"]`);
+  if (!el) return;
+  const isPaused = !!paused[key];
+  el.style.opacity = isPaused ? '0.45' : '';
+  const check = el.querySelector('.supp-check');
+  if (check) {
+    check.style.borderColor = isPaused ? 'var(--muted)' : '';
+    check.innerHTML = isPaused
+      ? `<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><line x1="4" y1="3" x2="4" y2="9"/><line x1="8" y1="3" x2="8" y2="9"/></svg>`
+      : `<svg class="supp-check-mark" viewBox="0 0 12 12"><polyline points="2,6 5,9 10,3"/></svg>`;
+  }
+  const nameEl = el.querySelector('.supp-name');
+  if (nameEl) {
+    const supp = SUPPS.find(s=>s.key===key);
+    nameEl.innerHTML = supp ? supp.name + (isPaused ? ` <span style="font-size:9px;color:var(--muted);background:var(--card2);padding:1px 5px;border-radius:4px;margin-left:4px">paused</span>` : '') : nameEl.textContent;
+  }
+  el.onclick = isPaused ? null : ()=>toggleSupp(key);
 }
 let _suppHoldTimer = null;
 function startSuppHold(key) {
