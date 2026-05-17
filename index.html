@@ -2278,8 +2278,12 @@ function connectPolar() {
 
 async function handlePolarCallback(code) {
   try {
-    const { data, error } = await sb.functions.invoke('dynamic-handler', { body: { code } });
-    if (error) throw new Error(error.message);
+    const res = await fetch('https://edbbbnpffralmrbzqjii.supabase.co/functions/v1/dynamic-handler', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const data = await res.json();
     if (!data.access_token) throw new Error(JSON.stringify(data));
     localStorage.setItem('polar_auth', JSON.stringify({access_token: data.access_token, token_type: data.token_type, x_user_id: data.x_user_id}));
     // Register user (required by Polar Accesslink before first data pull)
