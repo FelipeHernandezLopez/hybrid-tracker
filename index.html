@@ -1908,6 +1908,9 @@ async function renderPerformance() {
     <div class="sec-label">Sleep Score <span style="font-size:10px;color:#7a7568;font-weight:400">(Polar)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-sleep"></canvas></div></div>
 
+    <div class="sec-label">HRV Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(ms, from Polar)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-hrv"></canvas></div></div>
+
     <div class="sec-label">Calorie Adherence <span style="font-size:10px;color:#7a7568;font-weight:400">(%  of target, last 30 days)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-macros"></canvas></div></div>
     <div style="height:16px"></div>
@@ -1953,6 +1956,10 @@ async function renderPerformance() {
   const sl = allBody.filter(b => b.sleep_score > 0);
   mkLine('c-sleep', base, sl.map(b => b.date.slice(5)), sl.map(b => b.sleep_score), 'var(--blue)', false);
 
+  // HRV trend
+  const hrvRows = allBody.filter(b => b.hrv_value > 0);
+  mkLine('c-hrv', base, hrvRows.map(b => b.date.slice(5)), hrvRows.map(b => b.hrv_value), 'var(--green)', false);
+
   // Calorie adherence
   mkLine('c-macros', base, macroAdherDays, macroAdherPct, 'var(--yellow)', false);
 }
@@ -1995,7 +2002,7 @@ async function renderBody() {
   const el = document.getElementById('body-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
   const [{ data: bodyRows }, { data: injuries }] = await Promise.all([
-    sb.from('body_logs').select('*').order('date',{ascending:false}).limit(8),
+    sb.from('body_logs').select('*').order('date',{ascending:false}).limit(60),
     sb.from('injuries').select('*').order('created_at',{ascending:false}),
   ]);
 
@@ -2016,11 +2023,14 @@ async function renderBody() {
         <div class="form-field"><div class="form-label">Sleep Hours</div><input class="form-input" id="b-sleeph" type="number" step="0.5" placeholder="7.5" value="${todayLog?.sleep_hours||''}"></div>
         <div class="form-field"><div class="form-label">Sleep Score (Polar)</div><input class="form-input" id="b-sleeps" type="number" placeholder="0–100" value="${todayLog?.sleep_score??''}"></div>
       </div>
-      <div class="form-field"><div class="form-label">HRV Status (from Polar)</div>
-        <div class="hrv-btns">
-          <button class="hrv-btn ${_hrvSelected==='green'?'active-green':''}"  onclick="selectHRV('green')">Green</button>
-          <button class="hrv-btn ${_hrvSelected==='orange'?'active-orange':''}" onclick="selectHRV('orange')">Orange</button>
-          <button class="hrv-btn ${_hrvSelected==='red'?'active-red':''}"    onclick="selectHRV('red')">Red</button>
+      <div class="form-row" style="margin-bottom:10px">
+        <div class="form-field"><div class="form-label">HRV (ms, from Polar)</div><input class="form-input" id="b-hrv-val" type="number" placeholder="e.g. 62" value="${todayLog?.hrv_value||''}"></div>
+        <div class="form-field"><div class="form-label">HRV Status</div>
+          <div class="hrv-btns" style="margin-top:6px">
+            <button class="hrv-btn ${_hrvSelected==='green'?'active-green':''}"  onclick="selectHRV('green')">Green</button>
+            <button class="hrv-btn ${_hrvSelected==='orange'?'active-orange':''}" onclick="selectHRV('orange')">Orange</button>
+            <button class="hrv-btn ${_hrvSelected==='red'?'active-red':''}"    onclick="selectHRV('red')">Red</button>
+          </div>
         </div>
       </div>
       <div class="form-field"><div class="form-label">Notes</div><input class="form-input" id="b-notes" type="text" placeholder="How do you feel today?" value="${todayLog?.notes||''}"></div>
@@ -2051,8 +2061,34 @@ async function renderBody() {
       </div>`).join('') : '<div style="font-size:12px;color:var(--green);padding:8px 0">No active injuries.</div>'}
     <button class="add-btn" style="margin-top:8px" onclick="openAddInjury()">+ Log new injury</button>
     ${resolved.length?`<div class="sec-label">Resolved</div>${resolved.map(inj=>`<div class="injury-item" style="opacity:.45"><div class="injury-top"><span class="injury-part">${inj.body_part}</span><span class="injury-badge badge-resolved">resolved</span></div><div class="injury-desc">${inj.description||''}</div></div>`).join('')}`:''}
+    <div class="sec-label">Body Weight Trend</div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="b-c-weight"></canvas></div></div>
+
+    <div class="sec-label">Sleep Score Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(Polar)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="b-c-sleep"></canvas></div></div>
+
+    <div class="sec-label">HRV Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(ms, from Polar)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="b-c-hrv"></canvas></div></div>
+
     <div style="height:16px"></div>
   `;
+
+  // Render body charts (chronological order)
+  const chronoBody = [...(bodyRows||[])].reverse();
+  const base = {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:false}},
+    scales:{
+      x:{ticks:{color:'#7a7568',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},
+      y:{ticks:{color:'#7a7568',font:{size:9}},grid:{color:'rgba(255,255,255,0.06)'}}
+    }
+  };
+  const wt = chronoBody.filter(b=>b.weight>0);
+  mkLine('b-c-weight', base, wt.map(b=>b.date.slice(5)), wt.map(b=>b.weight), 'var(--yellow)', false);
+  const sl = chronoBody.filter(b=>b.sleep_score>0);
+  mkLine('b-c-sleep', base, sl.map(b=>b.date.slice(5)), sl.map(b=>b.sleep_score), 'var(--blue)', false);
+  const hrv = chronoBody.filter(b=>b.hrv_value>0);
+  mkLine('b-c-hrv', base, hrv.map(b=>b.date.slice(5)), hrv.map(b=>b.hrv_value), 'var(--green)', false);
 }
 
 function selectHRV(val) {
@@ -2064,7 +2100,7 @@ function selectHRV(val) {
 }
 
 async function saveBodyLog() {
-  const entry={date:todayStr(),weight:parseFloat(document.getElementById('b-weight')?.value)||null,resting_hr:parseInt(document.getElementById('b-rhr')?.value)||null,sleep_hours:parseFloat(document.getElementById('b-sleeph')?.value)||null,sleep_score:parseInt(document.getElementById('b-sleeps')?.value)||null,hrv:_hrvSelected,notes:document.getElementById('b-notes')?.value||''};
+  const entry={date:todayStr(),weight:parseFloat(document.getElementById('b-weight')?.value)||null,resting_hr:parseInt(document.getElementById('b-rhr')?.value)||null,sleep_hours:parseFloat(document.getElementById('b-sleeph')?.value)||null,sleep_score:parseInt(document.getElementById('b-sleeps')?.value)||null,hrv_value:parseInt(document.getElementById('b-hrv-val')?.value)||null,hrv:_hrvSelected,notes:document.getElementById('b-notes')?.value||''};
   await sb.from('body_logs').upsert(entry,{onConflict:'date'});
   if(entry.sleep_score) localStorage.setItem('sleep_'+todayStr(), entry.sleep_score);
   renderBody();
