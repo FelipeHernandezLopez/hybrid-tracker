@@ -286,7 +286,7 @@ body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;f
   </button>
   <button class="nav-btn" id="nav-stats" onclick="showPanel('stats')">
     <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    <span class="nav-lbl">Stats</span>
+    <span class="nav-lbl">Performance</span>
   </button>
   <button class="nav-btn" id="nav-body" onclick="showPanel('body')">
     <svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
@@ -868,7 +868,7 @@ function showPanel(id) {
   if (id==='today') renderToday();
   if (id==='plan')  renderPlan();
   if (id==='log')   renderLog();
-  if (id==='stats') renderStats();
+  if (id==='stats') renderPerformance();
   if (id==='body')  renderBody();
 }
 
@@ -1822,9 +1822,9 @@ function openLogDetail(idx) {
 }
 
 // ═══════════════════════════════════════════
-//  STATS TAB
+//  PERFORMANCE TAB
 // ═══════════════════════════════════════════
-async function renderStats() {
+async function renderPerformance() {
   const el = document.getElementById('stats-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
   const [{ data: logs }, { data: body }] = await Promise.all([
@@ -1832,66 +1832,153 @@ async function renderStats() {
     sb.from('body_logs').select('*').order('date'),
   ]);
   const info = getTodayInfo();
-  const runLogs = (logs||[]).filter(l=>l.type.includes('run'));
-  const totalKm = runLogs.reduce((s,l)=>s+(l.data?.distance||0),0);
-  const doneCt  = (logs||[]).length;
+  const allLogs = logs || [];
+  const allBody = body || [];
+  const runLogs = allLogs.filter(l => l.type && l.type.includes('run'));
+  const totalKm = runLogs.reduce((s, l) => s + (l.data?.distance || 0), 0);
+  const doneCt = allLogs.length;
+
+  // Program progress
+  const totalWeeks = 16;
+  const weeksComplete = info ? info.weekNum - 1 : 0;
+  const adherencePct = info && info.weekNum > 1
+    ? Math.round(doneCt / Math.max(1, (info.weekNum - 1) * 5) * 100)
+    : 0;
+
+  // Planned km total (from PLAN)
+  const plannedKm = PLAN.flat().flat().reduce((s, sess) => {
+    if (!sess) return s;
+    const km = sess.distance || (sess.exercises ? 0 : 0);
+    return s + (typeof km === 'number' ? km : 0);
+  }, 0);
+
+  // Sessions planned up to today
+  const sessionsPlanned = info ? (info.weekNum - 1) * 5 : 0;
+
+  // Weekly km data for bar chart
+  const weeklyKm = {};
+  runLogs.forEach(l => {
+    const d = new Date(l.date);
+    const wk = getISOWeek(d);
+    weeklyKm[wk] = (weeklyKm[wk] || 0) + (l.data?.distance || 0);
+  });
+  const wkLabels = Object.keys(weeklyKm).sort();
+  const wkData = wkLabels.map(k => +weeklyKm[k].toFixed(1));
+
+  // Macro adherence % per day from localStorage
+  const macroAdherDays = [];
+  const macroAdherPct = [];
+  for (let i = 30; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    const m = safeParseJSON(localStorage.getItem('macros_' + ds));
+    if (!m) continue;
+    const dayInfo = getPlanInfoForDate(ds);
+    if (!dayInfo) continue;
+    const target = NUTRITION[dayInfo.dayType] || NUTRITION.rest;
+    const pct = Math.round(m.kcal / target.kcal * 100);
+    macroAdherDays.push(ds.slice(5));
+    macroAdherPct.push(Math.min(pct, 150));
+  }
 
   el.innerHTML = `
-    <div class="stat-grid">
-      <div class="stat-tile"><div class="stat-val">${doneCt}</div><div class="stat-lbl">Sessions Logged</div></div>
-      <div class="stat-tile"><div class="stat-val">${totalKm.toFixed(1)}</div><div class="stat-lbl">km Logged</div></div>
-      <div class="stat-tile"><div class="stat-val">${info?info.weekNum:'—'}</div><div class="stat-lbl">Current Week</div></div>
-      <div class="stat-tile"><div class="stat-val">${body?.length||0}</div><div class="stat-lbl">Body Logs</div></div>
+    <div class="sec-label">Program Overview</div>
+    <div class="card" style="margin-bottom:14px">
+      <div class="stat-grid" style="margin-bottom:10px">
+        <div class="stat-tile"><div class="stat-val">${weeksComplete}<span style="font-size:13px;color:#7a7568">/16</span></div><div class="stat-lbl">Weeks Done</div></div>
+        <div class="stat-tile"><div class="stat-val">${totalKm.toFixed(0)}<span style="font-size:13px;color:#7a7568">km</span></div><div class="stat-lbl">km Logged</div></div>
+        <div class="stat-tile"><div class="stat-val">${doneCt}<span style="font-size:13px;color:#7a7568">/${sessionsPlanned}</span></div><div class="stat-lbl">Sessions</div></div>
+        <div class="stat-tile"><div class="stat-val" style="color:${adherencePct>=80?'var(--green)':adherencePct>=60?'var(--yellow)':'var(--orange)'}">${adherencePct}%</div><div class="stat-lbl">Adherence</div></div>
+      </div>
+      <div style="height:6px;background:#1e1e1e;border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${Math.round(weeksComplete/totalWeeks*100)}%;background:var(--accent);border-radius:4px;transition:width .4s"></div>
+      </div>
+      <div style="font-size:10px;color:#7a7568;margin-top:4px;text-align:right">Week ${info?.weekNum||1} of 16 — ${info?.phase||'Base'}</div>
     </div>
-    <div class="sec-label">Zone 2 Pace Trend</div>
+
+    <div class="sec-label">Zone 2 Pace Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(min/km, lower = faster)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-pace"></canvas></div></div>
-    <div class="sec-label">Bench Press Top Set</div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-bench"></canvas></div></div>
-    <div class="sec-label">Body Weight</div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-weight"></canvas></div></div>
-    <div class="sec-label">Sleep Score</div>
+
+    <div class="sec-label">Long Run Distance <span style="font-size:10px;color:#7a7568;font-weight:400">(km)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-longrun"></canvas></div></div>
+
+    <div class="sec-label">Weekly km Total</div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-weeklykm"></canvas></div></div>
+
+    <div class="sec-label">Sleep Score <span style="font-size:10px;color:#7a7568;font-weight:400">(Polar)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-sleep"></canvas></div></div>
-    <div class="sec-label">Daily Water (litres)</div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-water"></canvas></div></div>
-    <div class="sec-label">Supplement Adherence (%)</div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-supps"></canvas></div></div>
+
+    <div class="sec-label">Calorie Adherence <span style="font-size:10px;color:#7a7568;font-weight:400">(%  of target, last 30 days)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-macros"></canvas></div></div>
     <div style="height:16px"></div>
   `;
 
-  Object.values(chartInstances).forEach(c=>c.destroy()); chartInstances={};
-  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
-    scales:{x:{ticks:{color:'#7a7568',font:{size:9}},grid:{color:'rgba(255,255,255,0.04)'}},
-            y:{ticks:{color:'#7a7568',font:{size:9}},grid:{color:'rgba(255,255,255,0.06)'}}}};
+  Object.values(chartInstances).forEach(c => c.destroy()); chartInstances = {};
+  const base = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { ticks: { color: '#7a7568', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+      y: { ticks: { color: '#7a7568', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } }
+    }
+  };
 
   // Zone 2 pace
-  const z2=runLogs.filter(l=>l.type==='run-z2'&&l.data?.distance>0&&l.data?.duration);
-  mkLine('c-pace',base,z2.map(l=>l.date.slice(5)),z2.map(l=>{const p=l.data.duration.split(':').map(Number);const s=p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+(p[1]||0);return+(s/l.data.distance/60).toFixed(2);}),'var(--green)',true);
+  const z2 = runLogs.filter(l => l.type === 'run-z2' && l.data?.distance > 0 && l.data?.duration);
+  mkLine('c-pace', base, z2.map(l => l.date.slice(5)), z2.map(l => {
+    const p = l.data.duration.split(':').map(Number);
+    const s = p.length === 3 ? p[0] * 3600 + p[1] * 60 + p[2] : p[0] * 60 + (p[1] || 0);
+    return +(s / l.data.distance / 60).toFixed(2);
+  }), 'var(--green)', true);
 
-  // Bench
-  const str=(logs||[]).filter(l=>l.type==='strength'&&l.data?.exercises);
-  const bench=str.map(l=>{const ex=l.data.exercises.find(e=>e.name.toLowerCase().includes('bench'));if(!ex||!ex.sets.length)return null;return{d:l.date.slice(5),kg:Math.max(...ex.sets.map(s=>s.kg||0))};}).filter(Boolean);
-  mkLine('c-bench',base,bench.map(d=>d.d),bench.map(d=>d.kg),'var(--orange)',false);
+  // Long run distance
+  const longRuns = runLogs.filter(l => l.type === 'run-long' && l.data?.distance > 0);
+  mkLine('c-longrun', base, longRuns.map(l => l.date.slice(5)), longRuns.map(l => l.data.distance), 'var(--orange)', false);
 
-  // Weight
-  const wt=(body||[]).filter(b=>b.weight>0);
-  mkLine('c-weight',base,wt.map(b=>b.date.slice(5)),wt.map(b=>b.weight),'var(--yellow)',false);
+  // Weekly km bar chart
+  const ctx2 = document.getElementById('c-weeklykm')?.getContext('2d');
+  if (ctx2) {
+    const empty = !wkData.length;
+    chartInstances['c-weeklykm'] = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: empty ? ['Log runs to see data'] : wkLabels.map(w => 'W' + w),
+        datasets: [{ data: empty ? [0] : wkData, backgroundColor: 'rgba(74,158,219,0.5)', borderColor: 'var(--blue)', borderWidth: 1, borderRadius: 3 }]
+      },
+      options: { ...base }
+    });
+  }
 
-  // Sleep
-  const sl=(body||[]).filter(b=>b.sleep_score>0);
-  mkLine('c-sleep',base,sl.map(b=>b.date.slice(5)),sl.map(b=>b.sleep_score),'var(--blue)',false);
+  // Sleep score
+  const sl = allBody.filter(b => b.sleep_score > 0);
+  mkLine('c-sleep', base, sl.map(b => b.date.slice(5)), sl.map(b => b.sleep_score), 'var(--blue)', false);
 
-  // Water
-  const wa=(body||[]).filter(b=>b.water_glasses>0);
-  mkLine('c-water',base,wa.map(b=>b.date.slice(5)),wa.map(b=>Math.round(b.water_glasses*250/100)/10),'var(--teal)',false);
+  // Calorie adherence
+  mkLine('c-macros', base, macroAdherDays, macroAdherPct, 'var(--yellow)', false);
+}
 
-  // Supplement adherence
-  const suppKeys = SUPPS.map(s=>s.key);
-  const suppData = (body||[]).filter(b=>b.supps_done&&Object.keys(b.supps_done).length>0);
-  const suppPct = suppData.map(b=>{
-    const done = suppKeys.filter(k=>b.supps_done[k]).length;
-    return Math.round(done/suppKeys.length*100);
-  });
-  mkLine('c-supps',base,suppData.map(b=>b.date.slice(5)),suppPct,'var(--purple)',false);
+function safeParseJSON(s) { try { return s ? JSON.parse(s) : null; } catch(e) { return null; } }
+
+function getPlanInfoForDate(dateStr) {
+  const start = new Date(PROGRAM_START);
+  const d = new Date(dateStr);
+  const diffDays = Math.floor((d - start) / 86400000);
+  if (diffDays < 0) return null;
+  const wIdx = Math.floor(diffDays / 7);
+  const dIdx = diffDays % 7;
+  if (wIdx >= PLAN.length) return null;
+  const week = PLAN[wIdx];
+  const sessions = week[dIdx] || [];
+  const dayType = sessions.length === 2 ? 'double' : sessions.length === 1 ? 'single' : 'rest';
+  return { wIdx, dIdx, dayType };
+}
+
+function getISOWeek(d) {
+  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const dayNum = date.getUTCDay() || 7;
+  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
 }
 
 function mkLine(id,base,labels,data,color,invertY) {
