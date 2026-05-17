@@ -812,6 +812,18 @@ const PLAN=[
 //  UTILITIES
 // ═══════════════════════════════════════════
 const PANELS = ['today','plan','log','stats','body'];
+
+// ─── INTEGRATIONS ──────────────────────────────
+const STRAVA_CFG = {
+  clientId: '246619',
+  clientSecret: '1811cee11b290a9468536979879065ffb610fa70',
+  redirectUri: 'https://felipehernandezlopez.github.io/hybrid-tracker/',
+};
+const POLAR_CFG = {
+  clientId: '8034e007-b5e5-463d-bb19-13dcebc363d8',
+  clientSecret: 'afeeb413-54e9-4899-b225-c078fdaad1ba',
+  redirectUri: 'https://felipehernandezlopez.github.io/hybrid-tracker/',
+};
 let activePanel = 'today';
 let modalSaveCallback = null;
 let planWeekIdx = 0;
@@ -903,6 +915,20 @@ function showPanel(id) {
   if (id==='log')   renderLog();
   if (id==='stats') renderPerformance();
   if (id==='body')  renderBody();
+}
+
+function showToast(msg, duration=3000) {
+  let t = document.getElementById('app-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'app-toast';
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#333;color:#fff;padding:10px 18px;border-radius:20px;font-size:13px;z-index:9999;pointer-events:none;transition:opacity .3s;white-space:nowrap;max-width:90vw;text-align:center';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', duration);
 }
 
 function openModal(title, bodyHTML, cb) {
@@ -2083,6 +2109,8 @@ async function renderBody() {
         </div>
       </div>`).join('') : '<div class="empty-state" style="padding:16px"><p>No body logs yet.</p></div>'}
 
+    ${buildConnectionsCard()}
+
     <div class="sec-label">Injuries</div>
     ${active.length ? active.map(inj=>`
       <div class="injury-item">
@@ -2158,8 +2186,223 @@ async function resolveInjury(id) { await sb.from('injuries').update({status:'res
 async function monitorInjury(id) { await sb.from('injuries').update({status:'monitoring'}).eq('id',id); renderBody(); }
 
 // ═══════════════════════════════════════════
+//  STRAVA
+// ═══════════════════════════════════════════
+function connectStrava() {
+  const url = `https://www.strava.com/oauth/authorize?client_id=${STRAVA_CFG.clientId}&response_type=code&redirect_uri=${encodeURIComponent(STRAVA_CFG.redirectUri)}&approval_prompt=auto&scope=activity:read_all&state=strava`;
+  window.location.href = url;
+}
+
+async function handleStravaCallback(code) {
+  try {
+    const res = await fetch('https://www.strava.com/oauth/token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({client_id: STRAVA_CFG.clientId, client_secret: STRAVA_CFG.clientSecret, code, grant_type: 'authorization_code'})
+    });
+    const data = await res.json();
+    if (!data.access_token) throw new Error(data.message || 'No token');
+    localStorage.setItem('strava_auth', JSON.stringify({access_token: data.access_token, refresh_token: data.refresh_token, expires_at: data.expires_at, athlete_name: data.athlete?.firstname || ''}));
+    showToast('Strava connected! Tap Import to sync activities.');
+  } catch(e) { showToast('Strava connection failed: ' + e.message); }
+}
+
+async function getStravaToken() {
+  const stored = safeParseJSON(localStorage.getItem('strava_auth'));
+  if (!stored) return null;
+  if (stored.expires_at * 1000 > Date.now() + 60000) return stored.access_token;
+  try {
+    const res = await fetch('https://www.strava.com/oauth/token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({client_id: STRAVA_CFG.clientId, client_secret: STRAVA_CFG.clientSecret, refresh_token: stored.refresh_token, grant_type: 'refresh_token'})
+    });
+    const data = await res.json();
+    stored.access_token = data.access_token;
+    stored.refresh_token = data.refresh_token;
+    stored.expires_at = data.expires_at;
+    localStorage.setItem('strava_auth', JSON.stringify(stored));
+    return data.access_token;
+  } catch(e) { return stored.access_token; }
+}
+
+async function importStrava() {
+  const token = await getStravaToken();
+  if (!token) { showToast('Connect Strava first'); return; }
+  showToast('Importing Strava activities…');
+  try {
+    const after = Math.floor(new Date(PROGRAM_START).getTime() / 1000);
+    const res = await fetch(`https://www.strava.com/api/v3/athlete/activities?per_page=100&after=${after}`, {
+      headers: {'Authorization': `Bearer ${token}`}
+    });
+    const acts = await res.json();
+    if (!Array.isArray(acts)) throw new Error('Bad response from Strava');
+    const runs = acts.filter(a => a.type === 'Run' || a.sport_type === 'Run');
+    let imported = 0;
+    for (const act of runs) {
+      const date = act.start_date_local.slice(0, 10);
+      const diffDays = Math.floor((new Date(date) - new Date(PROGRAM_START)) / 86400000);
+      if (diffDays < 0) continue;
+      const wIdx = Math.floor(diffDays / 7);
+      const dIdx = diffDays % 7;
+      const km = +(act.distance / 1000).toFixed(2);
+      const name = act.name.toLowerCase();
+      let type = 'run-z2';
+      if (km >= 14 || name.includes('long')) type = 'run-long';
+      else if (name.includes('tempo') || name.includes('threshold') || name.includes('interval') || name.includes('hard')) type = 'run-hard';
+      const secs = act.moving_time;
+      const dur = [Math.floor(secs/3600), Math.floor(secs%3600/60), secs%60].map(n=>String(n).padStart(2,'0')).join(':');
+      const entry = {
+        date, week_idx: wIdx, day_idx: dIdx,
+        slot: `strava-${act.id}`,
+        type, name: act.name,
+        data: {distance: km, duration: dur, elevation: act.total_elevation_gain, avg_hr: act.average_heartrate || null, source: 'strava', strava_id: act.id}
+      };
+      await sb.from('session_logs').upsert(entry, {onConflict: 'date,slot'});
+      imported++;
+    }
+    showToast(`✓ Imported ${imported} run${imported!==1?'s':''} from Strava`);
+    if (activePanel === 'log') renderLog();
+  } catch(e) { showToast('Import failed: ' + e.message); }
+}
+
+function disconnectStrava() { localStorage.removeItem('strava_auth'); renderBody(); }
+
+// ═══════════════════════════════════════════
+//  POLAR
+// ═══════════════════════════════════════════
+function connectPolar() {
+  const url = `https://flow.polar.com/oauth2/authorization?response_type=code&client_id=${POLAR_CFG.clientId}&redirect_uri=${encodeURIComponent(POLAR_CFG.redirectUri)}&state=polar`;
+  window.location.href = url;
+}
+
+async function handlePolarCallback(code) {
+  try {
+    const creds = btoa(`${POLAR_CFG.clientId}:${POLAR_CFG.clientSecret}`);
+    const res = await fetch('https://polarremote.com/v2/oauth2/token', {
+      method: 'POST',
+      headers: {'Authorization': `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
+      body: `grant_type=authorization_code&code=${encodeURIComponent(code)}`
+    });
+    const data = await res.json();
+    if (!data.access_token) throw new Error(data.error_description || 'No token');
+    localStorage.setItem('polar_auth', JSON.stringify({access_token: data.access_token, token_type: data.token_type, x_user_id: data.x_user_id}));
+    // Register user (required by Polar Accesslink before first data pull)
+    await fetch(`https://www.polaraccesslink.com/v3/users`, {
+      method: 'POST',
+      headers: {'Authorization': `Bearer ${data.access_token}`, 'Content-Type': 'application/json', 'Accept': 'application/json'},
+      body: JSON.stringify({'member-id': String(data.x_user_id)})
+    }).catch(() => {}); // 409 = already registered, safe to ignore
+    showToast('Polar connected! Tap Import to sync sleep & HRV.');
+  } catch(e) { showToast('Polar connection failed: ' + e.message); }
+}
+
+async function importPolar() {
+  const auth = safeParseJSON(localStorage.getItem('polar_auth'));
+  if (!auth?.access_token) { showToast('Connect Polar first'); return; }
+  showToast('Importing Polar sleep & HRV data…');
+  try {
+    const userId = auth.x_user_id;
+    const headers = {'Authorization': `Bearer ${auth.access_token}`, 'Accept': 'application/json'};
+    const [sleepRes, nrRes] = await Promise.all([
+      fetch(`https://www.polaraccesslink.com/v3/users/${userId}/sleep`, {headers}),
+      fetch(`https://www.polaraccesslink.com/v3/users/${userId}/nightly-recharge`, {headers})
+    ]);
+    const sleepData = await sleepRes.json().catch(() => ({}));
+    const nrData = await nrRes.json().catch(() => ({}));
+    const sleepItems = sleepData?.nights || sleepData?.data || [];
+    const nrItems = nrData?.recharges || nrData?.data || [];
+    // Index nightly recharge by date
+    const nrByDate = {};
+    nrItems.forEach(r => { const d = (r.date || r.nightly_recharge_date || '').slice(0, 10); if (d) nrByDate[d] = r; });
+    let imported = 0;
+    for (const night of sleepItems) {
+      const date = (night.date || night.sleep_start_time || '').slice(0, 10);
+      if (!date || date < PROGRAM_START) continue;
+      const startMs = night.sleep_start_time ? new Date(night.sleep_start_time).getTime() : 0;
+      const endMs   = night.sleep_end_time   ? new Date(night.sleep_end_time).getTime()   : 0;
+      const sleepHours = startMs && endMs ? +((endMs - startMs) / 3600000).toFixed(1) : null;
+      const sleepScore = night.sleep_score ?? null;
+      const nr = nrByDate[date];
+      const ansCharge = nr?.ans_charge ?? null;
+      // Map ANS charge (1–4 scale) to hrv status
+      let hrv = null;
+      if (ansCharge !== null) hrv = ansCharge >= 3 ? 'green' : ansCharge >= 2 ? 'orange' : 'red';
+      const hrv_value = nr?.heart_rate_avg ?? null;
+      const entry = {date, sleep_hours: sleepHours, sleep_score: sleepScore, hrv, hrv_value};
+      Object.keys(entry).forEach(k => entry[k] === null && delete entry[k]);
+      await sb.from('body_logs').upsert({date, ...entry}, {onConflict: 'date'});
+      if (sleepScore) localStorage.setItem('sleep_' + date, sleepScore);
+      imported++;
+    }
+    showToast(`✓ Imported ${imported} night${imported!==1?'s':''} from Polar`);
+    if (activePanel === 'body') renderBody();
+  } catch(e) { showToast('Import failed: ' + e.message); }
+}
+
+function disconnectPolar() { localStorage.removeItem('polar_auth'); renderBody(); }
+
+function buildConnectionsCard() {
+  const strava = safeParseJSON(localStorage.getItem('strava_auth'));
+  const polar  = safeParseJSON(localStorage.getItem('polar_auth'));
+  const stravaName = strava?.athlete_name || '';
+  return `
+    <div class="sec-label">Connections</div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:#FC4C02;border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0l-7 13.828h4.169"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Strava</div>
+            <div style="font-size:11px;color:${strava ? 'var(--green)' : 'var(--muted)'}">${strava ? '● Connected' + (stravaName ? ' · ' + stravaName : '') : '○ Not connected'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          ${strava
+            ? `<button onclick="importStrava()" style="padding:6px 10px;background:rgba(252,76,2,.15);border:1px solid rgba(252,76,2,.3);border-radius:7px;color:#FC4C02;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Import</button>
+               <button onclick="disconnectStrava()" style="padding:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Disconnect</button>`
+            : `<button onclick="connectStrava()" style="padding:6px 12px;background:rgba(252,76,2,.15);border:1px solid rgba(252,76,2,.4);border-radius:7px;color:#FC4C02;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Connect</button>`
+          }
+        </div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;background:#D0021B;border-radius:8px;display:flex;align-items:center;justify-content:center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2" stroke="#D0021B" stroke-width="2" stroke-linecap="round"/></svg>
+          </div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--text)">Polar Flow</div>
+            <div style="font-size:11px;color:${polar ? 'var(--green)' : 'var(--muted)'}">${polar ? '● Connected · Sleep & HRV sync' : '○ Not connected'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          ${polar
+            ? `<button onclick="importPolar()" style="padding:6px 10px;background:rgba(208,2,27,.15);border:1px solid rgba(208,2,27,.3);border-radius:7px;color:#D0021B;font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Import</button>
+               <button onclick="disconnectPolar()" style="padding:6px 10px;background:var(--card);border:1px solid var(--border);border-radius:7px;color:var(--muted);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Disconnect</button>`
+            : `<button onclick="connectPolar()" style="padding:6px 12px;background:rgba(208,2,27,.15);border:1px solid rgba(208,2,27,.4);border-radius:7px;color:#D0021B;font-size:11px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif">Connect</button>`
+          }
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
+// Handle OAuth callbacks (Strava / Polar redirect back here with ?code=)
+(function handleOAuthCallback() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  const state = params.get('state');
+  if (!code) return;
+  history.replaceState({}, '', window.location.pathname);
+  if (state === 'strava') handleStravaCallback(code).then(() => showPanel('body'));
+  else if (state === 'polar') handlePolarCallback(code).then(() => showPanel('body'));
+})();
+
 updateHeader();
 renderToday();
 </script>
