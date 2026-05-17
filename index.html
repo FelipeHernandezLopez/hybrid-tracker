@@ -2278,11 +2278,10 @@ function connectPolar() {
 
 async function handlePolarCallback(code) {
   try {
-    const creds = btoa(`${POLAR_CFG.clientId}:${POLAR_CFG.clientSecret}`);
-    const res = await fetch('https://polarremote.com/v2/oauth2/token', {
+    const res = await fetch('https://edbbbnpffralmrbzqjii.supabase.co/functions/v1/polar-auth', {
       method: 'POST',
-      headers: {'Authorization': `Basic ${creds}`, 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json'},
-      body: `grant_type=authorization_code&code=${encodeURIComponent(code)}`
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({code})
     });
     const data = await res.json();
     if (!data.access_token) throw new Error(data.error_description || 'No token');
