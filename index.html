@@ -516,6 +516,39 @@ function buildQuoteBar() {
   </div>`;
 }
 
+function buildProgressCard(info) {
+  const totalWeeks = 16;
+  const weekNum = info.weekNum;
+  const pct = Math.round((weekNum - 1) / totalWeeks * 100);
+  const phColors = ['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
+  const phNames  = ['','Foundation','Development','Peak','Taper & Race'];
+  const ph = PLAN[info.weekIdx]?.ph || 1;
+  const dayOfWeek = info.dayIdx + 1;
+
+  // Sessions done this week (from doneLogs loaded separately — use a lightweight count from plan)
+  const weeksLeft = totalWeeks - weekNum + 1;
+
+  return `<div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1.5px;color:var(--text)">WEEK ${weekNum} <span style="color:${phColors[ph]};font-size:16px">· ${phNames[ph].toUpperCase()}</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:2px">Day ${dayOfWeek} of 7 · ${weeksLeft} week${weeksLeft!==1?'s':''} to race</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:22px;font-family:'Bebas Neue',sans-serif;color:var(--accent)">${pct}%</div>
+        <div style="font-size:10px;color:var(--muted)">program done</div>
+      </div>
+    </div>
+    <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
+      <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,var(--green),var(--accent));border-radius:4px;transition:width .4s"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-top:6px">
+      <span style="font-size:9px;color:var(--muted)">W1 · Start</span>
+      <span style="font-size:9px;color:var(--muted)">W16 · Race</span>
+    </div>
+  </div>`;
+}
+
 function getHabitStreak(key) {
   let streak = 0;
   const today = new Date(todayStr()+'T12:00:00');
@@ -942,6 +975,7 @@ async function renderToday() {
 
   el.innerHTML = `
     ${buildQuoteBar()}
+    ${buildProgressCard(info)}
 
     <div class="condition-card ${cond.level}">
       <div class="condition-status">${cond.label}</div>
