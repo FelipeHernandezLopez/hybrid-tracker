@@ -485,7 +485,11 @@ function getHabitsDone(suppDone, doneLogs, bodyLog) {
   const activeSupps = SUPPS.filter(s=>!pausedSupps[s.key]);
   const allSupps = activeSupps.length > 0 && activeSupps.every(s=>suppDone[s.key]);
   const hasSleep = bodyLog?.sleep_score != null || localStorage.getItem('sleep_'+today) !== null;
-  const hasTraining = doneLogs?.some(l=>l.day_idx === (getTodayInfo()?.dayIdx)) || false;
+  const todayInfo = getTodayInfo();
+  const hasTraining = doneLogs?.some(l =>
+    l.day_idx === todayInfo?.dayIdx ||
+    (l.slot === 'custom' && l.date === today)
+  ) || false;
   const manual = JSON.parse(localStorage.getItem('habits_manual_'+today)||'{}');
   return {
     training: hasTraining,
@@ -497,6 +501,7 @@ function getHabitsDone(suppDone, doneLogs, bodyLog) {
     stretch:  !!manual.stretch,
     dutch:    !!manual.dutch,
     journal:  !!manual.journal,
+    coldsho:  !!manual.coldsho,
   };
 }
 
@@ -1060,12 +1065,10 @@ async function renderToday() {
     <div class="condition-card ${cond.level}">
       <div class="condition-status">${cond.label}</div>
       <div class="condition-msg">${cond.msg}</div>
-      <div class="condition-sleep-row">
-        <span class="sleep-label">Sleep</span>
-        <span class="sleep-val" id="sleep-display">${scoreDisplay}</span>
-        <input class="sleep-range" type="range" min="0" max="100" value="${rangeVal}"
-          oninput="document.getElementById('sleep-display').textContent=this.value">
-        <button class="btn-save-sleep" onclick="saveSleepScore(document.querySelector('.sleep-range').value)">Save</button>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="sleep-label">Sleep score</span>
+        <span style="font-size:20px;font-weight:700;color:var(--text)">${scoreDisplay}</span>
+        ${sleepScore===null?`<span style="font-size:10px;color:var(--muted)">· Log in Body tab or sync Polar</span>`:''}
       </div>
     </div>
 
@@ -1407,8 +1410,7 @@ function buildSessionCard(s, wIdx, dIdx, slot, done, isDouble) {
       <div class="sblock-detail">${resolved.d}</div>
       ${resolved.dur?`<div class="sblock-dur">${resolved.dur}</div>`:''}
       <div class="sblock-actions">
-        <button class="btn-log" onclick="openLogModal(${wIdx},${dIdx},'${slot}')">${done?'Edit Log':'Log Session'}</button>
-        ${!done?`<button class="btn-done" onclick="markDone(${wIdx},${dIdx},'${slot}')">Mark Done</button>`:''}
+        <button class="btn-log" onclick="openLogModal(${wIdx},${dIdx},'${slot}')">${done?'✓ Edit Log':'Save Session'}</button>
         ${canMove?`<button class="btn-done" style="background:var(--card2);color:var(--blue)" onclick="openMoveModal(${wIdx},${dIdx},'${slot}')">↔ Move</button>`:''}
       </div>
     </div>`;
@@ -1786,8 +1788,9 @@ async function saveLogSession() {
     data.rpe=parseInt(document.getElementById('f-rpe')?.value)||6;
   }
 
-  await sb.from('session_logs').insert({date:_logCtx.date||todayStr(),week_idx:wIdx,day_idx:dIdx,slot,type:s.t,name:s.n,data});
+  await sb.from('session_logs').upsert({date:_logCtx.date||todayStr(),week_idx:wIdx,day_idx:dIdx,slot,type:s.t,name:s.n,data},{onConflict:'date,slot'});
   closeModal();
+  showToast('✓ Session saved');
   if (activePanel==='today') renderToday();
   if (activePanel==='plan')  renderPlan();
 }
@@ -1955,8 +1958,10 @@ async function renderPerformance() {
   // Program progress
   const totalWeeks = 16;
   const weeksComplete = info ? info.weekNum - 1 : 0;
+  // Only count planned sessions (exclude strava imports and custom extras)
+  const plannedLogs = (logs||[]).filter(l => l.slot && !l.slot.startsWith('strava-') && l.slot !== 'custom');
   const adherencePct = info && info.weekNum > 1
-    ? Math.round(doneCt / Math.max(1, (info.weekNum - 1) * 5) * 100)
+    ? Math.round(plannedLogs.length / Math.max(1, (info.weekNum - 1) * 5) * 100)
     : 0;
 
   // Planned km total (from PLAN)
