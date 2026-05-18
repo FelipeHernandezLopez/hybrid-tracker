@@ -2130,8 +2130,9 @@ async function deleteLog(id) {
   await sb.from('session_logs').delete().eq('id', id);
   showToast('Session deleted');
   renderLog();
+  renderPerformance();
+  renderPlan();
   if (activePanel === 'today') renderToday();
-  if (activePanel === 'plan') renderPlan();
 }
 
 function openLogDetail(idx) {
@@ -2257,38 +2258,70 @@ async function renderPerformance() {
     macroAdherPct.push(Math.min(pct, 150));
   }
 
-  // Session type statistics — scheduled vs done per type
+  // Session type statistics
   const sessionTypes = ['strength','run-z2','run-hard','hyrox','swim'];
   const typeLabels   = {'strength':'Strength','run-z2':'Zone 2','run-hard':'Hard Run','hyrox':'Hyrox','swim':'Swim'};
   const typeColors   = {'strength':'var(--orange)','run-z2':'var(--green)','run-hard':'var(--yellow)','hyrox':'var(--blue)','swim':'var(--teal)'};
-  // Count scheduled sessions per type (full program up to now)
-  const scheduledByType = {};
-  const doneByType = {};
-  sessionTypes.forEach(t => { scheduledByType[t]=0; doneByType[t]=0; });
+  const today = todayStr();
+
+  // VIEW 1: Up to today — scheduled sessions due by today vs done by today
+  const schToday = {}, doneToday = {};
+  sessionTypes.forEach(t => { schToday[t]=0; doneToday[t]=0; });
   PLAN.forEach((w,wi) => {
-    if (!info || wi > info.weekIdx) return; // only count up to current week
-    w.days.forEach((day,di) => {
-      if (wi===info.weekIdx && di>info.dayIdx) return; // current week: only up to today
-      [day.am,day.pm].forEach(s => {
-        if (s && s.t && s.t!=='rest' && scheduledByType[s.t]!==undefined) scheduledByType[s.t]++;
+    if (!info || wi > info.weekIdx) return;
+    w.days.forEach((day, di) => {
+      const sessDate = sessionDate(wi, di);
+      if (sessDate > today) return; // not yet due
+      [day.am, day.pm].forEach(s => {
+        if (s && s.t && s.t!=='rest' && schToday[s.t]!==undefined) schToday[s.t]++;
+      });
+    });
+  });
+  (allLogs||[]).filter(l=>l.slot&&!l.slot.startsWith('strava-')&&l.slot!=='custom'&&l.date<=today).forEach(l => {
+    if (l.type && doneToday[l.type]!==undefined) doneToday[l.type]++;
+  });
+
+  // VIEW 2: Full plan — all sessions in weeks W1 to current week vs done total
+  const schFull = {}, doneFull = {};
+  sessionTypes.forEach(t => { schFull[t]=0; doneFull[t]=0; });
+  PLAN.forEach((w,wi) => {
+    if (!info || wi > info.weekIdx) return;
+    w.days.forEach((day) => {
+      [day.am, day.pm].forEach(s => {
+        if (s && s.t && s.t!=='rest' && schFull[s.t]!==undefined) schFull[s.t]++;
       });
     });
   });
   (allLogs||[]).filter(l=>l.slot&&!l.slot.startsWith('strava-')&&l.slot!=='custom').forEach(l => {
-    if (l.type && doneByType[l.type]!==undefined) doneByType[l.type]++;
+    if (l.type && doneFull[l.type]!==undefined) doneFull[l.type]++;
   });
-  const statsRows = sessionTypes.filter(t=>scheduledByType[t]>0).map(t => {
-    const pct = Math.min(100,Math.round(doneByType[t]/scheduledByType[t]*100));
-    return `<div style="margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+
+  // Extra sessions (custom/strava) — shown separately
+  const extraLogs = (allLogs||[]).filter(l=>l.slot==='custom'||l.slot?.startsWith('strava-'));
+  const extraByType = {};
+  extraLogs.forEach(l => { extraByType[l.type||'custom'] = (extraByType[l.type||'custom']||0)+1; });
+
+  const makeRow = (t, done, sch, showFuture=false) => {
+    if (sch === 0) return '';
+    const remaining = Math.max(0, sch - done);
+    const pct = Math.min(100, Math.round(done/sch*100));
+    const color = pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--red)';
+    return `<div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
         <span style="font-size:12px;font-weight:600;color:${typeColors[t]}">${typeLabels[t]}</span>
-        <span style="font-size:11px;color:var(--muted)">${doneByType[t]}/${scheduledByType[t]} · <span style="color:${pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--orange)'}">${pct}%</span></span>
+        <span style="font-size:11px;color:var(--muted)">${done}/${sch}${showFuture&&remaining>0?` <span style="color:#7a7568">(${remaining} left)</span>`:''} · <span style="color:${color}">${pct}%</span></span>
       </div>
-      <div style="height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${typeColors[t]};border-radius:3px"></div>
+      <div style="height:4px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${typeColors[t]};border-radius:3px;transition:width .3s"></div>
       </div>
     </div>`;
-  }).join('');
+  };
+
+  const todayRows = sessionTypes.map(t=>makeRow(t,doneToday[t],schToday[t])).join('');
+  const fullRows  = sessionTypes.map(t=>makeRow(t,doneFull[t],schFull[t],true)).join('');
+  const extraRow  = Object.keys(extraByType).length>0
+    ? Object.entries(extraByType).map(([t,n])=>`<span style="font-size:11px;color:var(--orange);background:rgba(244,84,29,.1);border:1px solid rgba(244,84,29,.2);border-radius:20px;padding:2px 8px">${t==='custom'?'Extra':t} ×${n}</span>`).join(' ')
+    : '<span style="font-size:11px;color:var(--muted)">None logged yet</span>';
 
   el.innerHTML = `
     <div style="position:relative;background:linear-gradient(135deg,#0F0E0C 0%,#1a1714 100%);border:1px solid #2a2520;border-radius:12px;padding:16px;margin-bottom:12px;overflow:hidden;display:flex;align-items:center;gap:14px">
@@ -2323,8 +2356,19 @@ async function renderPerformance() {
       <div style="font-size:10px;color:#7a7568;margin-top:4px;text-align:right">Week ${info?.weekNum||1} of 16 — ${info?.phase||'Base'}</div>
     </div>
 
-    <div class="sec-label">Session Completion by Type</div>
-    <div class="card" style="margin-bottom:14px;padding:14px">${statsRows||'<div style="color:var(--muted);font-size:12px">Log sessions to see stats</div>'}</div>
+    <div class="sec-label">Progress Up to Today</div>
+    <div class="card" style="margin-bottom:14px;padding:14px">
+      ${todayRows||'<div style="color:var(--muted);font-size:12px">Log sessions to see stats</div>'}
+    </div>
+
+    <div class="sec-label">Full Plan · W1–W${info?.weekNum||1} <span style="font-size:10px;color:#7a7568;font-weight:400">(scheduled + remaining)</span></div>
+    <div class="card" style="margin-bottom:6px;padding:14px">
+      ${fullRows||'<div style="color:var(--muted);font-size:12px">Log sessions to see stats</div>'}
+    </div>
+    <div style="margin-bottom:14px;padding:0 2px">
+      <div style="font-size:10px;color:#7a7568;margin-bottom:4px;letter-spacing:.5px;text-transform:uppercase">Extra / unplanned</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${extraRow}</div>
+    </div>
 
     <div class="sec-label">Zone 2 Pace Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(min/km, lower = faster)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-pace"></canvas></div></div>
