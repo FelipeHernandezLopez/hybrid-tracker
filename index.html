@@ -1507,7 +1507,12 @@ async function renderPlan() {
   const el = document.getElementById('plan-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
 
-  const { data: doneLogs } = await sb.from('session_logs').select('week_idx,day_idx,slot').eq('week_idx',planWeekIdx);
+  // Fetch logs for selected week + all planned logs for overview
+  const [{ data: doneLogs }, { data: allLogs }] = await Promise.all([
+    sb.from('session_logs').select('week_idx,day_idx,slot,data,type').eq('week_idx', planWeekIdx),
+    sb.from('session_logs').select('week_idx,slot,data,type'),
+  ]);
+
   const isDone = (dIdx,slot) => doneLogs?.some(l=>l.day_idx===dIdx&&l.slot===slot)||false;
 
   const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
@@ -1516,10 +1521,27 @@ async function renderPlan() {
   const isCurrentWeek = info && info.weekIdx===planWeekIdx;
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
+  // Weekly tracker stats
+  const plannedWeekLogs = (doneLogs||[]).filter(l => l.slot !== 'custom' && !l.slot?.startsWith('strava-'));
+  const sessionsDone = plannedWeekLogs.length;
+  const sessionsPlanned = week.sessions;
+  const weekAdherencePct = sessionsPlanned > 0 ? Math.min(100, Math.round(sessionsDone / sessionsPlanned * 100)) : 0;
+  const kmLogged = (doneLogs||[]).filter(l=>l.data?.distance>0).reduce((s,l)=>s+(l.data.distance||0),0);
+  const isPastOrCurrent = !info || planWeekIdx <= info.weekIdx;
+
+  // Overall program overview (all weeks)
+  const totalWeeks = 16;
+  const weeksComplete = info ? info.weekIdx : 0;
+  const totalPlannedSessions = weeksComplete * 5;
+  const totalDoneSessions = (allLogs||[]).filter(l => l.slot !== 'custom' && !l.slot?.startsWith('strava-')).length;
+  const overallPct = Math.round(weeksComplete / totalWeeks * 100);
+
   let navHTML=''; let lastPh=0;
   PLAN.forEach((w,i)=>{
     if(w.ph!==lastPh){navHTML+=`<span class="phase-sep" style="color:${phColors[w.ph]}">P${w.ph}</span>`;lastPh=w.ph;}
-    navHTML+=`<button class="wbtn ${i===planWeekIdx?'active':''}" onclick="selectPlanWeek(${i})">${w.lbl}</button>`;
+    const isW = i===planWeekIdx;
+    const isPast = info && i < info.weekIdx;
+    navHTML+=`<button class="wbtn ${isW?'active':''}" onclick="selectPlanWeek(${i})" style="${isPast&&!isW?'opacity:.5':''}"><span style="${isPast?'color:var(--green)':''}"> ${isPast?'✓ ':''}</span>${w.lbl}</button>`;
   });
 
   const gridHTML = dayNames.map((d,i)=>{
@@ -1533,13 +1555,54 @@ async function renderPlan() {
     return `<div class="dcol ${isToday?'today-col':''}"><div class="dhead">${d}</div>${amBlock}${pmBlock}</div>`;
   }).join('');
 
+  // Week tracker card
+  const weekTrackerHTML = isPastOrCurrent ? `
+    <div class="card" style="margin-bottom:12px;padding:12px 14px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:11px;letter-spacing:.8px;color:var(--muted);font-weight:600">WEEK TRACKER</div>
+        <div style="font-size:13px;font-weight:700;color:${weekAdherencePct>=80?'var(--green)':weekAdherencePct>=50?'var(--yellow)':'var(--orange)'}">${weekAdherencePct}% adherence</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:var(--text)">${sessionsDone}<span style="font-size:12px;color:var(--muted)">/${sessionsPlanned}</span></div>
+          <div style="font-size:10px;color:var(--muted)">Sessions</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:var(--text)">${kmLogged.toFixed(1)}<span style="font-size:12px;color:var(--muted)">km</span></div>
+          <div style="font-size:10px;color:var(--muted)">km Logged</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:20px;font-weight:700;color:${phColors[week.ph]}">${phNames[week.ph].split(' ')[0]}</div>
+          <div style="font-size:10px;color:var(--muted)">Phase ${week.ph}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:4px">${Array.from({length:sessionsPlanned},(_,i)=>`
+        <div style="flex:1;height:4px;border-radius:2px;background:${i<sessionsDone?'var(--green)':'rgba(255,255,255,0.08)'}"></div>`).join('')}
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div style="font-size:11px;letter-spacing:.8px;color:var(--muted);font-weight:600">PROGRAM PROGRESS</div>
+        <div style="font-size:12px;color:var(--text)">${totalDoneSessions}/${totalPlannedSessions} sessions · ${overallPct}%</div>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
+        <div style="height:100%;width:${overallPct}%;background:linear-gradient(90deg,var(--green),var(--accent));border-radius:4px"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:4px">
+        <span style="font-size:9px;color:var(--muted)">W1</span>
+        <span style="font-size:9px;color:var(--muted)">${info?`Week ${info.weekNum} of 16`:'Week 1 of 16'}</span>
+        <span style="font-size:9px;color:var(--muted)">W16 Race</span>
+      </div>
+    </div>
     <div class="week-nav">${navHTML}</div>
+    ${weekTrackerHTML}
     <div class="wstats">
-      <div class="wstat"><div class="wstat-val">${week.km}</div><div class="wstat-lbl">km</div></div>
+      <div class="wstat"><div class="wstat-val">${week.km}</div><div class="wstat-lbl">km planned</div></div>
       <div class="wstat"><div class="wstat-val">${week.sessions}</div><div class="wstat-lbl">sessions</div></div>
       <div class="wstat"><div class="wstat-val">${week.doubles}</div><div class="wstat-lbl">doubles</div></div>
-      <div class="wstat"><div class="wstat-val" style="color:${phColors[week.ph]};font-size:13px;padding-top:3px">${phNames[week.ph]}</div><div class="wstat-lbl">Phase ${week.ph}</div></div>
+      <div class="wstat"><div class="wstat-val" style="color:${phColors[week.ph]};font-size:11px;padding-top:5px">${phNames[week.ph]}</div><div class="wstat-lbl">Phase ${week.ph}</div></div>
     </div>
     <div class="legend">
       <div class="legend-item"><div class="legend-dot" style="background:var(--orange)"></div>Strength</div>
