@@ -973,9 +973,13 @@ function getTodayInfo() {
 }
 
 function getDayType(wIdx, dIdx) {
-  const day = PLAN[wIdx]?.days[dIdx];
-  if (!day || day.am.t === 'rest') return 'rest';
-  return day.pm ? 'double' : 'single';
+  // Use resolveSession so swapped sessions affect nutrition targets
+  const am = resolveSession(wIdx, dIdx, 'am');
+  const pm = resolveSession(wIdx, dIdx, 'pm');
+  const hasAm = am && am.t !== 'rest';
+  const hasPm = pm && pm.t !== 'rest';
+  if (!hasAm && !hasPm) return 'rest';
+  return (hasAm && hasPm) ? 'double' : 'single';
 }
 
 function typeColor(t) {
@@ -1612,19 +1616,37 @@ async function renderPlan() {
   const isCurrentWeek = info && info.weekIdx===planWeekIdx;
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
 
+  // Helper: is a log a planned program session?
+  const isPlanned = l => l.slot && l.slot !== 'custom' && !l.slot.startsWith('strava-');
+
   // Weekly tracker stats
-  const plannedWeekLogs = (doneLogs||[]).filter(l => l.slot !== 'custom' && !l.slot?.startsWith('strava-'));
+  const plannedWeekLogs = (doneLogs||[]).filter(isPlanned);
+  const extraWeekLogs   = (doneLogs||[]).filter(l => !isPlanned(l)); // custom/tennis etc.
   const sessionsDone = plannedWeekLogs.length;
   const sessionsPlanned = week.sessions;
   const weekAdherencePct = sessionsPlanned > 0 ? Math.min(100, Math.round(sessionsDone / sessionsPlanned * 100)) : 0;
   const kmLogged = (doneLogs||[]).filter(l=>l.data?.distance>0).reduce((s,l)=>s+(l.data.distance||0),0);
   const isPastOrCurrent = !info || planWeekIdx <= info.weekIdx;
 
-  // Overall program overview (all weeks)
+  // Overall program overview — count scheduled sessions up to TODAY (not just complete weeks)
   const totalWeeks = 16;
-  const weeksComplete = info ? info.weekIdx : 0;
-  const totalPlannedSessions = weeksComplete * 5;
-  const totalDoneSessions = (allLogs||[]).filter(l => l.slot !== 'custom' && !l.slot?.startsWith('strava-')).length;
+  const weeksComplete = info ? info.weekIdx : 0; // fully complete weeks
+  let scheduledUntilToday = 0;
+  if (info) {
+    PLAN.forEach((w, wi) => {
+      if (wi < info.weekIdx) { scheduledUntilToday += w.sessions; }
+      else if (wi === info.weekIdx) {
+        w.days.forEach((day, di) => {
+          if (di <= info.dayIdx) {
+            if (day.am && day.am.t !== 'rest') scheduledUntilToday++;
+            if (day.pm && day.pm.t !== 'rest') scheduledUntilToday++;
+          }
+        });
+      }
+    });
+  }
+  const totalDonePlanned = (allLogs||[]).filter(isPlanned).length;
+  const totalDoneExtra   = (allLogs||[]).filter(l => !isPlanned(l)).length;
   const overallPct = Math.round(weeksComplete / totalWeeks * 100);
 
   let navHTML=''; let lastPh=0;
@@ -1668,16 +1690,17 @@ async function renderPlan() {
     <div class="card" style="margin-bottom:12px;padding:12px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
         <div style="font-size:11px;letter-spacing:.8px;color:var(--muted);font-weight:600">WEEK TRACKER</div>
-        <div style="font-size:13px;font-weight:700;color:${weekAdherencePct>=80?'var(--green)':weekAdherencePct>=50?'var(--yellow)':'var(--orange)'}">${weekAdherencePct}% adherence</div>
+        <div style="font-size:13px;font-weight:700;color:${weekAdherencePct>=80?'var(--green)':weekAdherencePct>=50?'var(--yellow)':'var(--orange)'}">${weekAdherencePct}% plan done</div>
       </div>
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
         <div style="text-align:center">
           <div style="font-size:20px;font-weight:700;color:var(--text)">${sessionsDone}<span style="font-size:12px;color:var(--muted)">/${sessionsPlanned}</span></div>
-          <div style="font-size:10px;color:var(--muted)">Sessions</div>
+          <div style="font-size:10px;color:var(--muted)">Plan sessions</div>
+          ${extraWeekLogs.length>0?`<div style="font-size:10px;color:var(--orange);margin-top:2px">+${extraWeekLogs.length} extra</div>`:''}
         </div>
         <div style="text-align:center">
           <div style="font-size:20px;font-weight:700;color:var(--text)">${kmLogged.toFixed(1)}<span style="font-size:12px;color:var(--muted)">km</span></div>
-          <div style="font-size:10px;color:var(--muted)">km Logged · goal ${week.km}km</div>
+          <div style="font-size:10px;color:var(--muted)">of ${week.km}km goal</div>
         </div>
         <div style="text-align:center">
           <div style="font-size:20px;font-weight:700;color:${phColors[week.ph]}">${phNames[week.ph].split(' ')[0]}</div>
@@ -1713,16 +1736,16 @@ async function renderPlan() {
       <div style="flex:1;min-width:0">
         <div style="font-size:10px;letter-spacing:2px;color:#F4541D;font-weight:700;margin-bottom:2px">16-WEEK PROGRAM</div>
         <div style="font-size:17px;font-weight:900;color:white;letter-spacing:-.3px;line-height:1.1">${info ? `Week ${info.weekNum} · ${phNames[week?.ph||1]}` : 'Loading…'}</div>
-        <div style="font-size:11px;color:#7a7568;margin-top:3px">${totalDoneSessions} of ${totalPlannedSessions} sessions complete · ${overallPct}%</div>
+        <div style="font-size:11px;color:#7a7568;margin-top:3px">${totalDonePlanned} of ${scheduledUntilToday} scheduled sessions done${totalDoneExtra>0?` · +${totalDoneExtra} extra`:''}</div>
         <div style="height:4px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;margin-top:8px">
-          <div style="height:100%;width:${overallPct}%;background:linear-gradient(90deg,#F4541D,#ff8c5a);border-radius:3px;transition:width .4s"></div>
+          <div style="height:100%;width:${Math.min(100,Math.round(totalDonePlanned/Math.max(1,scheduledUntilToday)*100))}%;background:linear-gradient(90deg,#F4541D,#ff8c5a);border-radius:3px;transition:width .4s"></div>
         </div>
       </div>
     </div>
     <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
         <div style="font-size:11px;letter-spacing:.8px;color:var(--muted);font-weight:600">PROGRAM PROGRESS</div>
-        <div style="font-size:12px;color:var(--text)">${totalDoneSessions}/${totalPlannedSessions} sessions · ${overallPct}%</div>
+        <div style="font-size:12px;color:var(--text)">${totalDonePlanned}/${scheduledUntilToday} scheduled · ${overallPct}% weeks</div>
       </div>
       <div style="height:5px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden">
         <div style="height:100%;width:${overallPct}%;background:linear-gradient(90deg,var(--green),var(--accent));border-radius:4px"></div>
@@ -1778,11 +1801,9 @@ function selectPlanWeek(idx) { planWeekIdx=idx; planWeekInitialized=true; render
 //  LOG MODAL
 // ═══════════════════════════════════════════
 async function openLogModal(wIdx, dIdx, slot) {
-  // If this position has a swapped-in session, use the original PLAN position
-  const [rw, rd, rs] = resolveLogContext(wIdx, dIdx, slot);
-  const s = rs==='pm' ? PLAN[rw]?.days[rd]?.pm : PLAN[rw]?.days[rd]?.am;
-  if (!s || s.t==='rest') { showToast('Session not found at this position'); return; }
-  wIdx=rw; dIdx=rd; slot=rs;
+  // wIdx/dIdx/slot should already be the ORIGINAL PLAN position (resolved by caller)
+  const s = slot==='pm' ? PLAN[wIdx]?.days[dIdx]?.pm : PLAN[wIdx]?.days[dIdx]?.am;
+  if (!s || s.t==='rest') { showToast('Session not found'); return; }
   const sDate = sessionDate(wIdx, dIdx);
   const past = isPastSession(wIdx, dIdx);
   _logCtx = {wIdx, dIdx, slot, session:s, date:sDate, isPast:past};
@@ -2185,21 +2206,29 @@ async function renderPerformance() {
   // Program progress
   const totalWeeks = 16;
   const weeksComplete = info ? info.weekNum - 1 : 0;
-  // Only count planned sessions (exclude strava imports and custom extras)
-  const plannedLogs = (logs||[]).filter(l => l.slot && !l.slot.startsWith('strava-') && l.slot !== 'custom');
-  const sessionsPlannedTotal = PLAN.slice(0, weeksComplete).reduce((s,w)=>s+w.sessions,0);
-  const adherencePct = weeksComplete > 0
-    ? Math.min(100, Math.round(plannedLogs.length / Math.max(1, sessionsPlannedTotal) * 100))
+  const isPlanned = l => l.slot && l.slot !== 'custom' && !l.slot.startsWith('strava-');
+  const plannedLogs = (logs||[]).filter(isPlanned);
+  // Sessions scheduled up to today (current week: only up to today's day)
+  let scheduledUntilToday = 0;
+  if (info) {
+    PLAN.forEach((w, wi) => {
+      if (wi < info.weekIdx) { scheduledUntilToday += w.sessions; }
+      else if (wi === info.weekIdx) {
+        w.days.forEach((day, di) => {
+          if (di <= info.dayIdx) {
+            if (day.am && day.am.t !== 'rest') scheduledUntilToday++;
+            if (day.pm && day.pm.t !== 'rest') scheduledUntilToday++;
+          }
+        });
+      }
+    });
+  }
+  const sessionsPlannedTotal = scheduledUntilToday;
+  const adherencePct = scheduledUntilToday > 0
+    ? Math.min(100, Math.round(plannedLogs.length / scheduledUntilToday * 100))
     : 0;
 
-  // Planned km total (from PLAN)
-  const plannedKm = PLAN.flat().flat().reduce((s, sess) => {
-    if (!sess) return s;
-    const km = sess.distance || (sess.exercises ? 0 : 0);
-    return s + (typeof km === 'number' ? km : 0);
-  }, 0);
-
-  // Sessions planned up to today (use real PLAN data, not fixed 5/week)
+  // Sessions planned up to today
   const sessionsPlanned = sessionsPlannedTotal;
 
   // Weekly km data for bar chart
@@ -2228,12 +2257,45 @@ async function renderPerformance() {
     macroAdherPct.push(Math.min(pct, 150));
   }
 
+  // Session type statistics — scheduled vs done per type
+  const sessionTypes = ['strength','run-z2','run-hard','hyrox','swim'];
+  const typeLabels   = {'strength':'Strength','run-z2':'Zone 2','run-hard':'Hard Run','hyrox':'Hyrox','swim':'Swim'};
+  const typeColors   = {'strength':'var(--orange)','run-z2':'var(--green)','run-hard':'var(--yellow)','hyrox':'var(--blue)','swim':'var(--teal)'};
+  // Count scheduled sessions per type (full program up to now)
+  const scheduledByType = {};
+  const doneByType = {};
+  sessionTypes.forEach(t => { scheduledByType[t]=0; doneByType[t]=0; });
+  PLAN.forEach((w,wi) => {
+    if (!info || wi > info.weekIdx) return; // only count up to current week
+    w.days.forEach((day,di) => {
+      if (wi===info.weekIdx && di>info.dayIdx) return; // current week: only up to today
+      [day.am,day.pm].forEach(s => {
+        if (s && s.t && s.t!=='rest' && scheduledByType[s.t]!==undefined) scheduledByType[s.t]++;
+      });
+    });
+  });
+  (allLogs||[]).filter(l=>l.slot&&!l.slot.startsWith('strava-')&&l.slot!=='custom').forEach(l => {
+    if (l.type && doneByType[l.type]!==undefined) doneByType[l.type]++;
+  });
+  const statsRows = sessionTypes.filter(t=>scheduledByType[t]>0).map(t => {
+    const pct = Math.min(100,Math.round(doneByType[t]/scheduledByType[t]*100));
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:12px;font-weight:600;color:${typeColors[t]}">${typeLabels[t]}</span>
+        <span style="font-size:11px;color:var(--muted)">${doneByType[t]}/${scheduledByType[t]} · <span style="color:${pct>=80?'var(--green)':pct>=50?'var(--yellow)':'var(--orange)'}">${pct}%</span></span>
+      </div>
+      <div style="height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${typeColors[t]};border-radius:3px"></div>
+      </div>
+    </div>`;
+  }).join('');
+
   el.innerHTML = `
     <div style="position:relative;background:linear-gradient(135deg,#0F0E0C 0%,#1a1714 100%);border:1px solid #2a2520;border-radius:12px;padding:16px;margin-bottom:12px;overflow:hidden;display:flex;align-items:center;gap:14px">
       <div style="flex:1;min-width:0">
         <div style="font-size:10px;letter-spacing:2px;color:#F4541D;font-weight:700;margin-bottom:3px">PERFORMANCE</div>
         <div style="font-size:18px;font-weight:900;color:white;letter-spacing:-.5px">${weeksComplete} <span style="font-size:12px;font-weight:500;color:#7a7568">weeks complete</span></div>
-        <div style="font-size:11px;color:#7a7568;margin-top:2px">${totalKm.toFixed(0)} km · ${doneCt} sessions · ${adherencePct}% adherence</div>
+        <div style="font-size:11px;color:#7a7568;margin-top:2px">${plannedLogs.length} of ${scheduledUntilToday} scheduled · ${adherencePct}% done</div>
       </div>
       <svg viewBox="0 0 172 172" width="64" height="64" style="flex-shrink:0;opacity:0.9" aria-hidden="true">
         <circle cx="86" cy="86" r="80" fill="#141210" stroke="#F4541D" stroke-width="2"/>
@@ -2260,6 +2322,9 @@ async function renderPerformance() {
       </div>
       <div style="font-size:10px;color:#7a7568;margin-top:4px;text-align:right">Week ${info?.weekNum||1} of 16 — ${info?.phase||'Base'}</div>
     </div>
+
+    <div class="sec-label">Session Completion by Type</div>
+    <div class="card" style="margin-bottom:14px;padding:14px">${statsRows||'<div style="color:var(--muted);font-size:12px">Log sessions to see stats</div>'}</div>
 
     <div class="sec-label">Zone 2 Pace Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(min/km, lower = faster)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-pace"></canvas></div></div>
