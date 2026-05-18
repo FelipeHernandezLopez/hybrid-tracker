@@ -1386,6 +1386,19 @@ function isMovedOut(wIdx, dIdx, slot) {
   return !!getSwaps()[swapKey(wIdx,dIdx,slot)];
 }
 
+// Returns the original PLAN position for a session that may have been swapped in
+function resolveLogContext(wIdx, dIdx, slot) {
+  const swaps = getSwaps();
+  const key = swapKey(wIdx, dIdx, slot);
+  for (const [from, to] of Object.entries(swaps)) {
+    if (to === key) {
+      const p = from.split('-');
+      return [+p[0], +p[1], p[2]];
+    }
+  }
+  return [wIdx, dIdx, slot];
+}
+
 function openMoveModal(wIdx, dIdx, slot) {
   const s = resolveSession(wIdx, dIdx, slot);
   if (!s) return;
@@ -1631,8 +1644,10 @@ async function renderPlan() {
     const movedOutPm = rawPm === null && isMovedOut(planWeekIdx,i,'pm');
     const resolvedAm = rawAm ?? day.am;
     const resolvedPm = rawPm ?? day.pm;
-    const amBlock=buildSmallBlock(resolvedAm,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm,movedOutAm,isPastDay);
-    const pmBlock=(resolvedPm||movedOutPm)?buildSmallBlock(resolvedPm||{t:'rest',n:'Moved'},planWeekIdx,i,'pm',isDone(i,'pm'),true,movedOutPm,isPastDay):'';
+    const [logWAm,logDAm,logSAm] = resolveLogContext(planWeekIdx,i,'am');
+    const [logWPm,logDPm,logSPm] = resolveLogContext(planWeekIdx,i,'pm');
+    const amBlock=buildSmallBlock(resolvedAm,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm,movedOutAm,isPastDay,logWAm,logDAm,logSAm);
+    const pmBlock=(resolvedPm||movedOutPm)?buildSmallBlock(resolvedPm||{t:'rest',n:'Moved'},planWeekIdx,i,'pm',isDone(i,'pm'),true,movedOutPm,isPastDay,logWPm,logDPm,logSPm):'';
     return `<div class="dcol ${isToday?'today-col':''}"><div class="dhead">${d}</div>${amBlock}${pmBlock}</div>`;
   }).join('');
 
@@ -1738,14 +1753,16 @@ async function renderPlan() {
   `;
 }
 
-function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut,isPastDay) {
+function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut,isPastDay,logW,logD,logS) {
   const slotLabel=isDouble&&slot==='am'?' AM':isDouble&&slot==='pm'?' PM':'';
   if (movedOut) return `<div class="sblock-sm rest" style="opacity:.45;border-style:dashed"><div class="sm-tag" style="color:var(--muted)">moved${slotLabel}</div><div class="sm-name" style="color:var(--muted)">—</div></div>`;
+  // logW/logD/logS = original PLAN position (may differ from display position after swap)
+  const lw=logW??wIdx, ld=logD??dIdx, ls=logS??slot;
   const canMove = s.t!=='rest' && !done && !isPastDay;
   const moveBtn = canMove ? `<button onclick="event.stopPropagation();openMoveModal(${wIdx},${dIdx},'${slot}')" style="position:absolute;top:4px;right:4px;background:rgba(244,84,29,0.12);border:none;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0" title="Move session">
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#F4541D" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
   </button>` : '';
-  const clickAction = s.t!=='rest' && !isPastDay ? `openLogModal(${wIdx},${dIdx},'${slot}')` : '';
+  const clickAction = s.t!=='rest' && !isPastDay ? `openLogModal(${lw},${ld},'${ls}')` : '';
   const pastStyle = isPastDay && !done ? 'opacity:0.5;' : '';
   return `<div class="sblock-sm ${s.t} ${done?'done-sm':''}" style="position:relative;${pastStyle}" ${clickAction?`onclick="${clickAction}"`:'overflow:hidden'}>
     <div class="sm-tag" style="color:${typeColor(s.t)}">${s.t.replace('-',' ')}${slotLabel}</div>
@@ -1761,8 +1778,11 @@ function selectPlanWeek(idx) { planWeekIdx=idx; planWeekInitialized=true; render
 //  LOG MODAL
 // ═══════════════════════════════════════════
 async function openLogModal(wIdx, dIdx, slot) {
-  const s = slot==='pm' ? PLAN[wIdx].days[dIdx].pm : PLAN[wIdx].days[dIdx].am;
-  if (!s || s.t==='rest') return;
+  // If this position has a swapped-in session, use the original PLAN position
+  const [rw, rd, rs] = resolveLogContext(wIdx, dIdx, slot);
+  const s = rs==='pm' ? PLAN[rw]?.days[rd]?.pm : PLAN[rw]?.days[rd]?.am;
+  if (!s || s.t==='rest') { showToast('Session not found at this position'); return; }
+  wIdx=rw; dIdx=rd; slot=rs;
   const sDate = sessionDate(wIdx, dIdx);
   const past = isPastSession(wIdx, dIdx);
   _logCtx = {wIdx, dIdx, slot, session:s, date:sDate, isPast:past};
@@ -2179,8 +2199,8 @@ async function renderPerformance() {
     return s + (typeof km === 'number' ? km : 0);
   }, 0);
 
-  // Sessions planned up to today
-  const sessionsPlanned = info ? (info.weekNum - 1) * 5 : 0;
+  // Sessions planned up to today (use real PLAN data, not fixed 5/week)
+  const sessionsPlanned = sessionsPlannedTotal;
 
   // Weekly km data for bar chart
   const weeklyKm = {};
@@ -2232,7 +2252,7 @@ async function renderPerformance() {
       <div class="stat-grid" style="margin-bottom:10px">
         <div class="stat-tile"><div class="stat-val">${weeksComplete}<span style="font-size:13px;color:#7a7568">/16</span></div><div class="stat-lbl">Weeks Done</div></div>
         <div class="stat-tile"><div class="stat-val">${totalKm.toFixed(0)}<span style="font-size:13px;color:#7a7568">km</span></div><div class="stat-lbl">km Logged</div></div>
-        <div class="stat-tile"><div class="stat-val">${doneCt}<span style="font-size:13px;color:#7a7568">/${sessionsPlanned}</span></div><div class="stat-lbl">Sessions</div></div>
+        <div class="stat-tile"><div class="stat-val">${plannedLogs.length}<span style="font-size:13px;color:#7a7568">/${sessionsPlanned}</span></div><div class="stat-lbl">Sessions</div></div>
         <div class="stat-tile"><div class="stat-val" style="color:${adherencePct>=80?'var(--green)':adherencePct>=60?'var(--yellow)':'var(--orange)'}">${adherencePct}%</div><div class="stat-lbl">Adherence</div></div>
       </div>
       <div style="height:6px;background:#1e1e1e;border-radius:4px;overflow:hidden">
