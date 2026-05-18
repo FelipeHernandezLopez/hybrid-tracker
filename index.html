@@ -949,6 +949,7 @@ const POLAR_CFG = {
 let activePanel = 'today';
 let modalSaveCallback = null;
 let planWeekIdx = 0;
+let planWeekInitialized = false;
 let _logCtx = null;
 let _hrvSelected = null;
 let chartInstances = {};
@@ -1579,10 +1580,10 @@ function openAddCustom() { openModal('Add Custom Session', buildCustomForm(), sa
 // ═══════════════════════════════════════════
 async function renderPlan() {
   const info = getTodayInfo();
-  if (info && planWeekIdx === 0) planWeekIdx = info.weekIdx;
+  if (info && !planWeekInitialized) { planWeekIdx = info.weekIdx; planWeekInitialized = true; }
 
   const el = document.getElementById('plan-content');
-  el.innerHTML = '<div class="loading">Loading…</div>';
+  if (!el.innerHTML || el.innerHTML.includes('Loading')) el.innerHTML = '<div class="loading">Loading…</div>';
 
   // Fetch logs for selected week + all planned logs for overview
   const [{ data: doneLogs }, { data: allLogs }] = await Promise.all([
@@ -1724,14 +1725,18 @@ async function renderPlan() {
 function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut) {
   const slotLabel=isDouble&&slot==='am'?' AM':isDouble&&slot==='pm'?' PM':'';
   if (movedOut) return `<div class="sblock-sm rest" style="opacity:.45;border-style:dashed"><div class="sm-tag" style="color:var(--muted)">moved${slotLabel}</div><div class="sm-name" style="color:var(--muted)">—</div></div>`;
-  return `<div class="sblock-sm ${s.t} ${done?'done-sm':''}" onclick="${s.t!=='rest'?`openLogModal(${wIdx},${dIdx},'${slot}')`:''}" >
+  const moveBtn = s.t!=='rest' ? `<button onclick="event.stopPropagation();openMoveModal(${wIdx},${dIdx},'${slot}')" style="position:absolute;top:4px;right:4px;background:rgba(244,84,29,0.12);border:none;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0" title="Move session">
+    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#F4541D" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+  </button>` : '';
+  return `<div class="sblock-sm ${s.t} ${done?'done-sm':''}" style="position:relative" onclick="${s.t!=='rest'?`openLogModal(${wIdx},${dIdx},'${slot}')`:''}" >
     <div class="sm-tag" style="color:${typeColor(s.t)}">${s.t.replace('-',' ')}${slotLabel}</div>
     <div class="sm-name">${s.n}</div>
     ${s.dur?`<div class="sm-dur">${s.dur}</div>`:''}
+    ${moveBtn}
   </div>`;
 }
 
-function selectPlanWeek(idx) { planWeekIdx=idx; renderPlan(); }
+function selectPlanWeek(idx) { planWeekIdx=idx; planWeekInitialized=true; renderPlan(); }
 
 // ═══════════════════════════════════════════
 //  LOG MODAL
