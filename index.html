@@ -1097,17 +1097,29 @@ async function renderToday() {
     sb.from('body_logs').select('*').eq('date', todayStr()).limit(1),
   ]);
 
-  const isDone = (dIdx, slot) => doneLogs?.some(l => l.day_idx===dIdx && l.slot===slot) || false;
+  // Use resolveLogContext so done-check matches where the log is actually stored
+  const isDone = (dIdx, slot) => {
+    const [,logD,logS] = resolveLogContext(info.weekIdx, dIdx, slot);
+    return doneLogs?.some(l => l.day_idx===logD && l.slot===logS) || false;
+  };
   const bodyLog = bodyRows?.[0] || null;
+
+  // Resolve what's actually scheduled today (swap-aware)
+  const rawAm = resolveSession(info.weekIdx, info.dayIdx, 'am');
+  const rawPm = resolveSession(info.weekIdx, info.dayIdx, 'pm');
+  const resolvedAm = rawAm !== null ? rawAm : day.am;
+  const resolvedPm = rawPm !== null ? rawPm : day.pm;
+  const hasAmToday = resolvedAm && resolvedAm.t !== 'rest' && rawAm !== null;
+  const hasPmToday = resolvedPm && resolvedPm.t !== 'rest' && rawPm !== null;
 
   // Sleep score: prefer DB, fall back to localStorage
   const sleepScore = bodyLog?.sleep_score ?? (localStorage.getItem('sleep_'+todayStr()) !== null ? parseInt(localStorage.getItem('sleep_'+todayStr())) : null);
   const cond = getCondition(sleepScore);
 
-  // Gel reminder
-  const durMins = parseInt((day.am.dur||'').replace('m','')) || 0;
+  // Gel reminder — use the resolved AM session
+  const durMins = parseInt((resolvedAm?.dur||'').replace('m','')) || 0;
   let gelAlert = '';
-  if (day.am.t.includes('run') && durMins >= 60) {
+  if (resolvedAm?.t?.includes('run') && durMins >= 60) {
     const gels = durMins >= 90 ? 'at 40 min and 75 min' : 'at 40 min';
     gelAlert = `<div class="alert blue"><div class="alert-title">Gel Strategy</div>Take a gel ${gels}. 22–25g fast carbs. Practice on training runs, execute on race day.</div>`;
   }
@@ -1117,8 +1129,9 @@ async function renderToday() {
   const scoreDisplay = sleepScore !== null ? sleepScore : '—';
   const rangeVal = sleepScore !== null ? sleepScore : 70;
 
-  let sessionHTML = buildSessionCard(day.am, info.weekIdx, info.dayIdx, 'am', isDone(info.dayIdx,'am'), !!day.pm);
-  if (day.pm) sessionHTML += buildSessionCard(day.pm, info.weekIdx, info.dayIdx, 'pm', isDone(info.dayIdx,'pm'), true);
+  const isDouble = hasAmToday && hasPmToday;
+  let sessionHTML = buildSessionCard(day.am, info.weekIdx, info.dayIdx, 'am', isDone(info.dayIdx,'am'), isDouble);
+  if (hasPmToday || day.pm) sessionHTML += buildSessionCard(day.pm || resolvedPm, info.weekIdx, info.dayIdx, 'pm', isDone(info.dayIdx,'pm'), true);
 
   // Water
   const waterTarget = dayType==='rest' ? 10 : 12;
@@ -1482,18 +1495,23 @@ function undoSwap(wIdx, dIdx, slot) {
 }
 
 function buildSessionCard(s, wIdx, dIdx, slot, done, isDouble) {
-  // Check if this slot was moved out
-  if (isMovedOut(wIdx, dIdx, slot)) {
+  // Resolve what's actually at this slot (swap-aware)
+  const resolved = resolveSession(wIdx, dIdx, slot);
+
+  // Nothing here — original was moved out with nothing moved in
+  if (resolved === null) {
     return `<div class="sblock rest" style="opacity:.5;border-style:dashed">
       <div class="sblock-tag" style="color:var(--muted)">Moved</div>
-      <div class="sblock-name" style="color:var(--muted)">${s.n}</div>
+      <div class="sblock-name" style="color:var(--muted)">${s?.n||''}</div>
       <div class="sblock-detail" style="font-size:10px">This session was moved to another day</div>
       <div class="sblock-actions"><button class="btn-done" style="background:var(--card2)" onclick="undoSwap(${wIdx},${dIdx},'${slot}')">Undo Move</button></div>
     </div>`;
   }
-  // Use the resolved session (may have been swapped in from elsewhere)
-  const resolved = resolveSession(wIdx, dIdx, slot) || s;
+
   if (resolved.t==='rest') return `<div class="sblock rest"><div class="sblock-tag">Rest</div><div class="sblock-name">${resolved.n}</div><div class="sblock-detail">${resolved.d}</div></div>`;
+
+  // Log button must point to the original PLAN position of the resolved session
+  const [logW, logD, logS] = resolveLogContext(wIdx, dIdx, slot);
   const badge = isDouble&&slot==='am' ? '<span class="double-badge">AM</span> ' : isDouble&&slot==='pm' ? '<span class="pm-badge">PM</span> ' : '';
   const isFuture = isFutureSession(wIdx, dIdx);
   const isToday  = sessionDate(wIdx, dIdx) === todayStr();
@@ -1505,7 +1523,7 @@ function buildSessionCard(s, wIdx, dIdx, slot, done, isDouble) {
       <div class="sblock-detail">${resolved.d}</div>
       ${resolved.dur?`<div class="sblock-dur">${resolved.dur}</div>`:''}
       <div class="sblock-actions">
-        <button class="btn-log" onclick="openLogModal(${wIdx},${dIdx},'${slot}')">${done?'✓ Edit Log':'Save Session'}</button>
+        <button class="btn-log" onclick="openLogModal(${logW},${logD},'${logS}')">${done?'✓ Edit Log':'Save Session'}</button>
         ${canMove?`<button class="btn-done" style="background:var(--card2);color:var(--blue)" onclick="openMoveModal(${wIdx},${dIdx},'${slot}')">↔ Move</button>`:''}
       </div>
     </div>`;
