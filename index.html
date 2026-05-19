@@ -1907,6 +1907,10 @@ function buildStrengthForm(s) {
   <div id="extra-exercises"></div>
   <button class="btn-add-set" style="width:100%;margin-bottom:12px;font-size:12px;padding:10px 0;border-radius:8px;border:1px dashed var(--border);background:none;color:var(--orange);cursor:pointer;letter-spacing:.5px" onclick="showExercisePicker()">＋ Add exercise</button>
   <div id="ex-picker" style="display:none;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:12px;max-height:200px;overflow-y:auto"></div>
+  <div class="form-row">
+    <div class="form-field"><div class="form-label">Duration (mm:ss)</div><input class="form-input" id="f-dur" type="text" placeholder="60:00"></div>
+    <div class="form-field"><div class="form-label">Avg HR (bpm)</div><input class="form-input" id="f-hr" type="number" placeholder="128"></div>
+  </div>
   <div class="form-field"><div class="form-label">Notes</div><input class="form-input" id="f-notes" type="text" placeholder="Energy, PRs, how did it feel?"></div>`;
 }
 
@@ -2024,6 +2028,8 @@ async function saveLogSession() {
         return collectExBlock(ei, nameEl?.textContent||'Unknown');
       })
     ].filter(Boolean);
+    data.duration = document.getElementById('f-dur')?.value||'';
+    data.hr = parseInt(document.getElementById('f-hr')?.value)||0;
   } else if (s.t==='hyrox') {
     data.totalTime = document.getElementById('f-dur')?.value||'';
     data.stations  = HYROX_STATIONS.map((_,i)=>document.getElementById('hx-'+i)?.value||'');
@@ -2040,11 +2046,15 @@ async function saveLogSession() {
     data.rpe=parseInt(document.getElementById('f-rpe')?.value)||6;
   }
 
-  await sb.from('session_logs').upsert({date:_logCtx.date||todayStr(),week_idx:wIdx,day_idx:dIdx,slot,type:s.t,name:s.n,data},{onConflict:'date,slot'});
+  // Delete any existing log for this plan slot first, then insert fresh
+  await sb.from('session_logs').delete().eq('week_idx',wIdx).eq('day_idx',dIdx).eq('slot',slot);
+  const { error } = await sb.from('session_logs').insert({date:_logCtx.date||todayStr(),week_idx:wIdx,day_idx:dIdx,slot,type:s.t,name:s.n,data});
+  if (error) { showToast('Save failed — check connection'); console.error('saveLogSession:', error); return; }
   closeModal();
   showToast('✓ Session saved');
   if (activePanel==='today') renderToday();
   if (activePanel==='plan')  renderPlan();
+  renderPerformance();
 }
 
 async function saveCustomSession() {
@@ -2398,11 +2408,11 @@ async function renderPerformance() {
     <div class="sec-label">Weekly km Total</div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-weeklykm"></canvas></div></div>
 
-    <div class="sec-label">Sleep Score <span style="font-size:10px;color:#7a7568;font-weight:400">(Polar)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-sleep"></canvas></div></div>
+    <div class="sec-label">Sessions by Type <span style="font-size:10px;color:#7a7568;font-weight:400">(done vs scheduled)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-bytype"></canvas></div></div>
 
-    <div class="sec-label">HRV Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(ms, from Polar)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-hrv"></canvas></div></div>
+    <div class="sec-label">Strength Session HR <span style="font-size:10px;color:#7a7568;font-weight:400">(avg bpm per session)</span></div>
+    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-strengthhr"></canvas></div></div>
 
     <div class="sec-label">Calorie Adherence <span style="font-size:10px;color:#7a7568;font-weight:400">(%  of target, last 30 days)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-macros"></canvas></div></div>
@@ -2445,13 +2455,33 @@ async function renderPerformance() {
     });
   }
 
-  // Sleep score
-  const sl = allBody.filter(b => b.sleep_score > 0);
-  mkLine('c-sleep', base, sl.map(b => b.date.slice(5)), sl.map(b => b.sleep_score), 'var(--blue)', false);
+  // Sessions by type — grouped bar (done vs scheduled up to today)
+  const typeLabelsChart = ['Strength','Zone 2','Hard Run','Swim'];
+  const typeKeysChart   = ['strength','run-z2','run-hard','swim'];
+  const doneByType  = typeKeysChart.map(t => (allLogs||[]).filter(l=>l.type===t&&l.slot&&!l.slot.startsWith('strava-')&&l.slot!=='custom').length);
+  const schedByType = typeKeysChart.map(t => {
+    let n=0;
+    PLAN.forEach((w,wi)=>{ w.days.forEach((d,di)=>{ const date=sessionDate(wi,di); if(date>todayStr()) return; [d.am,d.pm].forEach(s=>{if(s&&s.t===t)n++;}); }); });
+    return n;
+  });
+  const ctx3 = document.getElementById('c-bytype')?.getContext('2d');
+  if (ctx3) {
+    chartInstances['c-bytype'] = new Chart(ctx3, {
+      type: 'bar',
+      data: {
+        labels: typeLabelsChart,
+        datasets: [
+          { label: 'Done', data: doneByType, backgroundColor: 'rgba(244,84,29,0.7)', borderRadius: 3 },
+          { label: 'Scheduled', data: schedByType, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 3 }
+        ]
+      },
+      options: { ...base, plugins: { legend: { display: true, labels: { color: '#7a7568', font: { size: 9 } } } } }
+    });
+  }
 
-  // HRV trend
-  const hrvRows = allBody.filter(b => b.hrv_value > 0);
-  mkLine('c-hrv', base, hrvRows.map(b => b.date.slice(5)), hrvRows.map(b => b.hrv_value), 'var(--green)', false);
+  // Strength HR trend
+  const strLogs = (allLogs||[]).filter(l=>l.type==='strength'&&l.data?.hr>0).slice(-12);
+  mkLine('c-strengthhr', base, strLogs.map(l=>l.date.slice(5)), strLogs.map(l=>l.data.hr), 'var(--orange)', false);
 
   // Calorie adherence
   mkLine('c-macros', base, macroAdherDays, macroAdherPct, 'var(--yellow)', false);
