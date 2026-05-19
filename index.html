@@ -1626,7 +1626,11 @@ async function renderPlan() {
     sb.from('session_logs').select('week_idx,slot,data,type'),
   ]);
 
-  const isDone = (dIdx,slot) => doneLogs?.some(l=>l.day_idx===dIdx&&l.slot===slot)||false;
+  // Use resolveLogContext so a swapped-in session is marked done at the display slot, not the original slot
+  const isDone = (dIdx, slot) => {
+    const [, logD, logS] = resolveLogContext(planWeekIdx, dIdx, slot);
+    return doneLogs?.some(l => l.day_idx===logD && l.slot===logS) || false;
+  };
 
   const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
   const phNames =['','Foundation','Development','Peak','Taper & Race'];
