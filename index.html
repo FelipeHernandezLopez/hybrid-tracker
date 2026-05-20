@@ -2079,7 +2079,7 @@ let _recentLogs = [];
 async function renderLog() {
   const el = document.getElementById('log-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
-  const { data: logs } = await sb.from('session_logs').select('*').order('created_at',{ascending:false}).limit(100);
+  const { data: logs } = await sb.from('session_logs').select('*').order('created_at',{ascending:false}).limit(250);
   if (!logs?.length) { el.innerHTML='<div class="empty-state"><div class="empty-state-title">No Sessions Logged Yet</div><p>Log sessions from the Today or Plan tab.</p></div>'; return; }
   _recentLogs = logs;
 
@@ -2128,12 +2128,18 @@ async function renderLog() {
     // Session items for this week
     entries.forEach(({log, idx}) => {
       const color = typeColor(log.type);
+      const sep = (s) => s ? ' · ' : '';
       let metrics = '';
-      if (log.data?.distance) metrics += `<em>${log.data.distance}km</em>`;
-      if (log.data?.duration && typeof log.data.duration==='string') metrics += ` · ${log.data.duration}`;
-      if (log.data?.hr) metrics += ` · <em>${log.data.hr}bpm</em>`;
-      if (log.data?.exercises) metrics += `<em>${log.data.exercises.length} ex</em>`;
-      if (log.data?.totalTime) metrics += `Total: <em>${log.data.totalTime}</em>`;
+      if (log.type === 'strength') {
+        if (log.data?.exercises?.length) metrics += `<em>${log.data.exercises.length} ex</em>`;
+        if (log.data?.duration) metrics += `${sep(metrics)}${log.data.duration}`;
+        if (log.data?.hr > 0) metrics += `${sep(metrics)}<em>${log.data.hr}bpm</em>`;
+      } else {
+        if (log.data?.distance) metrics += `<em>${log.data.distance}km</em>`;
+        if (log.data?.duration && typeof log.data.duration==='string') metrics += `${sep(metrics)}${log.data.duration}`;
+        if (log.data?.hr) metrics += `${sep(metrics)}<em>${log.data.hr}bpm</em>`;
+        if (log.data?.totalTime) metrics += `Total: <em>${log.data.totalTime}</em>`;
+      }
       if (log.data?.completed && !metrics) metrics = 'Marked done';
       const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
       const dayLabel = log.day_idx != null ? dayNames[log.day_idx] : '';
@@ -2416,8 +2422,8 @@ async function renderPerformance() {
     <div class="sec-label">Sessions by Type <span style="font-size:10px;color:#7a7568;font-weight:400">(done vs scheduled)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-bytype"></canvas></div></div>
 
-    <div class="sec-label">Strength Session HR <span style="font-size:10px;color:#7a7568;font-weight:400">(avg bpm per session)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-strengthhr"></canvas></div></div>
+    <div class="sec-label">Aerobic Efficiency <span style="font-size:10px;color:#7a7568;font-weight:400">(Zone 2 · pace vs HR — faster + lower HR = fitter)</span></div>
+    <div class="chart-wrap" style="height:160px"><div class="chart-canvas-wrap"><canvas id="c-z2efficiency"></canvas></div></div>
 
     <div class="sec-label">Calorie Adherence <span style="font-size:10px;color:#7a7568;font-weight:400">(%  of target, last 30 days)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-macros"></canvas></div></div>
@@ -2484,9 +2490,59 @@ async function renderPerformance() {
     });
   }
 
-  // Strength HR trend
-  const strLogs = (allLogs||[]).filter(l=>l.type==='strength'&&l.data?.hr>0).slice(-12);
-  mkLine('c-strengthhr', base, strLogs.map(l=>l.date.slice(5)), strLogs.map(l=>l.data.hr), 'var(--orange)', false);
+  // Aerobic efficiency: Zone 2 pace vs HR (dual axis)
+  const z2eff = runLogs.filter(l => l.type==='run-z2' && l.data?.distance>0 && l.data?.duration && l.data?.hr>0);
+  const effCtx = document.getElementById('c-z2efficiency')?.getContext('2d');
+  if (effCtx) {
+    const effLabels = z2eff.map(l => l.date.slice(5));
+    const effPace = z2eff.map(l => {
+      const p = l.data.duration.split(':').map(Number);
+      const secs = p.length===3 ? p[0]*3600+p[1]*60+p[2] : p[0]*60+(p[1]||0);
+      return +(secs / l.data.distance / 60).toFixed(2);
+    });
+    const effHR = z2eff.map(l => l.data.hr);
+    const empty = !z2eff.length;
+    chartInstances['c-z2efficiency'] = new Chart(effCtx, {
+      type: 'line',
+      data: {
+        labels: empty ? ['Log Z2 runs with HR to see trend'] : effLabels,
+        datasets: [
+          {
+            label: 'Avg HR (bpm)',
+            data: empty ? [0] : effHR,
+            borderColor: '#E85454', backgroundColor: 'rgba(232,84,84,0.1)',
+            yAxisID: 'yHR', tension: 0.3, pointRadius: 3, borderWidth: 2
+          },
+          {
+            label: 'Pace (min/km)',
+            data: empty ? [0] : effPace,
+            borderColor: '#4ACE82', backgroundColor: 'rgba(74,206,130,0.08)',
+            yAxisID: 'yPace', tension: 0.3, pointRadius: 3, borderWidth: 2
+          }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: true, labels: { color: '#7a7568', font: { size: 9 }, boxWidth: 10 } } },
+        scales: {
+          x: { ticks: { color: '#7a7568', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+          yHR: {
+            type: 'linear', position: 'left',
+            ticks: { color: '#E85454', font: { size: 9 } },
+            grid: { color: 'rgba(255,255,255,0.06)' },
+            title: { display: true, text: 'HR (bpm)', color: '#E85454', font: { size: 8 } }
+          },
+          yPace: {
+            type: 'linear', position: 'right',
+            reverse: true,
+            ticks: { color: '#4ACE82', font: { size: 9 } },
+            grid: { drawOnChartArea: false },
+            title: { display: true, text: 'Pace (min/km)', color: '#4ACE82', font: { size: 8 } }
+          }
+        }
+      }
+    });
+  }
 
   // Calorie adherence
   mkLine('c-macros', base, macroAdherDays, macroAdherPct, 'var(--yellow)', false);
@@ -2530,7 +2586,7 @@ async function renderBody() {
   const el = document.getElementById('body-content');
   el.innerHTML = '<div class="loading">Loading…</div>';
   const [{ data: bodyRows }, { data: injuries }] = await Promise.all([
-    sb.from('body_logs').select('*').order('date',{ascending:false}).limit(60),
+    sb.from('body_logs').select('*').order('date',{ascending:false}).limit(130),
     sb.from('injuries').select('*').order('created_at',{ascending:false}),
   ]);
 
@@ -2883,6 +2939,83 @@ function buildConnectionsCard() {
 
 updateHeader();
 renderToday();
+initNotifications();
+
+// ═══════════════════════════════════════════
+//  NOTIFICATIONS — Service Worker + Scheduling
+// ═══════════════════════════════════════════
+
+async function initNotifications() {
+  if (!('serviceWorker' in navigator) || !('Notification' in window)) return;
+
+  try {
+    // Register SW (silently if already registered)
+    const reg = await navigator.serviceWorker.register('/sw.js');
+
+    // Ask permission on first load — browser shows native prompt once
+    if (Notification.permission === 'default') {
+      await Notification.requestPermission();
+    }
+    if (Notification.permission !== 'granted') return;
+
+    // Wait for the SW to be active
+    const sw = await getActiveSW(reg);
+    if (!sw) return;
+
+    scheduleNotificationsViaSW(sw);
+  } catch (err) {
+    console.warn('[Notifications] Setup failed:', err);
+  }
+}
+
+function getActiveSW(reg) {
+  return new Promise(resolve => {
+    if (reg.active) { resolve(reg.active); return; }
+    const sw = reg.installing || reg.waiting;
+    if (!sw) { resolve(null); return; }
+    sw.addEventListener('statechange', function handler() {
+      if (sw.state === 'activated') {
+        sw.removeEventListener('statechange', handler);
+        resolve(sw);
+      }
+    });
+  });
+}
+
+function scheduleNotificationsViaSW(sw) {
+  // Pick today's quote (rotate by day-of-year)
+  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / 86400000);
+  const q = QUOTES[dayOfYear % QUOTES.length];
+
+  // Build today's session line from live plan + swaps
+  const info = getTodayInfo();
+  let sessionLine = 'Rest day — recover, stretch, sleep well.';
+  let dayType = 'rest';
+
+  if (info) {
+    const am = resolveSession(info.weekIdx, info.dayIdx, 'am');
+    const pm = resolveSession(info.weekIdx, info.dayIdx, 'pm');
+    const sessions = [];
+    if (am && am.t !== 'rest') sessions.push(`${am.n} (${am.dur || ''})`);
+    if (pm && pm.t !== 'rest') sessions.push(`${pm.n} (${pm.dur || ''})`);
+    if (sessions.length === 2) {
+      dayType = 'double';
+      sessionLine = sessions.join(' + ');
+    } else if (sessions.length === 1) {
+      dayType = 'single';
+      sessionLine = sessions[0];
+    }
+    if (info.phase) sessionLine = `${info.phase} · ${sessionLine}`;
+  }
+
+  sw.postMessage({
+    type: 'SCHEDULE_NOTIFICATIONS',
+    quote: q.text,
+    author: q.author,
+    sessionLine,
+    dayType
+  });
+}
 </script>
 </body>
 </html>
