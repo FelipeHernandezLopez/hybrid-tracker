@@ -119,20 +119,35 @@ body{background:var(--dark);color:var(--text);font-family:'DM Sans',sans-serif;f
 .macro-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
 .macro-sub{font-size:10px;color:var(--orange)}
 
-/* PLAN GRID */
-.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:10px}
-.dhead{text-align:center;font-size:9px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);padding-bottom:6px;font-weight:500}
-.sblock-sm{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:6px 5px;margin-bottom:4px;position:relative;overflow:hidden;min-height:72px;cursor:pointer}
-.sblock-sm::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:6px 6px 0 0}
-.sblock-sm.strength::before{background:var(--orange)}.sblock-sm.run-z2::before{background:var(--green)}.sblock-sm.run-hard::before{background:var(--yellow)}.sblock-sm.hyrox::before{background:var(--blue)}.sblock-sm.swim::before{background:var(--teal)}.sblock-sm.rest::before{background:var(--muted)}.sblock-sm.custom::before{background:var(--purple)}
-.sblock-sm.rest{opacity:.4;cursor:default}
-.sblock-sm.done-sm{opacity:.45}
-.sblock-sm.done-sm::after{content:'✓';position:absolute;bottom:3px;right:4px;font-size:9px;color:var(--green)}
-.sm-tag{font-size:7px;text-transform:uppercase;letter-spacing:.5px;font-weight:500;color:var(--muted);margin-bottom:1px}
-.sm-name{font-size:9px;font-weight:500;color:#fff;line-height:1.2}
-.sm-dur{font-size:8px;color:var(--muted);margin-top:3px}
-.today-col .sblock-sm{border-color:rgba(244,84,29,.35)}
-.today-col .dhead{color:var(--orange)}
+/* PLAN — DAY CARDS (vertical list) */
+.day-cards{margin-bottom:10px}
+.day-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:0;margin-bottom:8px;overflow:hidden}
+.day-card.today-card{border-color:rgba(244,84,29,.4)}
+.day-card.past-card{opacity:.6}
+.dc-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px 8px;border-bottom:1px solid var(--border)}
+.dc-left{display:flex;align-items:center;gap:8px}
+.dc-day{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--text)}
+.dc-date{font-size:10px;color:var(--muted)}
+.dc-today-badge{font-size:8px;color:var(--orange);background:rgba(244,84,29,.1);border:1px solid rgba(244,84,29,.3);border-radius:4px;padding:1px 6px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.dc-rest{padding:8px 12px;font-size:11px;color:var(--muted);font-style:italic}
+.session-row{display:flex;align-items:center;gap:8px;padding:9px 12px;border-top:1px solid rgba(255,255,255,0.04)}
+.session-row:first-child{border-top:none}
+.session-slot-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;width:20px;flex-shrink:0;opacity:.7}
+.session-color-bar{width:3px;height:36px;border-radius:2px;flex-shrink:0}
+.session-info{flex:1;min-width:0}
+.session-type-tag{font-size:8px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;margin-bottom:2px}
+.session-name-lbl{font-size:12px;font-weight:500;color:#fff;line-height:1.3}
+.session-dur-lbl{font-size:10px;color:var(--muted);margin-top:1px}
+.session-btns{display:flex;gap:4px;flex-shrink:0;align-items:center}
+.sc-log-btn{padding:5px 9px;border-radius:6px;font-size:9px;font-weight:700;letter-spacing:.4px;border:1px solid rgba(244,84,29,.3);background:rgba(244,84,29,.1);color:var(--orange);cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;white-space:nowrap}
+.sc-log-btn:active{background:rgba(244,84,29,.2)}
+.sc-move-btn{padding:5px 8px;border-radius:6px;font-size:9px;font-weight:600;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.sc-done-badge{display:flex;align-items:center;gap:3px;font-size:9px;color:var(--green);font-weight:700;letter-spacing:.4px;padding:0 4px}
+.session-moved-row{padding:9px 12px;border-top:1px solid rgba(255,255,255,.04);display:flex;align-items:center;gap:6px}
+.moved-dot{width:3px;height:24px;background:var(--muted);border-radius:2px;opacity:.3;flex-shrink:0}
+.moved-text{font-size:10px;color:var(--muted);font-style:italic}
+/* keep sblock-sm for today tab backwards compat */
+.sblock-sm{display:none}
 
 /* WEEK NAV */
 .week-nav{display:flex;gap:4px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
@@ -353,46 +368,61 @@ const NUTRITION = {
 };
 const EXERCISES = {
   'Push A':[
-    {name:'Barbell bench press',  reps:5,  note:'Main lift — drive through chest'},
-    {name:'Incline DB press',     reps:8,  note:'Control the descent'},
-    {name:'Cable lateral raises', reps:15, note:'Light, full range'},
-    {name:'Tricep cable pushdown',reps:12, note:'Squeeze at bottom'},
-    {name:'Cable flies',          reps:12, note:'Feel the stretch'},
+    {name:'Barbell bench press',  reps:5,  note:'Main lift — horizontal push. Drive through full chest, controlled descent.'},
+    {name:'Incline DB press',     reps:8,  note:'Upper chest. Control the eccentric, full stretch at bottom.'},
+    {name:'Cable flies',          reps:12, note:'Squeeze at peak contraction. Constant tension throughout.'},
+    {name:'Weighted dips',        reps:10, note:'Lean forward for chest. Full depth, control return.'},
+    {name:'Tricep cable pushdown',reps:12, note:'Elbows locked to sides. Squeeze hard at bottom.'},
+    {name:'Lateral raises',       reps:15, note:'Light and slow. Slight bend in elbow, lead with pinky.'},
+    {name:'Core: Plank + Ab Wheel',reps:10,note:'3 rounds: Plank 60s → Ab Wheel rollout × 10. No rest between.'},
   ],
   'Push B':[
-    {name:'Overhead press',    reps:5,  note:'Brace core, no arch'},
-    {name:'DB shoulder press', reps:8,  note:'Full ROM overhead'},
-    {name:'Dips',              reps:10, note:'Lean forward for chest'},
-    {name:'Lateral raises',    reps:15, note:'Slow eccentric'},
-    {name:'Skull crushers',    reps:10, note:'Elbows in, control'},
+    {name:'Overhead press',       reps:5,  note:'Main lift — vertical push. Brace core hard, full lockout overhead.'},
+    {name:'DB shoulder press',    reps:8,  note:'Full ROM, slight forward lean. Control the descent.'},
+    {name:'Arnold press',         reps:10, note:'Rotate palms during press. Full ROM, targets all 3 delt heads.'},
+    {name:'Lateral raises',       reps:15, note:'Slow eccentric 3s down. Light weight for full control.'},
+    {name:'Skull crushers',       reps:10, note:'Elbows in, don\'t flare. Control the bar to forehead.'},
+    {name:'Dips (bodyweight)',    reps:12, note:'Upright torso for triceps. Full lockout at top.'},
+    {name:'Core: Pallof Press + Copenhagen',reps:12,note:'3 rounds: Pallof Press 12/side → Copenhagen Plank 30s/side.'},
   ],
   'Pull A':[
-    {name:'Weighted pull-ups',    reps:5,  note:'Dead hang start, chest to bar'},
-    {name:'Barbell rows',         reps:6,  note:'Chest supported or bent-over'},
-    {name:'Bicep curls (DB)',     reps:10, note:'Supinate at top'},
-    {name:'Face pulls',           reps:15, note:'Pull to forehead, external rotate'},
-    {name:'Dead hang scapular',   reps:8,  note:'Protract and retract slowly'},
+    {name:'Weighted pull-ups',    reps:5,  note:'Dead hang start. Drive elbows to hips. Chest to bar.'},
+    {name:'Chest-supported row',  reps:8,  note:'No momentum. Full retraction at top, stretch at bottom.'},
+    {name:'Barbell rows',         reps:6,  note:'Explosive pull, 2s hold at top. Heavy.'},
+    {name:'Face pulls',           reps:15, note:'Pull to forehead, external rotate at end. Shoulder health.'},
+    {name:'Bicep curl (DB)',      reps:10, note:'Supinate fully at top. Control the descent.'},
+    {name:'Hammer curl',          reps:10, note:'Neutral grip. Targets brachialis and brachioradialis.'},
+    {name:'Core: Dead Bug + Hollow',reps:10,note:'3 rounds: Dead Bug 10/side → Hollow Rock hold 30s.'},
   ],
   'Pull B':[
-    {name:'Deadlift',          reps:5,  note:'Brace, hinge, drive floor away'},
-    {name:'Romanian DL',       reps:8,  note:'Feel hamstring stretch at bottom'},
-    {name:'Cable rows seated', reps:10, note:'Squeeze scapula at end'},
-    {name:'Hammer curls',      reps:10, note:'Neutral grip, controlled'},
-    {name:'Rear delt flies',   reps:15, note:'Light, bend elbows slightly'},
+    {name:'Deadlift',             reps:5,  note:'Main lift. Brace hard, hinge first then pull. Drive floor away.'},
+    {name:'Romanian DL',          reps:8,  note:'Feel hamstring stretch at bottom. Hips back, soft knees.'},
+    {name:'Seal row (or Pendlay)',reps:8,  note:'Chest on pad eliminates momentum. Pure back strength.'},
+    {name:'Pull-ups (bodyweight)',reps:'max', note:'AMRAP — max reps. Stop 1 rep short of failure.'},
+    {name:'Rear delt flies',      reps:15, note:'Bent over, light weight. Lead with elbows out.'},
+    {name:'Incline bicep curl',   reps:10, note:'Full stretch on incline. Slow eccentric.'},
+    {name:'Core: Hanging leg raise',reps:12,note:'3 rounds: Hanging Leg Raise 12 → Ab Wheel 10.'},
   ],
   'Legs A':[
-    {name:'Barbell squat',   reps:5,  note:'Hip crease below parallel'},
-    {name:'Hip thrust',      reps:8,  note:'Full hip extension, squeeze glutes'},
-    {name:'Leg press',       reps:10, note:'Feet shoulder-width, full depth'},
-    {name:'Nordic hamstring',reps:8,  note:'Eccentric only if needed'},
-    {name:'Calf raises',     reps:15, note:'Full ROM, pause at top'},
+    // Quad focus — knee health protocol included
+    {name:'Barbell squat',        reps:5,  note:'Hip crease below parallel. Drive knees out. Big air before descent.'},
+    {name:'Bulgarian split squat',reps:8,  note:'Front foot forward, torso upright. Controls knee valgus. Do 8/leg.'},
+    {name:'Leg press (unilateral)',reps:10,note:'Single leg. Full depth. Quad dominant. Do 10/leg.'},
+    {name:'Terminal knee extension',reps:15,note:'⭐ Knee rehab. Band behind knee. Straighten only last 30°. Slow, squeeze VMO.'},
+    {name:'Spanish squat (isometric)',reps:1,note:'⭐ Knee rehab. Band around post + ankles. 45s hold × 3. Pain-free depth only.'},
+    {name:'Nordic hamstring curl', reps:8, note:'Eccentric only. Slow descent. Critical for knee stability and hamstring injury prevention.'},
+    {name:'Core: Plank + Ab Wheel',reps:10,note:'3 rounds: Plank 60s → Ab Wheel 10 → rest 60s.'},
   ],
   'Legs B':[
-    {name:'Bulgarian split squat',reps:8,  note:'Front foot forward, torso upright'},
-    {name:'Romanian DL',          reps:8,  note:'Hip hinge, control eccentric'},
-    {name:'Box jumps',            reps:5,  note:'Land softly, reset each rep'},
-    {name:'Single-leg press',     reps:10, note:'Full depth, control return'},
-    {name:'Calf raises',          reps:15, note:'Both legs, slow and full'},
+    // Posterior chain focus
+    {name:'Hip thrust',           reps:8,  note:'Drive through heels, full hip extension. Squeeze glutes hard at top.'},
+    {name:'Good mornings',        reps:10, note:'Soft knees, hinge at hip. Feel hamstring stretch. Light-moderate weight.'},
+    {name:'Step-ups (weighted)',  reps:10, note:'Step up with glute drive, not momentum. Do 10/leg. Quad + glute.'},
+    {name:'Leg curl (machine)',   reps:12, note:'Slow eccentric 3s. Full hamstring engagement.'},
+    {name:'Leg extension',        reps:15, note:'⭐ Quad isolation for knee health. Light weight, full ROM, no locking hard.'},
+    {name:'Glute bridge (single)',reps:12, note:'Single leg. Drive through heel. 12/leg. Activates glute med.'},
+    {name:'Calf raises',          reps:15, note:'Full ROM, pause at top. Seated + standing variation.'},
+    {name:'Core: Copenhagen + Pallof',reps:1,note:'3 rounds: Copenhagen Plank 30s/side → Pallof Press 12/side.'},
   ],
 };
 const HYROX_STATIONS = [
@@ -490,10 +520,7 @@ function getHabitsDone(suppDone, doneLogs, bodyLog) {
   const allSupps = activeSupps.length > 0 && activeSupps.every(s=>suppDone[s.key]);
   const hasSleep = bodyLog?.sleep_score != null || localStorage.getItem('sleep_'+today) !== null;
   const todayInfo = getTodayInfo();
-  const hasTraining = doneLogs?.some(l =>
-    l.day_idx === todayInfo?.dayIdx ||
-    (l.slot === 'custom' && l.date === today)
-  ) || false;
+  const hasTraining = doneLogs?.some(l => l.date === today) || false;
   const manual = JSON.parse(localStorage.getItem('habits_manual_'+today)||'{}');
   return {
     training: hasTraining,
@@ -527,7 +554,7 @@ function buildQuoteBar() {
 
 function getRaceDates() {
   const stored = safeParseJSON(localStorage.getItem('race_dates'));
-  return { hm: stored?.hm || '', hyrox: stored?.hyrox || '' };
+  return { hm: stored?.hm || '2026-08-29', hyrox: stored?.hyrox || '2026-09-19' };
 }
 
 function openRaceDates() {
@@ -585,11 +612,11 @@ function buildRaceCountdown() {
 }
 
 function buildProgressCard(info) {
-  const totalWeeks = 16;
+  const totalWeeks = 19;
   const weekNum = info.weekNum;
   const pct = Math.round((weekNum - 1) / totalWeeks * 100);
-  const phColors = ['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
-  const phNames  = ['','Foundation','Development','Peak','Taper & Race'];
+  const phColors = ['','var(--green)','var(--yellow)','var(--orange)','var(--blue)','var(--purple)'];
+  const phNames  = ['','Foundation','Development','Peak','HM Taper','Hyrox Block'];
   const ph = PLAN[info.weekIdx]?.ph || 1;
   const dayOfWeek = info.dayIdx + 1;
 
@@ -612,7 +639,7 @@ function buildProgressCard(info) {
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:6px">
       <span style="font-size:9px;color:var(--muted)">W1 · Start</span>
-      <span style="font-size:9px;color:var(--muted)">W16 · Race</span>
+      <span style="font-size:9px;color:var(--muted)">W19 · Race</span>
     </div>
   </div>`;
 }
@@ -777,157 +804,188 @@ function updateHabitsUI() {
 }
 
 // ═══════════════════════════════════════════
-//  16-WEEK PLAN
+//  19-WEEK PLAN
 // ═══════════════════════════════════════════
 const PLAN=[
-  // ── PHASE 1: FOUNDATION ─────────────────────────────
-  {ph:1,lbl:'W1',km:'22–26',sessions:6,doubles:2,days:[
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · HR 125–148 · 5:55–6:30/km · flat route pace scout',dur:'5km'},pm:null},
-    {am:{t:'strength',n:'Push A',d:'Bench 4×5 @85kg · Incline DB 3×8 @30kg · Cable flies 3×12 · Laterals 3×15 · Tricep pushdown 3×12',dur:'60m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125–148 · easy conversational pace',dur:'6km'},pm:{t:'swim',n:'Swim — Technique',d:'20min · bilateral breathing · catch phase drills',dur:'20m'}},
-    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @72.5kg · RDL 3×8 @65kg · Cable rows 3×10 · Hammer curls 3×10 · Rear delt flies 3×15',dur:'60m'},pm:null},
-    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @85kg · Hip thrust 3×8 @80kg · Leg press 3×10 · Nordic 3×8 · Calf raises 4×15',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'4km Zone 2 · shake out the legs',dur:'4km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'8km · Zone 2 · flat route · HR 125–148 · no pressure on pace',dur:'8km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Walk · stretch · sleep 8h · foam roll',dur:''},pm:null},
+  // ── PHASE 1: FOUNDATION (W1-W4) ─────────────────────────────
+  // Default week: Mon=Push · Tue=Pull · Wed=Z2 Run · Thu=Legs A · Fri=Swim+Hyrox · Sat=Long Run+Legs B · Sun=Hard Run
+  {ph:1,lbl:'W1',km:'25-30',sessions:9,days:[
+    {am:{t:'strength',n:'Push A',d:'Bench 4×5 @80kg · Incline DB 3×8 @27.5kg · Cable flies 3×12 · Weighted dips 3×10 · Tricep pushdown 3×12 · Laterals 3×15 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 4×5 @+5kg · Chest-supported row 3×8 · Barbell rows 4×6 @65kg · Face pulls 3×15 · Bicep curl 3×10 · Hammer curl 3×10 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125-148 · conversational pace · flat route · aerobic base',dur:'6km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @80kg · BSS 3×8/leg · Leg press 3×10 · TKE 3×15 · Spanish squat 3×45s · Nordic curl 3×8 · Core finisher',dur:'75m'},pm:null},
+    {am:{t:'swim',n:'Swim — Technique',d:'25min · bilateral breathing · catch phase drills · pull buoy sets',dur:'25m'},pm:{t:'hyrox',n:'Hyrox — Station Intro',d:'Intro session · SkiErg 4×250m · Sled push 4×10m light · Farmers carry 4×30m · Technique focus not intensity',dur:'45m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'9km · Zone 2 · HR 125-148 · comfortable · no pressure on pace · focus on breathing',dur:'9km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 4×8 @80kg · Good mornings 3×10 · Step-ups 3×10/leg · Leg curl 3×12 · Leg extension 3×15 · Glute bridge single 3×12 · Calf raises 4×15 · Core finisher',dur:'65m'}},
+    {am:{t:'run-hard',n:'Strides',d:'6km total · 2km easy warm-up · 6×100m controlled accelerations (not sprints) · 2km easy cool · feel the speed',dur:'6km'},pm:null},
   ]},
-  {ph:1,lbl:'W2',km:'24–28',sessions:6,doubles:2,days:[
-    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @42.5kg · DB shoulder press 3×8 @24kg · Dips 3×10 · Laterals 3×15 · Skull crushers 3×10',dur:'60m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125–148 · easy and controlled',dur:'6km'},pm:{t:'swim',n:'Swim — Drills',d:'25min · bilateral breathing · pull buoy sets',dur:'25m'}},
-    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 4×5 @+5kg · Barbell rows 4×6 @70kg · Bicep curls 3×10 @18kg · Face pulls 3×15 · Dead hang',dur:'60m'},pm:null},
-    {am:{t:'run-hard',n:'Strides',d:'6km total · 3km easy warm-up + 6×100m strides + 3km easy cool · not sprints, controlled accelerations',dur:'6km'},pm:null},
-    {am:{t:'strength',n:'Legs B',d:'Bulgarian split squat 4×8/leg · RDL 3×8 @65kg · Box jumps 4×5 · Single-leg press 3×10 · Calf raises 4×15',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'4km Zone 2 · easy',dur:'4km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'9km · Zone 2 · HR 125–148 · comfortable effort',dur:'9km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Foam roll · cold shower · sleep',dur:''},pm:null},
+  {ph:1,lbl:'W2',km:'27-32',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @40kg · DB shoulder press 3×8 @24kg · Arnold press 3×10 · Laterals 3×15 · Skull crushers 3×10 · Dips 3×12 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @80kg · RDL 3×8 @60kg · Seal row 3×8 · Pull-ups AMRAP · Rear delt flies 3×15 · Incline curl 3×10 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125-148 · aerobic base · easy and controlled · focus on nasal breathing',dur:'6km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @82.5kg · BSS 3×8/leg · Leg press 3×10 · TKE 3×15 · Spanish squat 3×45s · Nordic curl 3×8 · Core finisher',dur:'75m'},pm:null},
+    {am:{t:'swim',n:'Swim — Drills',d:'28min · bilateral breathing · pull buoy · kickboard sets · distance per stroke focus',dur:'28m'},pm:{t:'hyrox',n:'Hyrox — Stations 1',d:'Rowing 4×250m · Burpee broad jumps 4×10m · Wall balls 4×15 · Sandbag lunges 4×20m · Technique + light intensity',dur:'45m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'10km · Zone 2 · HR 125-148 · run easy enough to hold a conversation · track HR not pace',dur:'10km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 4×8 @85kg · Good mornings 3×10 · Step-ups 3×10/leg @+10kg · Leg curl 3×12 · Leg extension 3×15 · Glute bridge single 3×12 · Calf raises 4×15 · Core finisher',dur:'65m'}},
+    {am:{t:'run-hard',n:'Tempo Run',d:'8km total · 2km warm-up · 4km @ 5:20-5:40/km threshold pace · 2km cool-down · controlled discomfort',dur:'8km'},pm:null},
   ]},
-  {ph:1,lbl:'W3',km:'28–32',sessions:6,doubles:2,days:[
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125–148 · aerobic base work',dur:'6km'},pm:null},
-    {am:{t:'strength',n:'Push A',d:'Bench 4×4 @90kg · Incline DB 3×8 @32.5kg · Cable flies 3×12 · Laterals 3×15 · Tricep 3×12',dur:'60m'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'4km work @ 5:20–5:40/km · 2km easy warm-up before + 2km cool after (not counted in km)',dur:'4km'},pm:{t:'swim',n:'Swim — Aerobic',d:'25min · Zone 2 · continuous freestyle',dur:'25m'}},
-    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×4 @77.5kg · RDL 3×8 @67.5kg · Cable rows 3×10 · Hammer curls 3×10 · Rear delt 3×15',dur:'60m'},pm:null},
-    {am:{t:'strength',n:'Legs A',d:'Squat 4×4 @90kg · Hip thrust 4×8 @85kg · Nordic 3×8 · Calf raises 4×15',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'5km Zone 2',dur:'5km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'10km · Zone 2 · aerobic base · focus on HR not pace',dur:'10km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Active rest only · walk · stretch',dur:''},pm:null},
+  {ph:1,lbl:'W3',km:'28-33',sessions:9,days:[
+    {am:{t:'strength',n:'Push A',d:'Bench 4×5 @82.5kg · Incline DB 3×8 @28.5kg · Cable flies 3×12 · Weighted dips 3×10 · Tricep pushdown 3×12 · Laterals 3×15 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 4×5 @+7.5kg · Chest-supported row 3×8 · Barbell rows 4×6 @67.5kg · Face pulls 3×15 · Bicep curl 3×10 · Hammer curl 3×10 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'7km · HR 125-148 · conversational effort · slightly longer base run',dur:'7km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @85kg · BSS 3×8/leg · Leg press 3×10 · TKE 3×15 · Spanish squat 3×45s · Nordic curl 3×8 · Core finisher',dur:'75m'},pm:null},
+    {am:{t:'swim',n:'Swim — Aerobic',d:'30min · continuous freestyle · bilateral breathing · steady Zone 2 effort in water',dur:'30m'},pm:{t:'hyrox',n:'Hyrox — Combo 1',d:'3 rounds: SkiErg 200m + Sled push 15m + Farmers carry 40m · 3min rest between rounds · building intensity',dur:'50m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'11km · Zone 2 · consistent HR · no walk breaks · mental toughness training',dur:'11km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 4×8 @87.5kg · Good mornings 3×10 · Step-ups 3×10/leg @+12.5kg · Leg curl 3×12 · Leg extension 3×15 · Glute bridge single 3×12 · Calf raises 4×15 · Core finisher',dur:'65m'}},
+    {am:{t:'run-hard',n:'Strides',d:'7km total · 2km warm-up · 8×100m strides · 2km cool · feel comfortable at speed',dur:'7km'},pm:null},
   ]},
-  {ph:1,lbl:'W4',km:'15–18',sessions:5,doubles:1,days:[
-    {am:{t:'run-z2',n:'Easy Run',d:'5km · Deload · very easy pace · enjoy it',dur:'5km'},pm:null},
-    {am:{t:'strength',n:'Push A — Deload',d:'Bench 3×5 @72.5kg · Incline DB 2×8 @27.5kg · Laterals 2×12 · Tricep 2×12 · focus form',dur:'50m'},pm:null},
-    {am:{t:'swim',n:'Swim — Easy',d:'25min easy · recovery swim · no intervals',dur:'25m'},pm:null},
-    {am:{t:'strength',n:'Pull B — Deload',d:'Deadlift 3×5 @62.5kg · RDL 2×8 @55kg · Cable rows 2×10 · light accessories',dur:'50m'},pm:null},
-    {am:{t:'strength',n:'Legs A — Deload',d:'Squat 3×5 @72.5kg · Hip thrust 2×8 @70kg · Calf raises 2×15 · mobility work',dur:'50m'},pm:{t:'run-z2',n:'Easy Run PM',d:'3km shakeout · very easy',dur:'3km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'8km easy · assess how body feels · no ego',dur:'8km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest · sleep priority',dur:''},pm:null},
+  {ph:1,lbl:'W4',km:'18-22',sessions:7,days:[
+    {am:{t:'strength',n:'Push A',d:'DELOAD · Bench 3×5 @72.5kg · Incline DB 2×8 @25kg · Cable flies 2×12 · Core finisher · 40% volume reduction',dur:'55m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'DELOAD · Weighted pull-ups 3×5 @BW · Rows 3×6 @60kg · Face pulls 2×15 · Core finisher · Light and controlled',dur:'55m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · easy · HR 120-140 · recovery pace · feel good not tired',dur:'5km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'DELOAD · Squat 3×5 @72.5kg · BSS 2×8/leg light · TKE 3×15 · Spanish squat 2×45s · No Nordic today',dur:'55m'},pm:null},
+    {am:{t:'swim',n:'Swim — Easy',d:'25min · easy technique · drills only · no intensity',dur:'25m'},pm:{t:'hyrox',n:'Hyrox — Light',d:'Station practice technique only · SkiErg 3×200m easy · Farmers carry light · No intensity',dur:'35m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'8km · Zone 2 · easy deload run · HR below 145 · no watch pressure',dur:'8km'},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Complete rest · sleep 8h+ · foam roll · stretch · this rest week prepares you for Phase 2',dur:''},pm:null},
   ]},
-  // ── PHASE 2: DEVELOPMENT ────────────────────────────
-  {ph:2,lbl:'W5',km:'23–27',sessions:6,doubles:3,days:[
-    {am:{t:'strength',n:'Push A',d:'Bench 4×5 @90kg · Incline DB 3×8 @32.5kg · Cable flies 3×12 · Laterals 3×15 · Tricep 3×12',dur:'65m'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'4km work @ 5:20–5:40/km · 2km warm-up + 2km cool (not counted)',dur:'4km'},pm:{t:'swim',n:'Swim — Intervals',d:'6×100m building pace + 200m cool · 30min total',dur:'30m'}},
-    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 4×5 @+7.5kg · Barbell rows 4×6 @75kg · Bicep curls 3×10 · Face pulls 3×15',dur:'65m'},pm:null},
-    {am:{t:'hyrox',n:'Hyrox Intro',d:'SkiErg 3×500m rest 2min · Burpee broad jumps 3×10 · Wall balls 3×15 @6kg · learn the stations',dur:'50m'},pm:null},
-    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 · RDL · Hip thrust · Calves',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'30 min Zone 2',dur:'30m'}},
-    {am:{t:'run-z2',n:'Long Run',d:'75 min Zone 2 · flat route',dur:'75m'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'',dur:''},pm:null},
+  // ── PHASE 2: DEVELOPMENT (W5-W8) ────────────────────────────
+  {ph:2,lbl:'W5',km:'30-36',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @42.5kg · DB shoulder press 3×8 @26kg · Arnold press 3×10 · Laterals 4×15 · Skull crushers 3×10 · Dips 3×10 @+5kg · Core finisher',dur:'72m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @90kg · RDL 3×8 @62.5kg · Seal row 3×8 · Pull-ups AMRAP · Rear delt flies 3×15 · Incline curl 3×10 · Core finisher',dur:'72m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · aerobic development · first time above 7km midweek',dur:'8km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @87.5kg · BSS 3×10/leg · Leg press 4×10 · TKE 3×15 · Spanish squat 3×45s · Nordic curl 3×8 · Core finisher',dur:'78m'},pm:null},
+    {am:{t:'swim',n:'Swim — Aerobic',d:'32min · Zone 2 · continuous freestyle · bilateral breathing · build swim fitness',dur:'32m'},pm:{t:'hyrox',n:'Hyrox — Combo 2',d:'4 rounds: Rowing 250m + Burpee broad jumps 15m + Wall balls 20 · 2.5min rest · increasing intensity',dur:'55m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'13km · Zone 2 · major endurance jump · HR 125-148 · run the whole thing',dur:'13km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 5×8 @90kg · Good mornings 3×10 @40kg · Step-ups 4×10/leg @+15kg · Leg curl 3×12 · Leg extension 3×15 · Glute bridge 3×12 · Calf 4×15 · Core finisher',dur:'70m'}},
+    {am:{t:'run-hard',n:'Tempo Run',d:'9km total · 2km warm-up · 5km @ 5:15-5:30/km · 2km cool · maintain race feel',dur:'9km'},pm:null},
   ]},
-  {ph:2,lbl:'W6',km:'29–33',sessions:6,doubles:3,days:[
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'7km · HR 125–148 · aerobic development',dur:'7km'},pm:null},
-    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @45kg · DB shoulder 3×8 @26kg · Dips 3×10 · Laterals 3×15 · Skull crushers 3×10',dur:'65m'},pm:{t:'swim',n:'Swim — Aerobic',d:'30min · continuous Zone 2 · bilateral breathing',dur:'30m'}},
-    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @80kg · RDL 3×8 @70kg · Cable rows 3×10 · Hammer curls 3×10 · Rear delt 3×15',dur:'65m'},pm:null},
-    {am:{t:'run-hard',n:'Intervals',d:'4km work · 4×1km @4:50–5:10/km · 90sec rest · 1km warm-up + cool (not counted)',dur:'4km'},pm:null},
-    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @92.5kg · Hip thrust 3×8 @90kg · Leg press 3×10 · Nordic 3×8 · Calf 4×15',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'5km Zone 2',dur:'5km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'12km · Zone 2 · HR 125–148 · gel practice',dur:'12km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Foam roll · cold shower',dur:''},pm:null},
+  {ph:2,lbl:'W6',km:'32-38',sessions:9,days:[
+    {am:{t:'strength',n:'Push A',d:'Bench 4×6 @82.5kg · Incline DB 4×8 @30kg · Cable flies 3×12 · Weighted dips 3×10 @+5kg · Tricep pushdown 3×12 · Laterals 4×15 · Core finisher',dur:'72m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 5×5 @+10kg · Chest-supported row 4×8 · Barbell rows 4×6 @72.5kg · Face pulls 3×15 · Bicep curl 3×10 · Hammer curl 3×10 · Core finisher',dur:'72m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · aerobic base building · comfortable effort throughout',dur:'8km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×6 @85kg · BSS 3×10/leg · Leg press 4×10 · TKE 3×15 · Spanish squat 3×45s · Nordic curl 3×8 · Core finisher',dur:'78m'},pm:null},
+    {am:{t:'swim',n:'Swim — Pace Sets',d:'35min · 5×200m with 30s rest · build pace each rep · track stroke count',dur:'35m'},pm:{t:'hyrox',n:'Hyrox — Station 2',d:'Race pace practice: SkiErg 500m + Sled pull 25m + Sandbag lunges 40m + Farmers carry 80m · 2 full rounds · push effort',dur:'55m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'14km · Zone 2 · build endurance · HR consistent · last 3km can push to 148bpm',dur:'14km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 5×8 @92.5kg · Good mornings 3×10 @42.5kg · Step-ups 4×10/leg @+17.5kg · Leg curl 3×12 · Leg extension 3×15 · Glute bridge 3×12 · Calf 4×15 · Core finisher',dur:'70m'}},
+    {am:{t:'run-hard',n:'Strides',d:'8km total · 2km warm-up · 10×100m strides at 90% effort · 2km cool · controlled acceleration practice',dur:'8km'},pm:null},
   ]},
-  {ph:2,lbl:'W7',km:'27–31',sessions:6,doubles:3,days:[
-    {am:{t:'strength',n:'Push A',d:'Bench 4×5 @92.5kg · Incline DB 3×8 @33kg · Cable flies 3×12 · Laterals 3×15 · Tricep 3×12',dur:'65m'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'5km work @ 5:20–5:40/km · 2km warm-up + 2km cool (not counted)',dur:'5km'},pm:{t:'swim',n:'Swim — Build',d:'30min · 4×200m build + 200m easy',dur:'30m'}},
-    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 4×5 @+10kg · Barbell rows 4×6 @77.5kg · Bicep curls 3×10 · Face pulls 3×15',dur:'65m'},pm:null},
-    {am:{t:'hyrox',n:'Hyrox Build',d:'SkiErg 5×500m · Sled push 40kg 3×25m · Wall balls 4×20 @6kg · Farmers carry 3×50m @20kg/hand',dur:'55m'},pm:null},
-    {am:{t:'strength',n:'Legs B',d:'Bulgarian split squat 4×8/leg · RDL 3×8 @72.5kg · Box jumps 4×5 · Single-leg press 3×10 · Calf 4×15',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'6km Zone 2',dur:'6km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'13km · Zone 2 · HR 125–148 · gel at 8km',dur:'13km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Active rest only',dur:''},pm:null},
+  {ph:2,lbl:'W7',km:'33-40',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @47.5kg · DB shoulder press 4×8 @28kg · Arnold press 3×10 · Laterals 4×15 · Skull crushers 4×10 · Dips 4×10 @+7.5kg · Core finisher',dur:'75m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @97.5kg · RDL 3×8 @67.5kg · Seal row 4×8 · Pull-ups AMRAP · Rear delt 3×15 · Incline curl 3×10 · Core finisher',dur:'75m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125-148 · aerobic base · midweek long-ish run · important training week',dur:'9km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @90kg · BSS 4×8/leg · Leg press 4×10 · TKE 3×15 · Spanish squat 3×50s · Nordic curl 3×8 · Core finisher',dur:'80m'},pm:null},
+    {am:{t:'swim',n:'Swim — Threshold',d:'35min · 4×300m with 45s rest · push pace each rep · build swimming fitness fast',dur:'35m'},pm:{t:'hyrox',n:'Hyrox — Half Sim',d:'Half simulation: 4km run (split 4×1km) + SkiErg 500m + Sled push 25m + Burpee jumps 40m + Rowing 500m · Race pace effort',dur:'60m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'15km · Zone 2 · first time at 15km · stay easy · fueling practice (gel at 10km)',dur:'15km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 5×8 @95kg · Good mornings 4×10 @45kg · Step-ups 4×10/leg @+20kg · Leg curl 4×12 · Leg extension 3×15 · Glute bridge 3×12 · Calf 4×15 · Core finisher',dur:'72m'}},
+    {am:{t:'run-hard',n:'Tempo Run',d:'10km total · 2km warm-up · 6km @ 5:10-5:25/km threshold · 2km cool · maintain, don't blow up',dur:'10km'},pm:null},
   ]},
-  {ph:2,lbl:'W8',km:'33–37',sessions:6,doubles:3,days:[
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125–148 · aerobic development',dur:'8km'},pm:null},
-    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @47.5kg · DB shoulder 3×8 @27kg · Dips 3×12 · Laterals 3×15 · Skull crushers 3×10',dur:'65m'},pm:{t:'swim',n:'Swim — Intervals',d:'8×100m hard effort + 200m cool · 30min',dur:'30m'}},
-    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @82.5kg · RDL 3×8 @72.5kg · Cable rows 3×10 · Hammer curls 3×10 · Rear delt 3×15',dur:'65m'},pm:null},
-    {am:{t:'run-hard',n:'Intervals',d:'4km work · 8×400m @4:50/km · 75sec rest · 1km warm-up + cool (not counted)',dur:'4km'},pm:null},
-    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @95kg · Hip thrust 3×8 @95kg · Leg press 3×10 · Nordic 3×8 · Calf 4×15',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'6km Zone 2',dur:'6km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'14km · Zone 2 · gel at 40min · HR 125–148',dur:'14km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest · sleep priority',dur:''},pm:null},
+  {ph:2,lbl:'W8',km:'20-24',sessions:7,days:[
+    {am:{t:'strength',n:'Push A',d:'DELOAD · Bench 3×5 @77.5kg · Incline DB 2×8 @27.5kg · Flies 2×12 · Core finisher · 40% volume cut',dur:'55m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'DELOAD · Pull-ups 3×5 @+5kg · Rows 3×6 @65kg · Face pulls 2×15 · Core finisher',dur:'55m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · easy deload · HR below 145 · recovery pace',dur:'6km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'DELOAD · Squat 3×5 @77.5kg · BSS 2×8/leg easy · TKE 3×15 · Spanish squat 2×40s · Core finisher',dur:'55m'},pm:null},
+    {am:{t:'swim',n:'Swim — Easy',d:'25min · easy technique · no intensity · recover',dur:'25m'},pm:{t:'hyrox',n:'Hyrox — Technique',d:'Light technique only · slow reps on each station · no cardio stress · form work',dur:'35m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'10km · easy deload · Zone 2 · feel good, not taxed',dur:'10km'},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Full rest · sleep · stretch · prepare body for Phase 3 which is the hardest block',dur:''},pm:null},
   ]},
-  {ph:2,lbl:'W9',km:'18–22',sessions:5,doubles:1,days:[
-    {am:{t:'run-z2',n:'Easy Run',d:'6km · Deload · very easy pace',dur:'6km'},pm:null},
-    {am:{t:'strength',n:'Push A — Deload',d:'Bench 3×5 @80kg · Incline DB 2×8 @30kg · Light accessories only',dur:'50m'},pm:null},
-    {am:{t:'swim',n:'Swim — Easy',d:'25min easy · recovery · no intervals',dur:'25m'},pm:null},
-    {am:{t:'strength',n:'Pull A — Deload',d:'Pull-ups 3×5 @+5kg · Rows 3×6 @65kg · Light biceps and face pulls',dur:'50m'},pm:null},
-    {am:{t:'strength',n:'Legs A — Deload',d:'Squat 3×5 @82.5kg · Hip thrust 2×8 @80kg · Calf 2×15 · mobility',dur:'50m'},pm:{t:'run-z2',n:'Easy Run PM',d:'3km shakeout · very easy',dur:'3km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'10km easy · aerobic only · no pressure',dur:'10km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest',dur:''},pm:null},
+  // ── PHASE 3: PEAK (W9-W12) ──────────────────────────────────
+  {ph:3,lbl:'W9',km:'35-42',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 5×5 @50kg · DB shoulder press 4×8 @30kg · Arnold press 3×10 · Laterals 4×15 · Skull crushers 4×10 · Dips 4×10 @+10kg · Core finisher',dur:'78m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'Deadlift 5×5 @100kg · RDL 4×8 @70kg · Seal row 4×8 · Pull-ups AMRAP · Rear delt 3×15 · Incline curl 3×10 · Core finisher',dur:'78m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125-148 · peak phase aerobic · this is your best running block',dur:'9km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 5×5 @90kg · BSS 4×10/leg · Leg press 4×12 · TKE 4×15 · Spanish squat 3×50s · Nordic curl 3×8 · Core finisher',dur:'82m'},pm:null},
+    {am:{t:'swim',n:'Swim — Intervals',d:'38min · 6×200m with 30s rest · push pace · last 2 reps max effort · track HR',dur:'38m'},pm:{t:'hyrox',n:'Hyrox — Full Sim 1',d:'Full Hyrox simulation: 8km run (8×1km) + all 8 stations · moderate pace · learn the race',dur:'75m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'17km · Zone 2 · first time at 17km · gels at km 10 + 14 · mental endurance work',dur:'17km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 5×8 @100kg · Good mornings 4×10 @50kg · Step-ups 4×12/leg @+22.5kg · Leg curl 4×12 · Leg extension 4×15 · Glute bridge 4×12 · Calf 4×15 · Core finisher',dur:'75m'}},
+    {am:{t:'run-hard',n:'Strides',d:'9km · 2km warm-up · 10×100m max effort strides · 2km cool · speed endurance',dur:'9km'},pm:null},
   ]},
-  // ── PHASE 3: PEAK ───────────────────────────────────
-  {ph:3,lbl:'W10',km:'39–44',sessions:6,doubles:3,days:[
-    {am:{t:'run-hard',n:'Tempo Run',d:'6km work @ 5:20–5:40/km · 2km warm-up + 2km cool · peak block begins',dur:'6km'},pm:null},
-    {am:{t:'strength',n:'Push A ⚠',d:'Bench 3×5 @87.5kg · Incline DB 3×8 @33kg · Flies 3×12 · Laterals 3×15 · Tricep 3×12 · ⚠ Peak week — reduce to 2 sets if sleep score <40',dur:'60m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125–148 · aerobic peak',dur:'9km'},pm:{t:'swim',n:'Swim — Aerobic',d:'35min · continuous Zone 2',dur:'35m'}},
-    {am:{t:'strength',n:'Pull B ⚠',d:'Deadlift 3×5 @82.5kg · RDL 3×8 @72.5kg · Cable rows 3×10 · Hammer 3×10 · Rear delt 3×15 · ⚠ Skip if legs are dead from tempo',dur:'60m'},pm:null},
-    {am:{t:'strength',n:'Legs B ⚠',d:'Bulgarian split 3×8/leg · RDL 3×8 @70kg · Box jumps 3×5 · Single-leg press 3×10 · Calf 3×15 · ⚠ Reduce load 10% — long run is Saturday',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'6km Zone 2',dur:'6km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'15km · Zone 2 · gels at 40min + 75min · your longest run yet',dur:'15km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest · sleep is training',dur:''},pm:null},
+  {ph:3,lbl:'W10',km:'37-44',sessions:9,days:[
+    {am:{t:'strength',n:'Push A',d:'Bench 5×5 @90kg · Incline DB 4×8 @32.5kg · Cable flies 4×12 · Weighted dips 4×10 @+10kg · Tricep pushdown 4×12 · Laterals 4×15 · Core finisher',dur:'78m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 5×5 @+17.5kg · Chest-supported row 4×8 · Barbell rows 5×6 @80kg · Face pulls 4×15 · Bicep curl 4×10 · Hammer curl 3×10 · Core finisher',dur:'78m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'10km · HR 125-148 · peak aerobic · hold effort, not pace',dur:'10km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 5×5 @92.5kg · BSS 4×10/leg · Leg press 4×12 · TKE 4×15 · Spanish squat 4×50s · Nordic curl 4×8 · Core finisher',dur:'82m'},pm:null},
+    {am:{t:'swim',n:'Swim — Race Pace',d:'40min · 4×400m with 45s rest · race pace effort · swim as if it's a tri',dur:'40m'},pm:{t:'hyrox',n:'Hyrox — Full Sim 2',d:'Full Hyrox simulation: 8km run + all 8 stations · push pace to race speed · time yourself',dur:'80m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'18km · Zone 2 · race simulation distance · gels × 2 · practice your HM nutrition strategy',dur:'18km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 5×8 @102.5kg · Good mornings 4×10 @52.5kg · Step-ups 4×12/leg @+25kg · Leg curl 4×12 · Leg extension 4×15 · Glute bridge 4×12 · Calf 4×15 · Core finisher',dur:'75m'}},
+    {am:{t:'run-hard',n:'Tempo Run',d:'11km total · 2km warm-up · 7km @ 5:05-5:20/km · 2km cool · race pace practice',dur:'11km'},pm:null},
   ]},
-  {ph:3,lbl:'W11',km:'38–43',sessions:6,doubles:3,days:[
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125–148',dur:'9km'},pm:null},
-    {am:{t:'strength',n:'Push B ⚠',d:'OHP 3×5 @45kg · DB shoulder 3×8 @27kg · Dips 3×12 · Laterals 3×15 · Skull crushers 3×10 · ⚠ Peak week — skip if sleep <40',dur:'60m'},pm:{t:'swim',n:'Swim — Intervals',d:'35min · 6×150m build pace + 300m easy',dur:'35m'}},
-    {am:{t:'run-hard',n:'Intervals',d:'5km work · 5×1km @5:00/km · 90sec rest · 1km warm-up + cool (not counted)',dur:'5km'},pm:null},
-    {am:{t:'strength',n:'Pull A ⚠',d:'Pull-ups 3×5 @+10kg · Rows 3×6 @77.5kg · Bicep curls 3×10 · Face pulls 3×15 · ⚠ Reduce if arms fatigued',dur:'60m'},pm:null},
-    {am:{t:'strength',n:'Legs A ⚠',d:'Squat 3×5 @90kg · Hip thrust 3×8 @97.5kg · Leg press 3×10 · Nordic 3×8 · Calf 3×15 · ⚠ Listen to your body — 16km on Saturday',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'7km Zone 2',dur:'7km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'16km · Zone 2 · gels at 40 + 80min · longest run of the program',dur:'16km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest — you earned it',dur:''},pm:null},
+  {ph:3,lbl:'W11',km:'38-46',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 5×5 @52.5kg · DB shoulder press 4×8 @32kg · Arnold press 4×10 · Laterals 4×15 · Skull crushers 4×10 · Dips 4×10 @+12.5kg · Core finisher',dur:'80m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'Deadlift 5×5 @107.5kg · RDL 4×8 @75kg · Seal row 4×8 · Pull-ups AMRAP · Rear delt 4×15 · Incline curl 3×10 · Core finisher',dur:'80m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'10km · HR 125-148 · peak training week · stay aerobic, trust the training',dur:'10km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 5×5 @95kg · BSS 4×10/leg @+5kg · Leg press 5×12 · TKE 4×15 · Spanish squat 4×55s · Nordic curl 4×8 · Core finisher',dur:'85m'},pm:null},
+    {am:{t:'swim',n:'Swim — Threshold',d:'42min · 5×300m with 30s rest · threshold effort · fastest swim block of program',dur:'42m'},pm:{t:'hyrox',n:'Hyrox — Race Sim',d:'Race simulation at target pace: full 8km run + all 8 stations · time from start · max effort',dur:'85m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'19km · Zone 2 · longest run of program · gels × 3 · mental strength · you're ready for HM',dur:'19km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 5×8 @105kg · Good mornings 4×10 @55kg · Step-ups 4×12/leg @+27.5kg · Leg curl 4×12 · Leg extension 4×15 · Glute bridge 4×12 · Calf 4×15 · Core finisher',dur:'78m'}},
+    {am:{t:'run-hard',n:'Strides + Drills',d:'10km · 2km warm-up · 12×100m strides at max speed · running drills (high knees, A-skip, B-skip) · 2km cool',dur:'10km'},pm:null},
   ]},
-  {ph:3,lbl:'W12',km:'32–37',sessions:6,doubles:2,days:[
-    {am:{t:'run-hard',n:'Tempo Run',d:'6km work @ 5:20–5:40/km · 2km warm-up + 2km cool',dur:'6km'},pm:null},
-    {am:{t:'strength',n:'Push A ⚠',d:'Bench 3×4 @85kg · Incline DB 3×8 @32.5kg · Flies 3×12 · Laterals 3×15 · Tricep 3×12 · ⚠ Volume reduced — quality over quantity',dur:'60m'},pm:{t:'swim',n:'Swim — Aerobic',d:'35min · continuous Zone 2',dur:'35m'}},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125–148',dur:'8km'},pm:null},
-    {am:{t:'hyrox',n:'Hyrox Full Simulation',d:'All 8 stations + 1km runs between · Sled @80kg · Wall balls 75 total · target under 75min · race effort',dur:'75m'},pm:null},
-    {am:{t:'strength',n:'Legs B ⚠',d:'Bulgarian split 3×8/leg · RDL 3×8 @72.5kg · Box jumps 3×5 · Single-leg press 3×10 · Calf 3×15 · ⚠ Keep form perfect — taper soon',dur:'65m'},pm:null},
-    {am:{t:'run-z2',n:'Long Run',d:'15km · Zone 2 · gel at 40min + 75min',dur:'15km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest',dur:''},pm:null},
+  {ph:3,lbl:'W12',km:'22-27',sessions:7,days:[
+    {am:{t:'strength',n:'Push A',d:'DELOAD · Bench 3×5 @82.5kg · Incline DB 2×8 @28.5kg · Flies 2×12 · Core finisher · Volume -40%',dur:'55m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'DELOAD · Pull-ups 3×5 @+10kg · Rows 3×6 @70kg · Face pulls 2×15 · Core finisher',dur:'55m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · easy deload · feel the legs recover after peak block',dur:'6km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'DELOAD · Squat 3×5 @82.5kg · TKE 3×15 · Spanish squat 2×45s · Core finisher only',dur:'50m'},pm:null},
+    {am:{t:'swim',n:'Swim — Easy',d:'25min · easy · technique only · no intensity · deload week',dur:'25m'},pm:{t:'hyrox',n:'Hyrox — Light',d:'Light technique review · all 8 stations × 5 reps each · no cardio · perfect form only',dur:'35m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'12km · easy · enjoy it after peak block · HR below 148 strictly',dur:'12km'},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Full rest · recovery week complete · HM in 4 weeks · you are ready',dur:''},pm:null},
   ]},
-  {ph:3,lbl:'W13',km:'33–38',sessions:5,doubles:1,days:[
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'7km · HR 125–148',dur:'7km'},pm:null},
-    {am:{t:'strength',n:'Pull B ⚠',d:'Deadlift 3×4 @80kg · RDL 3×8 @72.5kg · Cable rows 3×10 · Hammer 3×10 · Rear delt 3×15 · ⚠ Last hard strength week',dur:'60m'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'5km work @ 5:20–5:40/km · 2km warm-up + 2km cool',dur:'5km'},pm:{t:'swim',n:'Swim — Aerobic',d:'35min Zone 2',dur:'35m'}},
-    {am:{t:'strength',n:'Push B ⚠',d:'OHP 3×5 @45kg · DB shoulder 3×8 @27kg · Dips 3×10 · Laterals 3×15 · ⚠ Last push before taper',dur:'55m'},pm:null},
-    {am:{t:'strength',n:'Legs A ⚠',d:'Squat 3×4 @87.5kg · Hip thrust 3×8 @95kg · Leg press 3×10 · Nordic 3×8 · Calf 3×15 · ⚠ Last leg session before taper',dur:'65m'},pm:{t:'run-z2',n:'Easy Run PM',d:'5km Zone 2',dur:'5km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'13km · Zone 2 · well-earned gel',dur:'13km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest · begin taper mindset',dur:''},pm:null},
+  // ── PHASE 4: HM BUILD + TAPER (W13-W16) ─────────────────────
+  {ph:4,lbl:'W13',km:'30-36',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @50kg · DB shoulder press 3×8 @30kg · Laterals 4×15 · Skull crushers 3×10 · Dips 3×10 @+10kg · Core finisher · Maintain intensity, reduce volume',dur:'70m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'Deadlift 4×5 @102.5kg · RDL 3×8 @72.5kg · Seal row 3×8 · Pull-ups AMRAP · Rear delt 3×15 · Core finisher',dur:'70m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · race-feel pace · race in 3 weeks, stay sharp',dur:'8km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @92.5kg · BSS 3×8/leg · Leg press 3×10 · TKE 3×15 · Spanish squat 3×45s · Core finisher',dur:'72m'},pm:null},
+    {am:{t:'swim',n:'Swim — Race Prep',d:'35min · race pace sets · 3×500m with 60s rest · simulate HM day swim if tri format',dur:'35m'},pm:{t:'hyrox',n:'Hyrox — Race Prep',d:'Hyrox race strategy: 2 rounds full station circuit at target HM race pace · practice transitions',dur:'55m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'16km · Zone 2 · last long run before taper · gels × 2 · race rehearsal nutrition',dur:'16km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 4×8 @100kg · Good mornings 3×10 · Step-ups 3×10/leg · Leg curl 3×12 · Leg extension 3×15 · Core finisher · Volume reduced',dur:'65m'}},
+    {am:{t:'run-hard',n:'Tempo Run',d:'10km · 2km warm-up · 6km @ 5:05-5:15/km · 2km cool · last hard tempo before race',dur:'10km'},pm:null},
   ]},
-  // ── PHASE 4: TAPER & RACE ───────────────────────────
-  {ph:4,lbl:'W14',km:'19–23',sessions:5,doubles:1,days:[
-    {am:{t:'run-z2',n:'Easy Run',d:'6km · Zone 2 · taper begins · trust the training',dur:'6km'},pm:null},
-    {am:{t:'strength',n:'Push A — Taper',d:'Bench 2×4 @80kg · Incline DB 2×8 @30kg · Laterals 2×12 · Tricep 2×12 · Volume cut 40%',dur:'45m'},pm:null},
-    {am:{t:'swim',n:'Swim — Easy',d:'20min easy · maintenance · no effort',dur:'20m'},pm:null},
-    {am:{t:'strength',n:'Pull A — Taper',d:'Pull-ups 2×4 @+7.5kg · Rows 2×6 @65kg · Bicep 2×10 · Face pulls 2×12 · Volume cut 40%',dur:'45m'},pm:null},
-    {am:{t:'strength',n:'Legs A — Taper',d:'Squat 2×4 @80kg · Hip thrust 2×8 @80kg · Calf 2×15 · Mobility · Volume cut 40%',dur:'45m'},pm:{t:'run-z2',n:'Easy Run PM',d:'4km Zone 2 shakeout',dur:'4km'}},
-    {am:{t:'run-z2',n:'Long Run',d:'10km · Zone 2 · relaxed · last proper long run',dur:'10km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest',dur:''},pm:null},
+  {ph:4,lbl:'W14',km:'25-30',sessions:8,days:[
+    {am:{t:'strength',n:'Push A',d:'Bench 3×5 @87.5kg · Incline DB 2×8 @30kg · Flies 2×12 · Core finisher · Keep intensity, drop sets',dur:'65m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Pull-ups 3×5 @+17.5kg · Rows 3×6 @77.5kg · Face pulls 2×15 · Core finisher · Taper mode',dur:'65m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'7km · HR 125-145 · comfortable · taper starting · legs should feel fresh',dur:'7km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 3×5 @87.5kg · TKE 3×15 · Spanish squat 2×45s · BSS 2×8/leg · Core finisher',dur:'60m'},pm:null},
+    {am:{t:'swim',n:'Swim — Taper',d:'28min · 4×200m easy · technique focus · feel the water, don't fight it',dur:'28m'},pm:null},
+    {am:{t:'run-z2',n:'Long Run',d:'14km · Zone 2 · taper long run · HR 125-143 · feel strong not taxed',dur:'14km'},pm:null},
+    {am:{t:'run-hard',n:'Strides',d:'7km · 2km warm-up · 6×100m strides · 2km cool · staying sharp for race',dur:'7km'},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Rest day · stretch · mental prep · race in 2 weeks',dur:''},pm:null},
   ]},
-  {ph:4,lbl:'W15',km:'21–25',sessions:4,doubles:0,days:[
-    {am:{t:'run-hard',n:'Race Sharpener',d:'3km work @ race pace 5:40/km · 2km warm-up + 2km cool · stay sharp',dur:'3km'},pm:null},
-    {am:{t:'strength',n:'Push B — Taper',d:'OHP 2×3 @40kg · DB shoulder 2×6 @22kg · Very light · feel good',dur:'40m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · Zone 2 · easy · legs should feel fresh',dur:'5km'},pm:{t:'swim',n:'Swim — Easy',d:'20min easy · maintenance',dur:'20m'}},
-    {am:{t:'strength',n:'Pull B — Taper',d:'Deadlift 2×3 @70kg · RDL 2×6 @60kg · Very light · maintain feel',dur:'40m'},pm:null},
-    {am:{t:'run-z2',n:'Easy Run',d:'3km easy · final aerobic stimulus · enjoy it',dur:'3km'},pm:null},
-    {am:{t:'run-z2',n:'Long Run',d:'7km easy · last long run before race · smooth and relaxed',dur:'7km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest · race prep begins',dur:''},pm:null},
+  {ph:4,lbl:'W15',km:'15-18',sessions:6,days:[
+    {am:{t:'strength',n:'Push B',d:'TAPER · OHP 2×5 @45kg · Dips 2×8 · Core finisher only · Neurological prep, not fatigue',dur:'45m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'TAPER · Pull-ups 2×5 @+12.5kg · Face pulls 2×15 · Core finisher only · Feel activated',dur:'45m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · very easy · HR below 140 · stay loose · race in 6 days',dur:'5km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'TAPER · Squat 2×3 @80kg · TKE 2×15 · Spanish squat 1×45s · activation only',dur:'35m'},pm:null},
+    {am:{t:'swim',n:'Swim — Activation',d:'20min · very easy · feel the water · no effort · race in 3 days',dur:'20m'},pm:null},
+    {am:{t:'run-z2',n:'Easy Run',d:'4km · very easy · shakeout · HR below 135 · day before race eve',dur:'4km'},pm:null},
+    {am:{t:'rest',n:'Rest — Race Eve',d:'Complete rest · carb load · sleep early · lay out race kit · trust all the work',dur:''},pm:null},
   ]},
-  {ph:4,lbl:'W16',km:'Race Week',sessions:5,doubles:1,days:[
-    {am:{t:'run-z2',n:'Easy Run',d:'3km easy · shake out · light feet',dur:'3km'},pm:null},
-    {am:{t:'strength',n:'Push A — Race Week',d:'Bench 2×3 @70kg · OHP 2×3 @35kg · No accessories · just activate',dur:'30m'},pm:null},
-    {am:{t:'swim',n:'Swim — Easy',d:'20min easy · recovery · no effort',dur:'20m'},pm:null},
-    {am:{t:'run-z2',n:'Easy Run',d:'2km very easy · legs stay fresh',dur:'2km'},pm:{t:'strength',n:'Legs — Activate',d:'Squat 2×3 @70kg · Hip thrust 2×5 @60kg · Calf raises 2×10 · activation only',dur:'20m'}},
-    {am:{t:'rest',n:'Rest',d:'Complete rest · sleep · hydrate · carb load',dur:''},pm:null},
-    {am:{t:'custom',n:'Race Day',d:'HM Sub-2:00 or Hyrox · all the work was done · run your race · execute',dur:''},pm:null},
-    {am:{t:'rest',n:'Recovery',d:'Active recovery · walk · celebrate · ice bath',dur:''},pm:null},
+  {ph:4,lbl:'W16',km:'25–28',sessions:3,days:[
+    {am:{t:'rest',n:'Rest',d:'Complete rest · stay off feet · hydrate · light walk only',dur:''},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Stay off feet · carb load continues · mental visualization · you are ready',dur:''},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Rest · short walk · carb load · sleep early · race tomorrow',dur:''},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Rest · short walk · hydrate · sleep',dur:''},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Race-eve complete rest · carb load · kit ready · bed early',dur:''},pm:null},
+    {am:{t:'custom',n:'🏃 Half Marathon Race',d:'Half Marathon · Sub-2:00 target · go out at 5:40/km for first 5km · negative split · 1:58:XX · you did the work',dur:'21km'},pm:null},
+    {am:{t:'rest',n:'Recovery',d:'Active recovery · walk · celebrate · ice bath · massage · you've earned it',dur:''},pm:null},
   ]},
+  // ── PHASE 5: HYROX BLOCK (W17-W19) ──────────────────────────
+  {ph:5,lbl:'W17',km:'20-25',sessions:7,days:[
+    {am:{t:'rest',n:'Post-Race Rest',d:'Complete rest · legs may be very sore · light walk only if comfortable',dur:''},pm:null},
+    {am:{t:'strength',n:'Push A',d:'RECOVERY · Bench 3×8 @72.5kg · Incline DB 2×8 @25kg · Flies 2×12 · Core finisher · Pump not fatigue',dur:'55m'},pm:null},
+    {am:{t:'run-z2',n:'Recovery Run',d:'5km · very easy · HR below 140 · flush the legs · no pressure',dur:'5km'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'RECOVERY · Deadlift 3×8 @75kg · Rows 3×8 @65kg · Pull-ups 3×AMRAP easy · Core finisher',dur:'55m'},pm:null},
+    {am:{t:'swim',n:'Swim — Recovery',d:'25min · easy · therapeutic · enjoy · no intensity',dur:'25m'},pm:{t:'hyrox',n:'Hyrox — Review',d:'Review all 8 stations at easy pace · identify weaknesses · plan Hyrox race strategy',dur:'40m'}},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · Zone 2 · back to normal · legs should feel ok · Hyrox in 2 weeks',dur:'8km'},pm:{t:'strength',n:'Legs A',d:'RECOVERY · Squat 3×8 @75kg · TKE 3×15 · Spanish squat 2×45s · Core finisher',dur:'55m'}},
+    {am:{t:'run-hard',n:'Tempo Run',d:'8km · 2km warm-up · 4km moderate tempo @5:20 · 2km cool · ease back into hard running',dur:'8km'},pm:null},
+  ]},
+  {ph:5,lbl:'W18',km:'28-34',sessions:9,days:[
+    {am:{t:'strength',n:'Push B',d:'OHP 4×5 @50kg · DB shoulder press 3×8 @30kg · Laterals 4×15 · Skull crushers 3×10 · Dips 3×10 @+10kg · Core finisher · Back to full intensity',dur:'72m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups 4×5 @+17.5kg · Chest-supported row 4×8 · Barbell rows 4×6 @80kg · Face pulls 3×15 · Bicep curl 3×10 · Hammer curl 3×10 · Core finisher',dur:'72m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · strong aerobic · Hyrox in 8 days · stay sharp',dur:'8km'},pm:null},
+    {am:{t:'strength',n:'Legs A',d:'Squat 4×5 @87.5kg · BSS 3×8/leg · Leg press 3×10 · TKE 3×15 · Spanish squat 3×45s · Core finisher · Strong but not destroying yourself',dur:'75m'},pm:null},
+    {am:{t:'swim',n:'Swim — Race Prep',d:'30min · race pace sets · 3×300m with 60s rest · Hyrox race day swim simulation',dur:'30m'},pm:{t:'hyrox',n:'Hyrox — FINAL Simulation',d:'Full Hyrox race simulation at race pace: 8km run + all 8 stations timed · this is your dress rehearsal',dur:'90m'}},
+    {am:{t:'run-z2',n:'Long Run',d:'12km · Zone 2 · last long run · comfortable · race in 6 days',dur:'12km'},pm:{t:'strength',n:'Legs B',d:'Hip thrust 4×8 @95kg · Step-ups 3×10/leg · Leg curl 3×12 · Leg extension 3×15 · Core finisher · Reduced volume',dur:'62m'}},
+    {am:{t:'run-hard',n:'Strides',d:'6km · 2km warm-up · 6×100m race speed strides · 2km cool · stay sharp before taper',dur:'6km'},pm:null},
+  ]},
+  {ph:5,lbl:'W19',km:'12-15',sessions:5,days:[
+    {am:{t:'strength',n:'Push A',d:'HYROX TAPER · Bench 2×5 @80kg · Core finisher only · Stay activated, no fatigue',dur:'40m'},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'HYROX TAPER · Pull-ups 2×5 @+12.5kg · Rows 2×6 @72.5kg · Core finisher only',dur:'40m'},pm:null},
+    {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · easy · HR below 140 · Hyrox in 4 days · stay loose',dur:'5km'},pm:null},
+    {am:{t:'hyrox',n:'Hyrox — Activation',d:'10min each station at 50% effort only · activation not fatigue · last practice before race · Hyrox in 2 days',dur:'40m'},pm:null},
+    {am:{t:'swim',n:'Swim — Easy',d:'15min · very easy · activate · feel the water · no effort',dur:'15m'},pm:null},
+    {am:{t:'run-z2',n:'Shakeout Run',d:'3km · very easy · HR below 130 · stay loose · race tomorrow',dur:'3km'},pm:null},
+    {am:{t:'custom',n:'🏆 Hyrox Race',d:'Hyrox · Sep 19 · 8km run + 8 stations · give everything · all 19 weeks led here · execute your race plan',dur:''},pm:null},
+  ]},
+];
 ];
 
 // ═══════════════════════════════════════════
@@ -968,7 +1026,7 @@ function getTodayInfo() {
   const start = new Date(PROGRAM_START+'T00:00:00');
   const now = new Date(); now.setHours(0,0,0,0); start.setHours(0,0,0,0);
   const diff = Math.round((now - start) / 86400000);
-  if (diff < 0 || diff >= 112) return null;
+  if (diff < 0 || diff >= 133) return null;
   return { weekIdx:Math.floor(diff/7), dayIdx:diff%7, weekNum:Math.floor(diff/7)+1, dayNum:(diff%7)+1 };
 }
 
@@ -1083,7 +1141,7 @@ async function saveModal() { if (modalSaveCallback) await modalSaveCallback(); }
 async function renderToday() {
   const info = getTodayInfo();
   const el = document.getElementById('today-content');
-  if (!info) { el.innerHTML='<div class="empty-state"><div class="empty-state-title">Program Complete</div><p>16 weeks done. Time to race.</p></div>'; return; }
+  if (!info) { el.innerHTML='<div class="empty-state"><div class="empty-state-title">Program Complete</div><p>19 weeks done. Time to race.</p></div>'; return; }
 
   el.innerHTML = '<div class="loading">Loading…</div>';
 
@@ -1093,7 +1151,7 @@ async function renderToday() {
 
   // Load done states + today's body log from Supabase in parallel
   const [{ data: doneLogs }, { data: bodyRows }] = await Promise.all([
-    sb.from('session_logs').select('day_idx,slot').eq('week_idx', info.weekIdx),
+    sb.from('session_logs').select('day_idx,slot,date').eq('week_idx', info.weekIdx),
     sb.from('body_logs').select('*').eq('date', todayStr()).limit(1),
   ]);
 
@@ -1124,8 +1182,8 @@ async function renderToday() {
     gelAlert = `<div class="alert blue"><div class="alert-title">Gel Strategy</div>Take a gel ${gels}. 22–25g fast carbs. Practice on training runs, execute on race day.</div>`;
   }
 
-  const phColors = ['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
-  const phNames  = ['','Foundation','Development','Peak','Taper & Race'];
+  const phColors = ['','var(--green)','var(--yellow)','var(--orange)','var(--blue)','var(--purple)'];
+  const phNames  = ['','Foundation','Development','Peak','HM Taper','Hyrox Block'];
   const scoreDisplay = sleepScore !== null ? sleepScore : '—';
   const rangeVal = sleepScore !== null ? sleepScore : 70;
 
@@ -1422,59 +1480,73 @@ function openMoveModal(wIdx, dIdx, slot) {
   const today = getTodayInfo();
   const todayAbs = today ? today.weekIdx*7 + today.dayIdx : 0;
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const swaps = getSwaps();
+  const slotColors = { 'am':'var(--yellow)', 'pm':'var(--blue)' };
 
   let rows = '';
   PLAN.forEach((week, wi) => {
     week.days.forEach((day, di) => {
       const abs = wi*7+di;
       if (abs < todayAbs) return; // skip past
-      if (wi===wIdx && di===dIdx) return; // skip self
-      const key = swapKey(wi,di,slot);
-      const existingSession = resolveSession(wi, di, slot);
-      const existingName = existingSession ? existingSession.n : '—';
+      if (wi===wIdx && di===dIdx && slot==='am') return; // skip same cell for am
       const dateStr = sessionDate(wi, di);
-      rows += `<div onclick="confirmSwap(${wIdx},${dIdx},'${slot}',${wi},${di})" style="padding:10px 8px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <div>
-          <div style="font-size:13px;color:var(--text);font-weight:500">W${wi+1} ${dayNames[di]} <span style="color:var(--muted);font-weight:300;font-size:11px">${dateStr}</span></div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${existingName}</div>
-        </div>
-        <span style="color:var(--orange);font-size:18px">→</span>
-      </div>`;
+
+      // Offer both AM and PM slots at each future day (except same cell)
+      ['am','pm'].forEach(targetSlot => {
+        if (wi===wIdx && di===dIdx && targetSlot===slot) return; // skip exact same slot
+        const existing = resolveSession(wi, di, targetSlot);
+        const existingName = existing && existing.t !== 'rest' ? existing.n : null;
+        const slotBadge = `<span style="font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:${slotColors[targetSlot]};background:rgba(255,255,255,.06);border-radius:3px;padding:1px 5px">${targetSlot.toUpperCase()}</span>`;
+        const targetDesc = existingName
+          ? `<span style="font-size:11px;color:var(--muted)">↔ swap with ${existingName}</span>`
+          : `<span style="font-size:11px;color:var(--green)">Empty slot</span>`;
+
+        rows += `<div onclick="confirmSwap(${wIdx},${dIdx},'${slot}',${wi},${di},'${targetSlot}')" style="padding:9px 10px;border-bottom:1px solid var(--border);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;active-bg:var(--card2)">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:12px;color:var(--text);font-weight:600">W${wi+1} ${dayNames[di]}</span>
+              ${slotBadge}
+              <span style="font-size:10px;color:var(--muted)">${dateStr}</span>
+            </div>
+            ${targetDesc}
+          </div>
+          <span style="color:var(--orange);font-size:16px;flex-shrink:0">→</span>
+        </div>`;
+      });
     });
   });
 
   openModal(`Move · ${s.n}`, `
-    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Choose where to move this session. If the target has a session, they will swap.</div>
-    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:320px;overflow-y:auto">${rows}</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5">Choose any future day and slot. Sessions will swap if the target is occupied.</div>
+    <div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;overflow:hidden;max-height:360px;overflow-y:auto">${rows}</div>
   `, null);
 
   window._moveCtx = {wIdx, dIdx, slot};
 }
 
-function confirmSwap(fromW, fromD, fromSlot, toW, toD) {
+function confirmSwap(fromW, fromD, fromSlot, toW, toD, toSlot) {
+  const tSlot = toSlot || fromSlot; // default to same slot if not specified
   const swaps = getSwaps();
   const fromK = swapKey(fromW, fromD, fromSlot);
-  const toK   = swapKey(toW, toD, fromSlot);
+  const toK   = swapKey(toW, toD, tSlot);
 
-  // Remove any existing swap where toK was "from" or "to"
+  // Remove any existing swap pointing to toK
   for (const k of Object.keys(swaps)) {
     if (swaps[k]===toK || k===toK) delete swaps[k];
   }
   // Remove original "from" swap if existed
   delete swaps[fromK];
 
-  // Check if target had something swapped in
+  // Check if target had something swapped in (via earlier move)
   let targetOrigFrom = null;
   for (const [k,v] of Object.entries(swaps)) { if(v===toK){targetOrigFrom=k; break;} }
   if (targetOrigFrom) delete swaps[targetOrigFrom];
 
-  // If target has a native session, swap them
-  const targetNative = PLAN[toW]?.days[toD]?.[fromSlot==='pm'?'pm':'am'];
+  // If target slot has a native session, move it back to the from slot
+  const targetNative = PLAN[toW]?.days[toD]?.[tSlot];
   if (targetNative && targetNative.t !== 'rest') {
-    swaps[toK] = fromK; // target's native session moves to from slot
+    swaps[toK] = fromK; // target's native session displaces to from slot
   }
-  swaps[fromK] = toK; // from session moves to target
+  swaps[fromK] = toK; // from session moves to target slot
 
   saveSwaps(swaps);
   closeModal();
@@ -1632,8 +1704,8 @@ async function renderPlan() {
     return doneLogs?.some(l => l.day_idx===logD && l.slot===logS) || false;
   };
 
-  const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
-  const phNames =['','Foundation','Development','Peak','Taper & Race'];
+  const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)','var(--purple)'];
+  const phNames =['','Foundation','Development','Peak','HM Taper','Hyrox Block'];
   const week = PLAN[planWeekIdx];
   const isCurrentWeek = info && info.weekIdx===planWeekIdx;
   const dayNames = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
@@ -1651,7 +1723,7 @@ async function renderPlan() {
   const isPastOrCurrent = !info || planWeekIdx <= info.weekIdx;
 
   // Overall program overview — count scheduled sessions up to TODAY (not just complete weeks)
-  const totalWeeks = 16;
+  const totalWeeks = 19;
   const weeksComplete = info ? info.weekIdx : 0; // fully complete weeks
   let scheduledUntilToday = 0;
   if (info) {
@@ -1680,8 +1752,12 @@ async function renderPlan() {
   });
 
   const gridHTML = dayNames.map((d,i)=>{
-    const day=week.days[i]; const isToday=isCurrentWeek&&info&&info.dayIdx===i;
+    const day=week.days[i];
+    const isToday=isCurrentWeek&&info&&info.dayIdx===i;
     const isPastDay = info && (planWeekIdx < info.weekIdx || (planWeekIdx === info.weekIdx && i < info.dayIdx));
+    const dateLabel = sessionDate(planWeekIdx, i);
+    const todayBadge = isToday ? '<span class="dc-today-badge">TODAY</span>' : '';
+
     const rawAm = resolveSession(planWeekIdx,i,'am');
     const rawPm = resolveSession(planWeekIdx,i,'pm');
     const movedOutAm = rawAm === null && isMovedOut(planWeekIdx,i,'am');
@@ -1690,9 +1766,50 @@ async function renderPlan() {
     const resolvedPm = rawPm ?? day.pm;
     const [logWAm,logDAm,logSAm] = resolveLogContext(planWeekIdx,i,'am');
     const [logWPm,logDPm,logSPm] = resolveLogContext(planWeekIdx,i,'pm');
-    const amBlock=buildSmallBlock(resolvedAm,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm,movedOutAm,isPastDay,logWAm,logDAm,logSAm);
-    const pmBlock=(resolvedPm||movedOutPm)?buildSmallBlock(resolvedPm||{t:'rest',n:'Moved'},planWeekIdx,i,'pm',isDone(i,'pm'),true,movedOutPm,isPastDay,logWPm,logDPm,logSPm):'';
-    return `<div class="dcol ${isToday?'today-col':''}"><div class="dhead">${d}</div>${amBlock}${pmBlock}</div>`;
+    const amDone = isDone(i,'am');
+    const pmDone = isDone(i,'pm');
+    const hasAm = resolvedAm && resolvedAm.t !== 'rest';
+    const hasPm = resolvedPm && resolvedPm.t !== 'rest';
+
+    const buildSessionRow = (s, slot, done, movedOut, logW, logD, logS) => {
+      const slotLbl = `<span class="session-slot-lbl">${slot.toUpperCase()}</span>`;
+      if (movedOut) return `<div class="session-moved-row">${slotLbl}<div class="moved-dot"></div><span class="moved-text">Moved away</span></div>`;
+      if (!s || s.t==='rest') return '';
+      const color = typeColor(s.t);
+      const lw=logW??planWeekIdx, ld=logD??i, ls=logS??slot;
+      const logBtn = !done
+        ? `<button class="sc-log-btn" onclick="event.stopPropagation();openLogModal(${lw},${ld},'${ls}','${sessionDate(planWeekIdx,i)}')">Log</button>`
+        : `<span class="sc-done-badge"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="2,6 5,9 10,3"/></svg>Done</span>`;
+      const moveBtn = !done && !isPastDay
+        ? `<button class="sc-move-btn" onclick="event.stopPropagation();openMoveModal(${planWeekIdx},${i},'${slot}')">Move</button>`
+        : '';
+      return `<div class="session-row">
+        ${slotLbl}
+        <div class="session-color-bar" style="background:${color}"></div>
+        <div class="session-info">
+          <div class="session-type-tag" style="color:${color}">${s.t.replace('-',' ')}</div>
+          <div class="session-name-lbl">${s.n}</div>
+          ${s.dur?`<div class="session-dur-lbl">${s.dur}</div>`:''}
+        </div>
+        <div class="session-btns">${logBtn}${moveBtn}</div>
+      </div>`;
+    };
+
+    const amRow = buildSessionRow(resolvedAm,'am',amDone,movedOutAm,logWAm,logDAm,logSAm);
+    const pmRow = (resolvedPm||movedOutPm) ? buildSessionRow(resolvedPm,'pm',pmDone,movedOutPm,logWPm,logDPm,logSPm) : '';
+    const isRestDay = !hasAm && !hasPm && !movedOutAm && !movedOutPm;
+    const restRow = isRestDay ? `<div class="dc-rest">Rest day — recover, recharge</div>` : '';
+
+    return `<div class="day-card ${isToday?'today-card':''} ${isPastDay?'past-card':''}">
+      <div class="dc-header">
+        <div class="dc-left">
+          <span class="dc-day">${d}</span>
+          <span class="dc-date">${dateLabel}</span>
+        </div>
+        ${todayBadge}
+      </div>
+      ${amRow}${pmRow}${restRow}
+    </div>`;
   }).join('');
 
   // Week tracker km achievement
@@ -1756,7 +1873,7 @@ async function renderPlan() {
         <text x="86" y="177" fill="#F4541D" font-family="'Helvetica Neue',Arial,sans-serif" font-size="6" font-weight="700" letter-spacing="3.5" text-anchor="middle">TRAIN · RACE · CONQUER</text>
       </svg>
       <div style="flex:1;min-width:0">
-        <div style="font-size:10px;letter-spacing:2px;color:#F4541D;font-weight:700;margin-bottom:2px">16-WEEK PROGRAM</div>
+        <div style="font-size:10px;letter-spacing:2px;color:#F4541D;font-weight:700;margin-bottom:2px">19-WEEK PROGRAM</div>
         <div style="font-size:17px;font-weight:900;color:white;letter-spacing:-.3px;line-height:1.1">${info ? `Week ${info.weekNum} · ${phNames[week?.ph||1]}` : 'Loading…'}</div>
         <div style="font-size:11px;color:#7a7568;margin-top:3px">${totalDonePlanned} of ${scheduledUntilToday} scheduled sessions done${totalDoneExtra>0?` · +${totalDoneExtra} extra`:''}</div>
         <div style="height:4px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;margin-top:8px">
@@ -1774,8 +1891,8 @@ async function renderPlan() {
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:4px">
         <span style="font-size:9px;color:var(--muted)">W1</span>
-        <span style="font-size:9px;color:var(--muted)">${info?`Week ${info.weekNum} of 16`:'Week 1 of 16'}</span>
-        <span style="font-size:9px;color:var(--muted)">W16 Race</span>
+        <span style="font-size:9px;color:var(--muted)">${info?`Week ${info.weekNum} of 19`:'Week 1 of 19'}</span>
+        <span style="font-size:9px;color:var(--muted)">W19 Race</span>
       </div>
     </div>
     <div class="week-nav">${navHTML}</div>
@@ -1793,29 +1910,12 @@ async function renderPlan() {
       <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div>Hyrox</div>
       <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Swim</div>
     </div>
-    <div class="day-grid">${gridHTML}</div>
+    <div class="day-cards">${gridHTML}</div>
     <button class="add-btn" onclick="openAddCustom()">+ Add custom session</button>
   `;
 }
 
-function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut,isPastDay,logW,logD,logS) {
-  const slotLabel=isDouble&&slot==='am'?' AM':isDouble&&slot==='pm'?' PM':'';
-  if (movedOut) return `<div class="sblock-sm rest" style="opacity:.45;border-style:dashed"><div class="sm-tag" style="color:var(--muted)">moved${slotLabel}</div><div class="sm-name" style="color:var(--muted)">—</div></div>`;
-  // logW/logD/logS = original PLAN position (may differ from display position after swap)
-  const lw=logW??wIdx, ld=logD??dIdx, ls=logS??slot;
-  const canMove = s.t!=='rest' && !done && !isPastDay;
-  const moveBtn = canMove ? `<button onclick="event.stopPropagation();openMoveModal(${wIdx},${dIdx},'${slot}')" style="position:absolute;top:4px;right:4px;background:rgba(244,84,29,0.12);border:none;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0" title="Move session">
-    <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#F4541D" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
-  </button>` : '';
-  const clickAction = s.t!=='rest' && !isPastDay ? `openLogModal(${lw},${ld},'${ls}','${sessionDate(wIdx,dIdx)}')` : '';
-  const pastStyle = isPastDay && !done ? 'opacity:0.5;' : '';
-  return `<div class="sblock-sm ${s.t} ${done?'done-sm':''}" style="position:relative;${pastStyle}" ${clickAction?`onclick="${clickAction}"`:'overflow:hidden'}>
-    <div class="sm-tag" style="color:${typeColor(s.t)}">${s.t.replace('-',' ')}${slotLabel}</div>
-    <div class="sm-name">${s.n}</div>
-    ${s.dur?`<div class="sm-dur">${s.dur}</div>`:''}
-    ${moveBtn}
-  </div>`;
-}
+// buildSmallBlock removed — replaced by inline session-row builder in renderPlan
 
 function selectPlanWeek(idx) { planWeekIdx=idx; planWeekInitialized=true; renderPlan(); }
 
@@ -2083,8 +2183,8 @@ async function renderLog() {
   if (!logs?.length) { el.innerHTML='<div class="empty-state"><div class="empty-state-title">No Sessions Logged Yet</div><p>Log sessions from the Today or Plan tab.</p></div>'; return; }
   _recentLogs = logs;
 
-  const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)'];
-  const phNames =['','Foundation','Development','Peak','Taper & Race'];
+  const phColors=['','var(--green)','var(--yellow)','var(--orange)','var(--blue)','var(--purple)'];
+  const phNames =['','Foundation','Development','Peak','HM Taper','Hyrox Block'];
 
   // Group logs by week_idx
   const byWeek = {};
@@ -2245,7 +2345,7 @@ async function renderPerformance() {
   const doneCt = allLogs.length;
 
   // Program progress
-  const totalWeeks = 16;
+  const totalWeeks = 19;
   const weeksComplete = info ? info.weekNum - 1 : 0;
   const isPlanned = l => l.slot && l.slot !== 'custom' && !l.slot.startsWith('strava-');
   const plannedLogs = (logs||[]).filter(isPlanned);
@@ -2385,7 +2485,7 @@ async function renderPerformance() {
     <div class="sec-label">Program Overview</div>
     <div class="card" style="margin-bottom:14px">
       <div class="stat-grid" style="margin-bottom:10px">
-        <div class="stat-tile"><div class="stat-val">${weeksComplete}<span style="font-size:13px;color:#7a7568">/16</span></div><div class="stat-lbl">Weeks Done</div></div>
+        <div class="stat-tile"><div class="stat-val">${weeksComplete}<span style="font-size:13px;color:#7a7568">/19</span></div><div class="stat-lbl">Weeks Done</div></div>
         <div class="stat-tile"><div class="stat-val">${totalKm.toFixed(0)}<span style="font-size:13px;color:#7a7568">km</span></div><div class="stat-lbl">km Logged</div></div>
         <div class="stat-tile"><div class="stat-val">${plannedLogs.length}<span style="font-size:13px;color:#7a7568">/${sessionsPlanned}</span></div><div class="stat-lbl">Sessions</div></div>
         <div class="stat-tile"><div class="stat-val" style="color:${adherencePct>=80?'var(--green)':adherencePct>=60?'var(--yellow)':'var(--orange)'}">${adherencePct}%</div><div class="stat-lbl">Adherence</div></div>
@@ -2393,7 +2493,7 @@ async function renderPerformance() {
       <div style="height:6px;background:#1e1e1e;border-radius:4px;overflow:hidden">
         <div style="height:100%;width:${Math.round(weeksComplete/totalWeeks*100)}%;background:var(--accent);border-radius:4px;transition:width .4s"></div>
       </div>
-      <div style="font-size:10px;color:#7a7568;margin-top:4px;text-align:right">Week ${info?.weekNum||1} of 16 — ${info?.phase||'Base'}</div>
+      <div style="font-size:10px;color:#7a7568;margin-top:4px;text-align:right">Week ${info?.weekNum||1} of 19 — ${info?.phase||'Base'}</div>
     </div>
 
     <div class="sec-label">Progress Up to Today</div>
@@ -2411,22 +2511,40 @@ async function renderPerformance() {
     </div>
 
     <div class="sec-label">Zone 2 Pace Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(min/km, lower = faster)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-pace"></canvas></div></div>
+    <div class="chart-wrap">
+      <div class="chart-canvas-wrap"><canvas id="c-pace"></canvas></div>
+      <div style="font-size:10px;color:#7a7568;margin-top:8px;line-height:1.5">📉 The line should trend downward as your aerobic fitness improves — same effort, faster pace. Flat or rising = build more base.</div>
+    </div>
 
     <div class="sec-label">Long Run Distance <span style="font-size:10px;color:#7a7568;font-weight:400">(km)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-longrun"></canvas></div></div>
+    <div class="chart-wrap">
+      <div class="chart-canvas-wrap"><canvas id="c-longrun"></canvas></div>
+      <div style="font-size:10px;color:#7a7568;margin-top:8px;line-height:1.5">📈 Progressive overload in action. Look for a consistent upward trend through Phase 1–3, then a planned drop in Phases 4–5 (taper).</div>
+    </div>
 
     <div class="sec-label">Weekly km Total</div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-weeklykm"></canvas></div></div>
+    <div class="chart-wrap">
+      <div class="chart-canvas-wrap"><canvas id="c-weeklykm"></canvas></div>
+      <div style="font-size:10px;color:#7a7568;margin-top:8px;line-height:1.5">📊 Total running volume per week. Deload weeks should show a clear dip (~30–40% lower). Avoid two big spikes in a row.</div>
+    </div>
 
     <div class="sec-label">Sessions by Type <span style="font-size:10px;color:#7a7568;font-weight:400">(done vs scheduled)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-bytype"></canvas></div></div>
+    <div class="chart-wrap">
+      <div class="chart-canvas-wrap"><canvas id="c-bytype"></canvas></div>
+      <div style="font-size:10px;color:#7a7568;margin-top:8px;line-height:1.5">🎯 Orange = sessions done, grey = sessions scheduled. Strength consistency is your top priority — never skip a gym day for a run.</div>
+    </div>
 
-    <div class="sec-label">Aerobic Efficiency <span style="font-size:10px;color:#7a7568;font-weight:400">(Zone 2 · pace vs HR — faster + lower HR = fitter)</span></div>
-    <div class="chart-wrap" style="height:160px"><div class="chart-canvas-wrap"><canvas id="c-z2efficiency"></canvas></div></div>
+    <div class="sec-label">Aerobic Efficiency <span style="font-size:10px;color:#7a7568;font-weight:400">(Zone 2 · pace vs HR)</span></div>
+    <div class="chart-wrap" style="height:auto">
+      <div class="chart-canvas-wrap" style="height:160px"><canvas id="c-z2efficiency"></canvas></div>
+      <div style="font-size:10px;color:#7a7568;margin-top:8px;line-height:1.5">❤️ Red line = avg HR (left axis). Green line = avg pace (right axis, lower = faster). The goal: HR stays flat or drops <em style="color:var(--green)">while pace improves</em>. That's aerobic efficiency — the most important adaptation in this program.</div>
+    </div>
 
-    <div class="sec-label">Calorie Adherence <span style="font-size:10px;color:#7a7568;font-weight:400">(%  of target, last 30 days)</span></div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="c-macros"></canvas></div></div>
+    <div class="sec-label">Calorie Adherence <span style="font-size:10px;color:#7a7568;font-weight:400">(% of target, last 30 days)</span></div>
+    <div class="chart-wrap">
+      <div class="chart-canvas-wrap"><canvas id="c-macros"></canvas></div>
+      <div style="font-size:10px;color:#7a7568;margin-top:8px;line-height:1.5">🥗 Bars near 100% = on target. Consistently under 80% → energy deficit risks muscle loss. Over 120% on rest days → track closer.</div>
+    </div>
     <div style="height:16px"></div>
   `;
 
@@ -2647,9 +2765,6 @@ async function renderBody() {
       </div>`).join('') : '<div style="font-size:12px;color:var(--green);padding:8px 0">No active injuries.</div>'}
     <button class="add-btn" style="margin-top:8px" onclick="openAddInjury()">+ Log new injury</button>
     ${resolved.length?`<div class="sec-label">Resolved</div>${resolved.map(inj=>`<div class="injury-item" style="opacity:.45"><div class="injury-top"><span class="injury-part">${inj.body_part}</span><span class="injury-badge badge-resolved">resolved</span></div><div class="injury-desc">${inj.description||''}</div></div>`).join('')}`:''}
-    <div class="sec-label">Body Weight Trend</div>
-    <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="b-c-weight"></canvas></div></div>
-
     <div class="sec-label">Sleep Score Trend <span style="font-size:10px;color:#7a7568;font-weight:400">(Polar)</span></div>
     <div class="chart-wrap"><div class="chart-canvas-wrap"><canvas id="b-c-sleep"></canvas></div></div>
 
@@ -2669,8 +2784,6 @@ async function renderBody() {
       y:{ticks:{color:'#7a7568',font:{size:9}},grid:{color:'rgba(255,255,255,0.06)'}}
     }
   };
-  const wt = chronoBody.filter(b=>b.weight>0);
-  mkLine('b-c-weight', base, wt.map(b=>b.date.slice(5)), wt.map(b=>b.weight), 'var(--yellow)', false);
   const sl = chronoBody.filter(b=>b.sleep_score>0);
   mkLine('b-c-sleep', base, sl.map(b=>b.date.slice(5)), sl.map(b=>b.sleep_score), 'var(--blue)', false);
   const hrv = chronoBody.filter(b=>b.hrv_value>0);
