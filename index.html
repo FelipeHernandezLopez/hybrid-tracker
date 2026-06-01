@@ -325,6 +325,19 @@ try {
 }
 
 // ═══════════════════════════════════════════
+//  Migrate old pointer-based swaps → just clear them (new system is content-based)
+// ═══════════════════════════════════════════
+(function migrateSwaps() {
+  const old = localStorage.getItem('session_swaps');
+  if (old) {
+    // Old format stored pointers like {"0-0-am":"0-2-am"} — incompatible, discard safely
+    localStorage.removeItem('session_swaps');
+    // Don't migrate: pointer chains can't be reliably converted to content overrides
+    // The new system (session_overrides) starts fresh
+  }
+})();
+
+// ═══════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════
 const PROGRAM_START = '2026-05-11';
@@ -1140,12 +1153,10 @@ async function renderToday() {
   const bodyLog = bodyRows?.[0] || null;
 
   // Resolve what's actually scheduled today (swap-aware)
-  const rawAm = resolveSession(info.weekIdx, info.dayIdx, 'am');
-  const rawPm = resolveSession(info.weekIdx, info.dayIdx, 'pm');
-  const resolvedAm = rawAm !== null ? rawAm : day.am;
-  const resolvedPm = rawPm !== null ? rawPm : day.pm;
-  const hasAmToday = resolvedAm && resolvedAm.t !== 'rest' && rawAm !== null;
-  const hasPmToday = resolvedPm && resolvedPm.t !== 'rest' && rawPm !== null;
+  const resolvedAm = resolveSession(info.weekIdx, info.dayIdx, 'am');
+  const resolvedPm = resolveSession(info.weekIdx, info.dayIdx, 'pm');
+  const hasAmToday = resolvedAm && resolvedAm.t !== 'rest';
+  const hasPmToday = resolvedPm && resolvedPm.t !== 'rest';
 
   // Sleep score: prefer DB, fall back to localStorage
   const sleepScore = bodyLog?.sleep_score ?? (localStorage.getItem('sleep_'+todayStr()) !== null ? parseInt(localStorage.getItem('sleep_'+todayStr())) : null);
@@ -1165,8 +1176,8 @@ async function renderToday() {
   const rangeVal = sleepScore !== null ? sleepScore : 70;
 
   const isDouble = hasAmToday && hasPmToday;
-  let sessionHTML = buildSessionCard(day.am, info.weekIdx, info.dayIdx, 'am', isDone(info.dayIdx,'am'), isDouble);
-  if (hasPmToday || day.pm) sessionHTML += buildSessionCard(day.pm || resolvedPm, info.weekIdx, info.dayIdx, 'pm', isDone(info.dayIdx,'pm'), true);
+  let sessionHTML = buildSessionCard(resolvedAm, info.weekIdx, info.dayIdx, 'am', isDone(info.dayIdx,'am'), isDouble);
+  if (hasPmToday || resolvedPm) sessionHTML += buildSessionCard(resolvedPm, info.weekIdx, info.dayIdx, 'pm', isDone(info.dayIdx,'pm'), true);
 
   // Water
   const waterTarget = dayType==='rest' ? 10 : 12;
@@ -1414,40 +1425,32 @@ function saveMacroModal() {
 }
 
 // --- Swap system ---
-function getSwaps() { try { return JSON.parse(localStorage.getItem('session_swaps')||'{}'); } catch(e) { return {}; } }
-function saveSwaps(s) { localStorage.setItem('session_swaps', JSON.stringify(s)); }
+// Overrides store actual session content per slot key, not pointers.
+// This allows unlimited chained moves without corruption.
+// Format: { "wIdx-dIdx-slot": sessionObject | null }
+//   sessionObject = the session data to show at this slot
+//   null = slot was emptied (session moved to a previously empty slot)
+//   key absent = use PLAN default
+function getSwaps() { try { return JSON.parse(localStorage.getItem('session_overrides')||'{}'); } catch(e) { return {}; } }
+function saveSwaps(s) { localStorage.setItem('session_overrides', JSON.stringify(s)); }
 function swapKey(wIdx,dIdx,slot) { return `${wIdx}-${dIdx}-${slot}`; }
 
 function resolveSession(wIdx, dIdx, slot) {
-  const swaps = getSwaps();
-  const key = swapKey(wIdx,dIdx,slot);
-  // Check if something was swapped INTO this slot
-  for (const [from, to] of Object.entries(swaps)) {
-    if (to === key) {
-      const [fw,fd,fs] = from.split('-');
-      const orig = PLAN[+fw]?.days[+fd];
-      return orig ? (fs==='pm'?orig.pm:orig.am) : null;
-    }
-  }
-  // Check if this slot was swapped OUT
-  if (swaps[key]) return null; // moved away — show placeholder
+  const overrides = getSwaps();
+  const key = swapKey(wIdx, dIdx, slot);
+  if (key in overrides) return overrides[key]; // null means empty/moved-out
   return slot==='pm' ? PLAN[wIdx]?.days[dIdx]?.pm : PLAN[wIdx]?.days[dIdx]?.am;
 }
 
 function isMovedOut(wIdx, dIdx, slot) {
-  return !!getSwaps()[swapKey(wIdx,dIdx,slot)];
+  const overrides = getSwaps();
+  const key = swapKey(wIdx, dIdx, slot);
+  // Moved out = key exists in overrides AND value is null (emptied)
+  return key in overrides && overrides[key] === null;
 }
 
-// Returns the original PLAN position for a session that may have been swapped in
+// With content-based overrides, log at display position directly
 function resolveLogContext(wIdx, dIdx, slot) {
-  const swaps = getSwaps();
-  const key = swapKey(wIdx, dIdx, slot);
-  for (const [from, to] of Object.entries(swaps)) {
-    if (to === key) {
-      const p = from.split('-');
-      return [+p[0], +p[1], p[2]];
-    }
-  }
   return [wIdx, dIdx, slot];
 }
 
@@ -1501,44 +1504,46 @@ function openMoveModal(wIdx, dIdx, slot) {
 }
 
 function confirmSwap(fromW, fromD, fromSlot, toW, toD, toSlot) {
-  const tSlot = toSlot || fromSlot; // default to same slot if not specified
-  const swaps = getSwaps();
+  const tSlot = toSlot || fromSlot;
+  const overrides = getSwaps();
   const fromK = swapKey(fromW, fromD, fromSlot);
   const toK   = swapKey(toW, toD, tSlot);
 
-  // Remove any existing swap pointing to toK
-  for (const k of Object.keys(swaps)) {
-    if (swaps[k]===toK || k===toK) delete swaps[k];
-  }
-  // Remove original "from" swap if existed
-  delete swaps[fromK];
+  // Read current content at both slots (what the user actually sees)
+  const fromSession = resolveSession(fromW, fromD, fromSlot);
+  const toSession   = resolveSession(toW, toD, tSlot);
 
-  // Check if target had something swapped in (via earlier move)
-  let targetOrigFrom = null;
-  for (const [k,v] of Object.entries(swaps)) { if(v===toK){targetOrigFrom=k; break;} }
-  if (targetOrigFrom) delete swaps[targetOrigFrom];
+  // Swap content: put fromSession at toSlot, toSession (or null) at fromSlot
+  overrides[toK]   = fromSession;   // move the dragged session to target
+  overrides[fromK] = toSession;     // move target's content back (null = empty)
 
-  // If target slot has a native session, move it back to the from slot
-  const targetNative = PLAN[toW]?.days[toD]?.[tSlot];
-  if (targetNative && targetNative.t !== 'rest') {
-    swaps[toK] = fromK; // target's native session displaces to from slot
-  }
-  swaps[fromK] = toK; // from session moves to target slot
+  // Clean up: if an override now matches the PLAN default exactly, remove it to keep storage clean
+  const planFrom = fromSlot==='pm' ? PLAN[fromW]?.days[fromD]?.pm : PLAN[fromW]?.days[fromD]?.am;
+  const planTo   = tSlot==='pm'   ? PLAN[toW]?.days[toD]?.pm    : PLAN[toW]?.days[toD]?.am;
+  if (overrides[fromK] !== null && JSON.stringify(overrides[fromK]) === JSON.stringify(planFrom)) delete overrides[fromK];
+  if (overrides[toK]   !== null && JSON.stringify(overrides[toK])   === JSON.stringify(planTo))   delete overrides[toK];
 
-  saveSwaps(swaps);
+  saveSwaps(overrides);
   closeModal();
   if (activePanel==='today') renderToday();
   if (activePanel==='plan')  renderPlan();
 }
 
 function undoSwap(wIdx, dIdx, slot) {
-  const swaps = getSwaps();
-  const key = swapKey(wIdx,dIdx,slot);
-  // Find the original "from" key pointing here
-  for (const [k,v] of Object.entries(swaps)) {
-    if (v===key) { delete swaps[k]; delete swaps[key]; saveSwaps(swaps); break; }
-  }
-  if (swaps[key]) { delete swaps[key]; saveSwaps(swaps); }
+  // Undo: restore this slot to its PLAN default by removing the override
+  const overrides = getSwaps();
+  const key = swapKey(wIdx, dIdx, slot);
+  delete overrides[key];
+  saveSwaps(overrides);
+  if (activePanel==='today') renderToday();
+  if (activePanel==='plan')  renderPlan();
+}
+
+// Reset ALL moves — restores plan to original state
+function resetAllSwaps() {
+  if (!confirm('Reset all session moves and restore the original plan?')) return;
+  localStorage.removeItem('session_overrides');
+  localStorage.removeItem('session_swaps'); // also clear old format if present
   if (activePanel==='today') renderToday();
   if (activePanel==='plan')  renderPlan();
 }
@@ -1731,16 +1736,12 @@ async function renderPlan() {
   const gridHTML = dayNames.map((d,i)=>{
     const day=week.days[i]; const isToday=isCurrentWeek&&info&&info.dayIdx===i;
     const isPastDay = info && (planWeekIdx < info.weekIdx || (planWeekIdx === info.weekIdx && i < info.dayIdx));
-    const rawAm = resolveSession(planWeekIdx,i,'am');
-    const rawPm = resolveSession(planWeekIdx,i,'pm');
-    const movedOutAm = rawAm === null && isMovedOut(planWeekIdx,i,'am');
-    const movedOutPm = rawPm === null && isMovedOut(planWeekIdx,i,'pm');
-    const resolvedAm = rawAm ?? day.am;
-    const resolvedPm = rawPm ?? day.pm;
-    const [logWAm,logDAm,logSAm] = resolveLogContext(planWeekIdx,i,'am');
-    const [logWPm,logDPm,logSPm] = resolveLogContext(planWeekIdx,i,'pm');
-    const amBlock=buildSmallBlock(resolvedAm,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm,movedOutAm,isPastDay,logWAm,logDAm,logSAm);
-    const pmBlock=(resolvedPm||movedOutPm)?buildSmallBlock(resolvedPm||{t:'rest',n:'Moved'},planWeekIdx,i,'pm',isDone(i,'pm'),true,movedOutPm,isPastDay,logWPm,logDPm,logSPm):'';
+    const resolvedAm = resolveSession(planWeekIdx,i,'am');
+    const resolvedPm = resolveSession(planWeekIdx,i,'pm');
+    const movedOutAm = isMovedOut(planWeekIdx,i,'am');
+    const movedOutPm = isMovedOut(planWeekIdx,i,'pm');
+    const amBlock=buildSmallBlock(resolvedAm,planWeekIdx,i,'am',isDone(i,'am'),!!day.pm,movedOutAm,isPastDay);
+    const pmBlock=(resolvedPm||movedOutPm)?buildSmallBlock(resolvedPm||{t:'rest',n:'Moved'},planWeekIdx,i,'pm',isDone(i,'pm'),true,movedOutPm,isPastDay):'';
     return `<div class="dcol ${isToday?'today-col':''}"><div class="dhead">${d}</div>${amBlock}${pmBlock}</div>`;
   }).join('');
 
@@ -1843,19 +1844,21 @@ async function renderPlan() {
       <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Swim</div>
     </div>
     <div class="day-grid">${gridHTML}</div>
-    <button class="add-btn" onclick="openAddCustom()">+ Add custom session</button>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="add-btn" style="flex:1" onclick="openAddCustom()">+ Add custom session</button>
+      ${Object.keys(getSwaps()).length > 0 ? `<button class="add-btn" style="flex:0 0 auto;background:rgba(232,84,84,.08);border-color:rgba(232,84,84,.25);color:var(--red)" onclick="resetAllSwaps()">↩ Reset moves</button>` : ''}
+    </div>
   `;
 }
 
-function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut,isPastDay,logW,logD,logS) {
+function buildSmallBlock(s,wIdx,dIdx,slot,done,isDouble,movedOut,isPastDay) {
   const slotLabel=isDouble&&slot==='am'?' AM':isDouble&&slot==='pm'?' PM':'';
-  if (movedOut) return `<div class="sblock-sm rest" style="opacity:.45;border-style:dashed"><div class="sm-tag" style="color:var(--muted)">moved${slotLabel}</div><div class="sm-name" style="color:var(--muted)">—</div></div>`;
-  const lw=logW??wIdx, ld=logD??dIdx, ls=logS??slot;
+  if (movedOut) return `<div class="sblock-sm rest" style="opacity:.45;border-style:dashed"><div class="sm-tag" style="color:var(--muted)">moved${slotLabel}</div><div class="sm-name" style="color:var(--muted)">—</div><div style="font-size:9px;color:var(--muted);margin-top:3px;cursor:pointer" onclick="undoSwap(${wIdx},${dIdx},'${slot}')">↩ undo</div></div>`;
   const canMove = s.t!=='rest' && !done && !isPastDay;
   const moveBtn = canMove ? `<button onclick="event.stopPropagation();openMoveModal(${wIdx},${dIdx},'${slot}')" style="position:absolute;top:4px;right:4px;background:rgba(244,84,29,0.12);border:none;border-radius:4px;width:18px;height:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0" title="Move session">
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="#F4541D" stroke-width="1.8" stroke-linecap="round"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
   </button>` : '';
-  const clickAction = s.t!=='rest' && !isPastDay ? `openLogModal(${lw},${ld},'${ls}','${sessionDate(wIdx,dIdx)}')` : '';
+  const clickAction = s.t!=='rest' && !isPastDay ? `openLogModal(${wIdx},${dIdx},'${slot}','${sessionDate(wIdx,dIdx)}')` : '';
   const pastStyle = isPastDay && !done ? 'opacity:0.5;' : '';
   return `<div class="sblock-sm ${s.t} ${done?'done-sm':''}" style="position:relative;${pastStyle}" ${clickAction?`onclick="${clickAction}"`:'overflow:hidden'}>
     <div class="sm-tag" style="color:${typeColor(s.t)}">${s.t.replace('-',' ')}${slotLabel}</div>
