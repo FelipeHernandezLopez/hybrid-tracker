@@ -1662,7 +1662,92 @@ function toggleSupp(key) {
   updateHabitsUI(); // refresh supps habit ring instantly
   sb.from('body_logs').upsert({date:todayStr(), supps_done:d},{onConflict:'date'}).then(()=>{});
 }
-function openAddCustom() { openModal('Add Custom Session', buildCustomForm(), saveCustomSession); }
+function openAddCustom() { openModal('Add Session', buildAddSessionForm(), saveAddSession); }
+
+function buildAddSessionForm() {
+  const presets = [
+    {key:'Legs B',  t:'strength', icon:'🦵', color:'var(--orange)'},
+    {key:'Legs A',  t:'strength', icon:'🦵', color:'var(--orange)'},
+    {key:'Pull A',  t:'strength', icon:'💪', color:'var(--orange)'},
+    {key:'Pull B',  t:'strength', icon:'💪', color:'var(--orange)'},
+    {key:'Push A',  t:'strength', icon:'🏋️', color:'var(--orange)'},
+    {key:'Push B',  t:'strength', icon:'🏋️', color:'var(--orange)'},
+  ];
+  const presetBtns = presets.map(p => `
+    <button onclick="openPresetSession('${p.key}')" style="flex:1;min-width:calc(50% - 4px);padding:10px 8px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--text);cursor:pointer;text-align:left;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;display:flex;align-items:center;gap:8px;transition:border-color .15s" onmouseover="this.style.borderColor='rgba(244,84,29,.4)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:16px">${p.icon}</span>
+      <div><div style="color:white">${p.key}</div><div style="font-size:10px;color:var(--muted);font-weight:400">Strength</div></div>
+    </button>`).join('');
+
+  return `
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Quick Add — Program Sessions</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${presetBtns}</div>
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Other / Extra Session</div>
+      <div class="form-field"><div class="form-label">Type</div>
+        <select class="form-select" id="f-custom-type"><option>CrossFit</option><option>Football</option><option>Tennis</option><option>Cycling</option><option>Yoga / Mobility</option><option>Other</option></select>
+      </div>
+      <div class="form-field"><div class="form-label">Session Name</div><input class="form-input" id="f-custom-name" type="text" placeholder="e.g. CrossFit class"></div>
+      <div class="form-row">
+        <div class="form-field"><div class="form-label">Duration (min)</div><input class="form-input" id="f-dur" type="number" placeholder="60"></div>
+        <div class="form-field"><div class="form-label">Avg HR</div><input class="form-input" id="f-hr" type="number" placeholder="150"></div>
+      </div>
+      <div class="form-field"><div class="form-label">Notes</div><input class="form-input" id="f-notes" type="text" placeholder="What did you do?"></div>
+    </div>`;
+}
+
+function openPresetSession(sessionName) {
+  // Close the add session modal and open the full strength log modal for this preset
+  closeModal();
+  // Create a fake session object matching the EXERCISES keys
+  const fakeSession = { t: 'strength', n: sessionName, d: '', dur: '' };
+  _logCtx = { wIdx: -1, dIdx: -1, slot: 'custom', session: fakeSession, date: todayStr(), isPast: false };
+  _extraExCount = 0;
+  const form = buildStrengthForm(fakeSession);
+  openModal('Log · ' + sessionName, form, savePresetSession);
+}
+
+async function savePresetSession() {
+  if (!_logCtx) { closeModal(); return; }
+  const s = _logCtx.session;
+  const exList = getExercisesForSession(s.n);
+  const collectExBlock = (ei, exName) => {
+    const block = document.getElementById('ex-block-'+ei);
+    if (block && block.style.display === 'none') return null;
+    const c = document.getElementById('sets-'+ei); const count = c ? c.children.length : 0;
+    const sets = [];
+    for(let si=0;si<count;si++){const r=document.getElementById('reps-'+ei+'-'+si)?.value; const k=document.getElementById('kg-'+ei+'-'+si)?.value; if(r||k)sets.push({reps:parseInt(r)||0,kg:parseFloat(k)||0});}
+    return sets.length ? {name:exName, sets} : null;
+  };
+  const exercises = [
+    ...exList.map((ex,ei) => collectExBlock(ei, typeof ex==='object'?ex.name:ex)),
+    ...Array.from({length:_extraExCount},(_,i) => {
+      const ei = 1000+i;
+      const block = document.getElementById('ex-block-'+ei);
+      if (!block || block.style.display==='none') return null;
+      const nameEl = block.querySelector('.exercise-name');
+      return collectExBlock(ei, nameEl?.textContent||'Unknown');
+    })
+  ].filter(Boolean);
+  const data = {
+    exercises,
+    duration: document.getElementById('f-dur')?.value||'',
+    hr: parseInt(document.getElementById('f-hr')?.value)||0,
+    notes: document.getElementById('f-notes')?.value||''
+  };
+  const { error } = await sb.from('session_logs').insert({
+    date: todayStr(), week_idx:-1, day_idx:-1, slot:'custom',
+    type:'strength', name: s.n, data
+  });
+  if (error) { showToast('Save failed — check connection'); return; }
+  closeModal();
+  showToast('✓ ' + s.n + ' saved');
+  if (activePanel==='today') renderToday();
+  if (activePanel==='plan')  renderPlan();
+  if (activePanel==='log')   renderLog();
+}
 
 // ═══════════════════════════════════════════
 //  PLAN TAB
@@ -2031,10 +2116,58 @@ function removeExercise(ei) {
   if (block) block.style.display = 'none';
 }
 
-function buildHyroxForm(s) { return `
-  <div class="form-field"><div class="form-label">Total Time</div><input class="form-input" id="f-dur" type="text" placeholder="1:05:00"></div>
-  <div class="card" style="margin-bottom:12px">${HYROX_STATIONS.map((name,i)=>`<div class="hyrox-row"><span class="hyrox-name">${name}</span><input class="hyrox-time-input" id="hx-${i}" type="text" placeholder="mm:ss"></div>`).join('')}</div>
-  <div class="form-field"><div class="form-label">Notes</div><input class="form-input" id="f-notes" type="text" placeholder="Weak stations, HR…"></div>`; }
+// What to do at each station, with technique cues and targets
+const HYROX_STATION_GUIDE = [
+  { name:'Run 1 (1km)',           icon:'🏃', tip:'Start SLOW — this run sets your pace for the whole race. Zone 2 effort. Do not chase others.',         what:'1km at easy/comfortable pace. HR should stay below 160.' },
+  { name:'SkiErg (1000m)',        icon:'🎿', tip:'Arms pull down and back, not just forward. Hinge at hips on the pull. Breathe out on pull.',           what:'1000m. Find a rhythm early. Count strokes if it helps. Do not sprint the first 200m.' },
+  { name:'Run 2 (1km)',           icon:'🏃', tip:'Recover your breath during this run. Shake out your arms after the ski erg.',                          what:'1km. Settle back to your pace. Arms loose.' },
+  { name:'Sled Push (50m)',       icon:'🛷', tip:'Low hips, drive with legs NOT arms. Short powerful steps. Lean into the sled, elbows slightly bent.',   what:'50m push. Go steady — if you sprint you\'ll be wrecked for the next run. Controlled power.' },
+  { name:'Run 3 (1km)',           icon:'🏃', tip:'Legs will feel heavy after sled. Walk 10 steps if needed, then find your rhythm again.',               what:'1km. This run often feels the worst. Push through it — it gets better.' },
+  { name:'Sled Pull (50m)',       icon:'🪢', tip:'Walk backwards, drive through heels. Pull rope hand-over-hand. Keep hips low, back straight.',         what:'50m pull. This hits the upper back hard. Short controlled steps. Don\'t rush.' },
+  { name:'Run 4 (1km)',           icon:'🏃', tip:'Halfway done. Stay mentally strong here. Ignore the burning legs.',                                     what:'1km. Midpoint check — are you pacing well? If HR is too high, slow the run.' },
+  { name:'Burpee Broad Jumps (80m)',icon:'💥',tip:'Chest to floor, push up, jump forward — NOT up. Aim for distance per rep. Breathe on every rep.',    what:'80m of burpee broad jumps. Find a sustainable rhythm. Do NOT sprint this. Count reps.' },
+  { name:'Run 5 (1km)',           icon:'🏃', tip:'After burpees your legs may feel like jelly. Short shuffling steps until you find your rhythm.',        what:'1km. Mental challenge — the race is not over yet. Keep moving.' },
+  { name:'Rowing (1000m)',        icon:'🚣', tip:'Drive through legs FIRST, lean back, then pull arms. Legs > back > arms. Return in reverse. Set damper 4–6.',what:'1000m row. Legs do 60% of the work. Aim for steady split — don\'t go out too fast.' },
+  { name:'Run 6 (1km)',           icon:'🏃', tip:'Shake out the forearms and upper back after rowing. Get the blood moving again.',                      what:'1km. You are in the final quarter. Dig in.' },
+  { name:'Farmers Carry (200m)',  icon:'🧳', tip:'Grip tight, shoulders back and down, walk tall. Do NOT let the weights swing. Short turnaround at 100m.',what:'200m with kettlebells/dumbbells. Grip is the limiter. If grip fails, set down, re-grip, go again.' },
+  { name:'Run 7 (1km)',           icon:'🏃', tip:'Second to last run. Arms are fried from carries. Just keep moving. You are almost there.',              what:'1km. One station left after this run. Give yourself permission to push a little now.' },
+  { name:'Sandbag Lunges (100m)', icon:'🎒', tip:'Bag on shoulder (or both shoulders). Keep torso upright. Big controlled steps. Alternate legs.',       what:'100m of lunges. This will BURN. Count your steps. Rest the bag on your shoulder, not your neck.' },
+  { name:'Run 8 (1km)',           icon:'🏃', tip:'LAST RUN. Empty the tank — this is what you trained for. Everything you have left goes here.',          what:'1km. Sprint the last 200m if you have it. Cross the line strong.' },
+  { name:'Wall Balls (75 reps)',  icon:'🏀', tip:'Squat deep, explode up, throw to target. Catch at chin, go straight into next squat. Breathe on the throw.',what:'75 wall balls. Break into sets: 20-20-15-10-10 or 25-25-25. Do NOT do all 75 straight. Rest 10s between sets.' },
+];
+
+function buildHyroxForm(s) {
+  // Show today's plan description as the session brief
+  const briefHtml = s.d ? `
+    <div style="background:rgba(74,158,219,.08);border:1px solid rgba(74,158,219,.2);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:9px;font-weight:700;letter-spacing:1px;color:var(--blue);margin-bottom:5px">TODAY'S SESSION PLAN</div>
+      <div style="font-size:12px;color:var(--text);line-height:1.6">${s.d.replace(/·/g,'<br>·')}</div>
+    </div>` : '';
+
+  const stationRows = HYROX_STATION_GUIDE.map((st,i) => {
+    const isRun = st.name.startsWith('Run');
+    const bg = isRun ? 'background:rgba(76,175,130,.04)' : '';
+    return `
+      <div style="border-bottom:1px solid var(--border);padding:10px 12px;${bg}">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px">
+          <div style="font-size:12px;font-weight:700;color:${isRun?'var(--green)':'white'}">${st.icon} ${st.name}</div>
+          <input class="hyrox-time-input" id="hx-${i}" type="text" placeholder="mm:ss" style="width:70px;flex-shrink:0">
+        </div>
+        <div style="font-size:11px;color:var(--text);margin-bottom:3px">${st.what}</div>
+        <div style="font-size:10px;color:var(--muted);font-style:italic">💡 ${st.tip}</div>
+      </div>`;
+  }).join('');
+
+  return `
+    ${briefHtml}
+    <div class="form-field" style="margin-bottom:12px">
+      <div class="form-label">Total Session Time</div>
+      <input class="form-input" id="f-dur" type="text" placeholder="1:05:00">
+    </div>
+    <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Station Log — log your time at each station</div>
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px">${stationRows}</div>
+    <div class="form-field"><div class="form-label">Notes (weak stations, how you felt…)</div><input class="form-input" id="f-notes" type="text" placeholder="e.g. Sled push was hard, wall balls broken into 3 sets"></div>`;
+}
 
 function buildSwimForm(s) { return `
   <div class="form-row">
@@ -2113,13 +2246,17 @@ async function saveLogSession() {
   renderPerformance();
 }
 
-async function saveCustomSession() {
+async function saveAddSession() {
+  // Called when user taps Save on the "other" custom section
   const type=document.getElementById('f-custom-type')?.value||'Other';
   const name=document.getElementById('f-custom-name')?.value||type;
+  if (!name || name === type) { showToast('Enter a session name'); return; }
   await sb.from('session_logs').insert({date:todayStr(),week_idx:-1,day_idx:-1,slot:'custom',type:'custom',name,
     data:{customType:type,duration:parseInt(document.getElementById('f-dur')?.value)||0,hr:parseInt(document.getElementById('f-hr')?.value)||0,notes:document.getElementById('f-notes')?.value||''}});
   closeModal();
+  showToast('✓ Session saved');
   renderToday();
+  if (activePanel==='log') renderLog();
 }
 
 // ═══════════════════════════════════════════
