@@ -422,6 +422,27 @@ const EXERCISES = {
     {name:'Calf raises',          reps:15, note:'Full ROM, pause at top. Seated + standing variation.'},
     {name:'Core: Copenhagen + Pallof',reps:1,note:'3 rounds: Copenhagen Plank 30s/side → Pallof Press 12/side.'},
   ],
+  'Leg Day':[
+    // The ONE weekly leg session — combines squat pattern, posterior chain, knee rehab, calf armor
+    {name:'Barbell squat',          reps:5,  note:'Main lift, 4 sets. Hip crease below parallel, knees out. Your one heavy squat exposure of the week.'},
+    {name:'Hip thrust',             reps:10, note:'Drive through heels, full hip extension, squeeze at top. Posterior chain lives here now.'},
+    {name:'Bulgarian split squat',  reps:8,  note:'8 per leg, torso upright. Controls knee valgus — protects the right knee.'},
+    {name:'Leg curl (machine)',     reps:12, note:'Slow 3s eccentric. Hamstring protection for running.'},
+    {name:'Terminal knee extension',reps:15, note:'⭐ Knee rehab. Band behind knee, last 30° only, squeeze the VMO. Non-negotiable.'},
+    {name:'Spanish squat (isometric)',reps:1,note:'⭐ Knee rehab. 3×45s holds, pain-free depth only.'},
+    {name:'Standing calf raise',    reps:12, note:'⭐ 4 sets, heavy, full ROM, pause at top. Calf armor — this is what stops the running pain.'},
+    {name:'Seated calf raise',      reps:15, note:'⭐ 3 sets, slow 3s eccentric. Targets the soleus — the calf muscle running actually destroys.'},
+    {name:'Core: Ab wheel',         reps:10, note:'3 rounds of 10. Anti-extension core.'},
+  ],
+  'Bodyweight Circuit':[
+    // Vacation circuit — no equipment, 4 rounds
+    {name:'Squats (bodyweight)',    reps:15, note:'Full depth, controlled. 4 rounds total of the whole circuit.'},
+    {name:'Push-ups',               reps:10, note:'Chest to floor. Elevate hands on a bench if needed.'},
+    {name:'Walking lunges',         reps:10, note:'10 per leg. Big controlled steps, upright torso.'},
+    {name:'Hip bridges',            reps:15, note:'Squeeze glutes at top, 2s hold.'},
+    {name:'Plank',                  reps:1,  note:'30 seconds, hard brace. Quality over time.'},
+    {name:'Burpees',                reps:10, note:'Chest to floor, jump at top. Steady rhythm, do not sprint.'},
+  ],
 };
 const HYROX_STATIONS = [
   'Run 1 (1km)','SkiErg (1000m)','Run 2 (1km)','Sled Push (50m)',
@@ -810,7 +831,7 @@ const PLAN=[
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'60m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125-148 · conversational pace · flat route · aerobic base',dur:'6km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'65m'}},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'25min easy · technique focus · pull buoy drills · aerobic base in water',dur:'25m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox intro: walk through all 8 stations · no weight pressure · learn the movements · 40% effort only',dur:'30m'}},
+    {am:{t:'swim',n:'Swim',d:'25min easy · technique focus · pull buoy drills · aerobic base in water',dur:'25m'},pm:{t:'hyrox',n:'Hyrox',d:'W1 · LEARN THE MOVEMENTS · No running between stations — just walk · SkiErg 300m easy (find the rhythm) · Sled Push 2×10m empty sled (low hips, drive with legs) · Sled Pull 2×10m empty (walk backwards, hand-over-hand) · Burpee Broad Jumps 20m (chest to floor, jump forward not up) · Rowing 300m easy (legs 60%, lean back, pull arms) · Farmers Carry 50m light KB (shoulders back, walk tall) · Sandbag Lunges 20m (bag on shoulder, upright torso) · Wall Balls 10 reps (squat deep, explode up, throw to target) · Goal: learn every movement, no fitness pressure',dur:'30m'}},
     {am:{t:'run-z2',n:'Long Run',d:'12km · Zone 2 · first long run · easy pace · run-walk OK · build the habit',dur:'12km'},pm:null},
     {am:{t:'run-hard',n:'Strides Run',d:'8km · Zone 2 base + 6x100m strides at end · full recovery between · tall posture',dur:'8km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'60m'}}
   ]},
@@ -819,7 +840,7 @@ const PLAN=[
     {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'62m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'7km · HR 125-148 · aerobic base · easy and controlled · nasal breathing',dur:'7km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'68m'}},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'28min · drills + 4x50m build · form over pace',dur:'28m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox station practice: ski erg + sled push + wall balls · technique only · no rush · 50% effort',dur:'35m'}},
+    {am:{t:'swim',n:'Swim',d:'28min · drills + 4x50m build · form over pace',dur:'28m'},pm:{t:'hyrox',n:'Hyrox',d:'W2 · 3 STATIONS + SHORT RUNS · 50% effort · Warm-up: 400m easy jog · Station 1 — SkiErg 500m (find your rhythm, arms + hips) · 400m jog · Station 2 — Sled Push 2×25m (medium-light weight, short powerful steps) · 400m jog · Station 3 — Wall Balls 25 reps (6kg ball, squat deep, throw to target, break into sets of 10 if needed) · Cool-down: 400m walk · Goal: get comfortable with the 3 hardest stations',dur:'35m'}},
     {am:{t:'run-z2',n:'Long Run',d:'14km · Zone 2 · building distance · time on feet · stay conversational',dur:'14km'},pm:null},
     {am:{t:'run-hard',n:'Tempo Run',d:'8km total · 2km warm-up + 4km at 5:30/km + 2km cool-down',dur:'8km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'62m'}}
   ]},
@@ -828,7 +849,7 @@ const PLAN=[
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'65m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · aerobic base · stay below threshold · talk test',dur:'8km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'70m'}},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'30min · 4x100m moderate · breathing rhythm · aerobic swim',dur:'30m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox circuit: 4 stations x1 round · ski erg · sled · burpees · wall balls · easy pace · 55% effort',dur:'40m'}},
+    {am:{t:'swim',n:'Swim',d:'30min · 4x100m moderate · breathing rhythm · aerobic swim',dur:'30m'},pm:{t:'hyrox',n:'Hyrox',d:'W3 · 4 STATIONS + 400m RUNS · 55% effort · Warm-up: 500m jog · Station 1 — SkiErg 500m · 400m jog · Station 2 — Sled Push 25m (increase weight from W2) · 400m jog · Station 3 — Burpee Broad Jumps 40m (find your rhythm, chest to floor, jump forward) · 400m jog · Station 4 — Wall Balls 30 reps (sets of 10-10-10, rest 15s between) · Cool-down: 400m walk · Goal: 4 stations smooth, pace under control the whole way',dur:'40m'}},
     {am:{t:'run-z2',n:'Long Run',d:'15km · Zone 2 · progressive long run · last 2km slightly faster · control HR',dur:'15km'},pm:null},
     {am:{t:'run-hard',n:'Strides Run',d:'9km · Zone 2 base + 6x100m strides at end · full recovery between · tall posture',dur:'9km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'65m'}}
   ]},
@@ -846,30 +867,30 @@ const PLAN=[
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'65m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · first push above 7km midweek · development phase',dur:'8km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'70m'}},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'32min · 6x100m comfortable · build endurance',dur:'32m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox building: 6 stations x1 round · add farmers carry + sandbag · 60% effort · time each station',dur:'45m'}},
+    {am:{t:'swim',n:'Swim',d:'32min · 6x100m comfortable · build endurance',dur:'32m'},pm:{t:'hyrox',n:'Hyrox',d:'W5 · 6 STATIONS + 400m RUNS · 60% effort · Start timing each station · Warm-up: 500m jog · Station 1 — SkiErg 750m (steady pace, don\'t sprint) · 400m jog · Station 2 — Sled Push 50m (full distance for first time, medium weight) · 400m jog · Station 3 — Sled Pull 50m (walk backwards, hand-over-hand rope) · 400m jog · Station 4 — Farmers Carry 100m with KBs (shoulders back, short turnaround at 50m) · 400m jog · Station 5 — Sandbag Lunges 50m (bag on shoulder, big controlled steps) · 400m jog · Station 6 — Wall Balls 30 reps (sets of 10-10-10) · Cool-down: 400m walk · Log your time for each station',dur:'45m'}},
     {am:{t:'run-z2',n:'Long Run',d:'16km · Zone 2 · most important long run of the block so far',dur:'16km'},pm:null},
     {am:{t:'run-hard',n:'Strides Run',d:'10km · Zone 2 base + 6x100m strides at end · full recovery between · tall posture',dur:'10km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'65m'}}
   ]},
-  {ph:2,lbl:'W6',km:'30-36',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'72m'},pm:null},
+  {ph:2,lbl:'W6',km:'27-32',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'68m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125-148 · aerobic base building · comfortable effort throughout',dur:'9km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'72m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 6km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'6km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'35min · 4x200m moderate · negative split',dur:'35m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox volume: all 8 stations x1 round · 65% effort · first time doing the full circuit · enjoy it',dur:'50m'}},
+    {am:{t:'swim',n:'Swim',d:'35min · 4x200m moderate · negative split',dur:'35m'},pm:{t:'hyrox',n:'Hyrox',d:'W6 · ALL 8 STATIONS — FIRST FULL CIRCUIT · 65% effort · 500m jog between each station · SkiErg 1000m (pace: sustainable, not a sprint) · Sled Push 50m (increase weight from W5) · Sled Pull 50m · Burpee Broad Jumps 40m (half distance — save the legs) · Rowing 1000m (damper 4-6, legs drive first) · Farmers Carry 200m (2 turns at 100m, re-grip if needed) · Sandbag Lunges 50m (half distance) · Wall Balls 40 reps (sets of 15-15-10) · This is a milestone — first time doing all 8. Finish it, don\'t race it.',dur:'50m'}},
     {am:{t:'run-z2',n:'Long Run',d:'17km · Zone 2 · building to half marathon distance · gel practice if over 75min',dur:'17km'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'9km total · 2km warm-up + 5km at 5:20/km + 2km cool-down',dur:'9km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'68m'}}
+    {am:{t:'run-hard',n:'Tempo Run',d:'9km total · 2km warm-up + 5km at 5:20/km + 2km cool-down · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'9km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'68m'}}
   ]},
-  {ph:2,lbl:'W7',km:'32-38',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'75m'},pm:null},
+  {ph:2,lbl:'W7',km:'29-35',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'70m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125-148 · aerobic volume · building midweek endurance',dur:'9km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'75m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 6km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'6km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'38min · 6x200m strong · race pace practice',dur:'38m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox simulation: all 8 stations + 1km run between 2 stations · 70% effort · building race feel',dur:'55m'}},
+    {am:{t:'swim',n:'Swim',d:'38min · 6x200m strong · race pace practice',dur:'38m'},pm:{t:'hyrox',n:'Hyrox',d:'W7 · ALL 8 STATIONS + 2 REAL 1km RUNS · 70% effort · Run 1km · SkiErg 1000m · 500m jog · Sled Push 50m · 500m jog · Sled Pull 50m · Run 1km · Burpee Broad Jumps 60m · 500m jog · Rowing 1000m · 500m jog · Farmers Carry 200m · 500m jog · Sandbag Lunges 75m · 500m jog · Wall Balls 50 reps (sets of 20-15-15) · This week add 2 real 1km runs to feel what it\'s like to run into a station. Time the whole session.',dur:'55m'}},
     {am:{t:'run-z2',n:'Long Run',d:'18km · Zone 2 · peak long run Phase 2 · gel at 45min · trust the training',dur:'18km'},pm:null},
-    {am:{t:'run-hard',n:'Strides Run',d:'11km · Zone 2 base + 8x100m strides at end · full recovery between · tall posture',dur:'11km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'70m'}}
+    {am:{t:'run-hard',n:'Strides Run',d:'11km · Zone 2 base + 8x100m strides at end · full recovery between · tall posture · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'11km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'70m'}}
   ]},
-  {ph:2,lbl:'W8',km:'18-22',sessions:6,doubles:1,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'62m'},pm:null},
+  {ph:2,lbl:'W8',km:'17-21',sessions:6,doubles:1,days:[
+    {am:{t:'strength',n:'Leg Day',d:'DELOAD · one leg session · all loads at 60% · Squat 3x5 light · Hip thrust 2x10 · TKE 3x15 · Spanish squat 3x30s · Standing calf raise 3x12 + seated 3x12 · technique focus · out in 50min',dur:'50m'},pm:null},
     {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'58m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125-148 · deload · easy aerobic · no pressure',dur:'6km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
@@ -877,35 +898,35 @@ const PLAN=[
     {am:{t:'run-z2',n:'Long Run',d:'12km · Zone 2 · deload long run · easy recovery run · enjoy it',dur:'12km'},pm:null},
     {am:{t:'run-hard',n:'Easy Run',d:'7km · easy · deload run · aerobic pace only · no tempo · flush the legs',dur:'7km'},pm:null}
   ]},
-  {ph:3,lbl:'W9',km:'35-42',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'75m'},pm:null},
+  {ph:3,lbl:'W9',km:'32-39',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'72m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'10km · HR 125-148 · peak phase aerobic · best running block',dur:'10km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'75m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 7km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'7km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'40min · 4x400m moderate · aerobic base',dur:'40m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox full circuit: all 8 stations x1 round + 2km run · 75% effort · push the pace on stations',dur:'60m'}},
+    {am:{t:'swim',n:'Swim',d:'40min · 4x400m moderate · aerobic base',dur:'40m'},pm:{t:'hyrox',n:'Hyrox',d:'W9 · ALL 8 STATIONS + 4 REAL 1km RUNS · 75% effort · Run 1km · SkiErg 1000m · Run 1km · Sled Push 50m · 500m jog · Sled Pull 50m · Run 1km · Burpee Broad Jumps 80m (full distance) · 500m jog · Rowing 1000m · Run 1km · Farmers Carry 200m · 500m jog · Sandbag Lunges 100m (full distance) · 500m jog · Wall Balls 60 reps (sets of 20-20-20) · Push the pace on each station. Time every station individually. Compare to W7 times.',dur:'60m'}},
     {am:{t:'run-z2',n:'Long Run',d:'19km · Zone 2 · peak phase · longest run so far · gels x2 · mental strength',dur:'19km'},pm:null},
-    {am:{t:'run-hard',n:'Strides Run',d:'12km · Zone 2 base + 8x100m strides at end · full recovery between · tall posture',dur:'12km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'72m'}}
+    {am:{t:'run-hard',n:'Strides Run',d:'12km · Zone 2 base + 8x100m strides at end · full recovery between · tall posture · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'12km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'72m'}}
   ]},
-  {ph:3,lbl:'W10',km:'37-44',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'78m'},pm:null},
+  {ph:3,lbl:'W10',km:'34-41',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'74m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'10km · HR 125-148 · peak aerobic · hold effort not pace',dur:'10km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'78m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 7km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'7km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'40min · 5x200m + 2x400m · mixed pace',dur:'40m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox race pace: all 8 stations at target pace · time every station · 80% effort',dur:'65m'}},
+    {am:{t:'swim',n:'Swim',d:'40min · 5x200m + 2x400m · mixed pace',dur:'40m'},pm:{t:'hyrox',n:'Hyrox',d:'W10 · RACE PACE SESSION — TIME EVERYTHING · 80% effort · Run 1km · SkiErg 1000m (target: under 4:30) · Run 1km · Sled Push 50m (target: under 2:00) · Run 1km · Sled Pull 50m (target: under 2:30) · Run 1km · Burpee Broad Jumps 80m (target: under 4:00) · Run 1km · Rowing 1000m (target: under 4:30) · Run 1km · Farmers Carry 200m (target: under 2:30) · Run 1km · Sandbag Lunges 100m (target: under 5:00) · Run 1km · Wall Balls 75 reps (target: under 6:00, sets of 25-25-25) · Log EVERY station time. This data is your race plan.',dur:'65m'}},
     {am:{t:'run-z2',n:'Long Run',d:'20km · Zone 2 · peak volume · stay aerobic · this is the hard work',dur:'20km'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'10km total · 2km warm-up + 6km at 5:15/km + 2km cool-down',dur:'10km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'74m'}}
+    {am:{t:'run-hard',n:'Tempo Run',d:'10km total · 2km warm-up + 6km at 5:15/km + 2km cool-down · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'10km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'74m'}}
   ]},
-  {ph:3,lbl:'W11',km:'38-46',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'80m'},pm:null},
+  {ph:3,lbl:'W11',km:'35-43',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'76m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'10km · HR 125-148 · peak training week · stay aerobic · trust the training',dur:'10km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'80m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 7km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'7km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'42min · 4x400m at race pace effort · tri simulation',dur:'42m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox full simulation: 8km run + all 8 stations · 80% effort · first complete race sim · time it',dur:'75m'}},
+    {am:{t:'swim',n:'Swim',d:'42min · 4x400m at race pace effort · tri simulation',dur:'42m'},pm:{t:'hyrox',n:'Hyrox',d:'W11 · FULL RACE SIMULATION · 80% effort · Treat this exactly like race day · Run 1km · SkiErg 1000m · Run 1km · Sled Push 50m · Run 1km · Sled Pull 50m · Run 1km · Burpee Broad Jumps 80m · Run 1km · Rowing 1000m · Run 1km · Farmers Carry 200m · Run 1km · Sandbag Lunges 100m · Run 1km · Wall Balls 75 reps · 8km total running + all 8 stations at full competition distance · Time the WHOLE thing from start to finish. This is your preview of race day — compare your time in W18.',dur:'75m'}},
     {am:{t:'run-z2',n:'Long Run',d:'21km · Zone 2 · longest run of the program · gels x3 · mental strength · ready for HM',dur:'21km'},pm:null},
-    {am:{t:'run-hard',n:'Strides Run',d:'13km · Zone 2 base + 10x100m strides at end · full recovery between · tall posture',dur:'13km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'76m'}}
+    {am:{t:'run-hard',n:'Strides Run',d:'13km · Zone 2 base + 10x100m strides at end · full recovery between · tall posture · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'13km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'76m'}}
   ]},
-  {ph:3,lbl:'W12',km:'20-25',sessions:6,doubles:1,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'65m'},pm:null},
+  {ph:3,lbl:'W12',km:'19-24',sessions:6,doubles:1,days:[
+    {am:{t:'strength',n:'Leg Day',d:'DELOAD · one leg session · all loads at 60% · Squat 3x5 light · Hip thrust 2x10 · TKE 3x15 · Spanish squat 3x30s · Standing calf raise 3x12 + seated 3x12 · technique focus · out in 50min',dur:'50m'},pm:null},
     {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'62m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'6km · HR 125-148 · deload · easy and controlled · protect the legs',dur:'6km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
@@ -913,69 +934,69 @@ const PLAN=[
     {am:{t:'run-z2',n:'Long Run',d:'13km · Zone 2 · deload · shorter and easy · protect the legs',dur:'13km'},pm:null},
     {am:{t:'run-hard',n:'Easy Run',d:'8km · easy · deload run · aerobic pace only · no tempo · flush the legs',dur:'8km'},pm:null}
   ]},
-  {ph:4,lbl:'W13',km:'30-35',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'72m'},pm:null},
+  {ph:4,lbl:'W13',km:'27-32',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'72m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125-148 · HM build · 6 weeks to race · consistent aerobic',dur:'9km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'72m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 6km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'6km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'38min · 4x300m moderate · HM race in 3 weeks',dur:'38m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox peak: all 8 stations + 4km run · 85% effort · last big Hyrox session before HM taper',dur:'65m'}},
+    {am:{t:'swim',n:'Swim',d:'38min · 4x300m moderate · HM race in 3 weeks',dur:'38m'},pm:{t:'hyrox',n:'Hyrox',d:'W13 · LAST BIG HYROX BEFORE HM TAPER · 85% effort · Run 1km · SkiErg 1000m (push it) · Run 1km · Sled Push 50m (heaviest weight yet) · Run 1km · Sled Pull 50m · Run 1km · Burpee Broad Jumps 80m · 500m jog · Rowing 1000m · 500m jog · Farmers Carry 200m · 500m jog · Sandbag Lunges 100m · 500m jog · Wall Balls 75 reps (sets of 25-25-25) · This is your peak Hyrox session before 3 weeks of HM focus. Give it everything — Hyrox takes a back seat after this.',dur:'65m'}},
     {am:{t:'run-z2',n:'Long Run',d:'18km · Zone 2 · HM build · 6 weeks out · race pace last 3km',dur:'18km'},pm:null},
-    {am:{t:'run-hard',n:'Strides Run',d:'12km · Zone 2 base + 8x100m strides at end · full recovery between · tall posture',dur:'12km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'72m'}}
+    {am:{t:'run-hard',n:'Strides Run',d:'12km · Zone 2 base + 8x100m strides at end · full recovery between · tall posture · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'12km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'72m'}}
   ]},
-  {ph:4,lbl:'W14',km:'24-28',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'70m'},pm:null},
+  {ph:4,lbl:'W14',km:'21-26',sessions:8,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'70m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · HM taper begins · slightly less volume',dur:'8km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'70m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 6km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'6km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'35min · 4x200m moderate · taper begins',dur:'35m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox moderate: 6 stations · 70% effort · reducing intensity for HM taper',dur:'50m'}},
+    {am:{t:'swim',n:'Swim',d:'35min · 4x200m moderate · taper begins',dur:'35m'},pm:{t:'hyrox',n:'Hyrox',d:'W14 · 6 STATIONS — HM TAPER · 70% effort · Warm-up: 500m jog · SkiErg 750m · 400m jog · Sled Push 50m (medium weight, not max) · 400m jog · Sled Pull 50m · 400m jog · Rowing 1000m (comfortable pace) · 400m jog · Farmers Carry 200m · 400m jog · Wall Balls 40 reps (sets of 15-15-10) · HM is in 2 weeks — do NOT destroy your legs here. Controlled, technical, 70% only.',dur:'50m'}},
     {am:{t:'run-z2',n:'Long Run',d:'17km · Zone 2 + race pace sections · last long run before HM taper · gels x2',dur:'17km'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'10km total · 2km warm-up + 6km at 5:10/km + 2km cool-down · maintain the effort',dur:'10km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'70m'}}
+    {am:{t:'run-hard',n:'Tempo Run',d:'10km total · 2km warm-up + 6km at 5:10/km + 2km cool-down · maintain the effort · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'10km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'70m'}}
   ]},
-  {ph:4,lbl:'W15',km:'16-20',sessions:7,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'62m'},pm:null},
+  {ph:4,lbl:'W15',km:'13-17',sessions:7,doubles:2,days:[
+    {am:{t:'strength',n:'Leg Day',d:'Your ONLY leg session this week — make it count · Barbell squat 4x5 · Hip thrust 3x10 · Bulgarian split squat 3x8/leg · Leg curl 3x12 · TKE 3x15 (knee) · Spanish squat 3x45s (knee) · Standing calf raise 4x12 heavy + seated calf raise 3x15 slow eccentric (calf armor for running) · Ab wheel 3x10',dur:'75m'},pm:null},
     {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'65m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'7km · HR 125-148 · HM taper · easy aerobic · race in 8 days',dur:'7km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'62m'}},
+    {am:{t:'run-z2',n:'Easy Run',d:'EASY DAY · 5km · HR 125-145 · genuinely easy — this run is recovery, not training · soft surface if possible · after the run: 3x15 slow eccentric calf raises + 2min calf stretch per side',dur:'5km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'28min · 4x100m easy + drills · HM taper',dur:'28m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox light: 4 stations easy · HM in 1 week · preserve the legs · technique only',dur:'35m'}},
+    {am:{t:'swim',n:'Swim',d:'28min · 4x100m easy + drills · HM taper',dur:'28m'},pm:{t:'hyrox',n:'Hyrox',d:'W15 · 4 STATIONS EASY — HM IN 1 WEEK · 50% effort only · Warm-up: 400m easy jog · SkiErg 500m (easy, just move) · 400m walk/jog · Sled Push 25m (light weight, technique focus) · 400m walk/jog · Rowing 500m (easy rhythm) · 400m walk/jog · Wall Balls 20 reps (light and easy) · DO NOT push hard. Your legs must be 100% for the half marathon next Saturday. This session is just to stay loose.',dur:'35m'}},
     {am:{t:'run-z2',n:'Long Run',d:'13km · easy pace · HM taper · no heroics · legs must be fresh for race',dur:'13km'},pm:null},
-    {am:{t:'run-hard',n:'Strides Run',d:'10km · Zone 2 base + 4x100m strides at end · full recovery between · tall posture',dur:'10km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'65m'}}
+    {am:{t:'run-hard',n:'Strides Run',d:'10km · Zone 2 base + 4x100m strides at end · full recovery between · tall posture · calves sore? do 40min easy instead — no shame, smarter is faster',dur:'10km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'65m'}}
   ]},
   {ph:4,lbl:'W16',km:'21-25',sessions:4,doubles:1,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'55m'},pm:null},
-    {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'58m'},pm:null},
+    {am:{t:'strength',n:'Leg Day',d:'RACE WEEK · activation only · 50% loads · Squat 3x5 light · Hip thrust 2x10 · TKE 3x15 · Calf raises 3x12 · done in 40min · legs must be FRESH on Saturday',dur:'40m'},pm:null},
+    {am:{t:'strength',n:'Pull B',d:'RACE WEEK · upper body light · 60% loads · skip heavy deadlift — light RDL 2x8 instead · Seal row · Lat pulldown · Curls · 45min max',dur:'45m'},pm:null},
     {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · HR 125-148 · race week · very easy · stay fresh',dur:'5km'},pm:null},
     {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
     {am:{t:'swim',n:'Swim',d:'22min · 4x100m very easy · activate · race week',dur:'22m'},pm:null},
     {am:{t:'custom',n:'Half Marathon Race',d:'Half Marathon Race · Aug 29 · execute your race plan · sub 2:00 target · gels at 45 and 80min',dur:''},pm:null},
-    {am:{t:'run-hard',n:'Easy Run',d:'3km easy · HM race week · no effort · stay completely fresh · race Saturday',dur:'3km'},pm:null}
+    {am:{t:'rest',n:'Recovery',d:'Day after the half marathon · full rest · 20min walk if you feel like it · be proud — then we go hunt the Hyrox',dur:''},pm:null},
   ]},
-  {ph:5,lbl:'W17',km:'20-26',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'68m'},pm:null},
-    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'70m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'8km · HR 125-148 · Hyrox block · strong aerobic · Hyrox in 18 days',dur:'8km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'68m'}},
-    {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'32min · 4x200m moderate · Hyrox in 2 weeks',dur:'32m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox reactivation: all 8 stations · 75% effort · Hyrox in 14 days · find your rhythm again',dur:'55m'}},
-    {am:{t:'run-z2',n:'Long Run',d:'14km · Zone 2 · post-HM recovery run · easy pace · Hyrox block begins',dur:'14km'},pm:null},
-    {am:{t:'run-hard',n:'Strides Run',d:'10km · Zone 2 base + 6x100m strides at end · full recovery between · tall posture',dur:'10km'},pm:{t:'strength',n:'Push A',d:'Barbell bench press · Incline DB press · Cable flies · Weighted dips · Tricep pushdown · Lateral raises · Core: plank + ab wheel',dur:'70m'}}
+  {ph:5,lbl:'W17',km:'9-13',sessions:4,doubles:0,days:[
+    {am:{t:'rest',n:'Recovery',d:'Two days after the HM · full rest or a 20-30min walk · your legs carry hidden damage from the race even if they feel fine · sleep 8h+, eat protein, hydrate',dur:''},pm:null},
+    {am:{t:'strength',n:'Pull A',d:'Upper body only · post-HM week · 70% loads · easy pull-up sets · Chest-supported row · Face pulls · Curls · skip anything that loads the legs · 45min and out',dur:'45m'},pm:null},
+    {am:{t:'run-z2',n:'Recovery Jog',d:'EASY · 4-5km max · very slow, HR under 135 · just blood flow for the legs · stop immediately if anything complains',dur:'5km'},pm:null},
+    {am:{t:'hyrox',n:'Hyrox',d:'W17 · LAST EQUIPMENT SESSION BEFORE SPAIN · 70% effort · SkiErg 750m · 400m jog · Sled Push 50m medium weight · 400m jog · Sled Pull 50m · 400m jog · Rowing 1000m steady · 400m jog · Farmers Carry 150m · 400m jog · Wall Balls 50 reps (20-15-15) · no burpees or lunges — legs still recovering from the HM · tomorrow you travel',dur:'55m'},pm:null},
+    {am:{t:'rest',n:'Travel to Spain',d:'Travel day · walk in the airport · stretch after arriving · vacation mode ON — training continues lighter from here',dur:''},pm:null},
+    {am:{t:'run-z2',n:'Vacation Run',d:'40min easy · explore the area and find your running route for the week · no pace pressure · go in the morning before the heat',dur:'40m'},pm:null},
+    {am:{t:'rest',n:'Family Day',d:'Rest · a long beach or city walk counts · enjoy the family',dur:''},pm:null}
   ]},
-  {ph:5,lbl:'W18',km:'28-34',sessions:8,doubles:2,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'72m'},pm:null},
-    {am:{t:'strength',n:'Pull B',d:'Deadlift 5x3 · RDL · Seal row · Cable row · Lat pulldown · Bicep curls · Hollow body core',dur:'75m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'9km · HR 125-148 · last heavy Zone 2 · Hyrox in 11 days',dur:'9km'},pm:{t:'strength',n:'Legs A',d:'Barbell squat 5x5 · Bulgarian split squat · Leg press unilateral · TKE · Spanish squat isometric · Nordic curls · Ab wheel',dur:'72m'}},
-    {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'38min · 6x100m build · last hard swim before Hyrox',dur:'38m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox race pace: all 8 stations at full target pace · time everything · last hard Hyrox session',dur:'70m'}},
-    {am:{t:'run-z2',n:'Long Run',d:'16km · Zone 2 · last long run · Hyrox in 12 days · controlled effort',dur:'16km'},pm:null},
-    {am:{t:'run-hard',n:'Tempo Run',d:'8km total · 2km warm-up + 4km at 5:00/km · last tempo before Hyrox',dur:'8km'},pm:{t:'strength',n:'Push B',d:'OHP 5x5 · Arnold press · Incline DB press · Cable flies · Lateral raises · Dips · Core: Copenhagen plank',dur:'75m'}}
+  {ph:5,lbl:'W18',km:'14-18',sessions:5,doubles:0,days:[
+    {am:{t:'run-z2',n:'Vacation Run',d:'45min easy · HR 125-145 · morning run before the heat · hydrate extra in Spain',dur:'45m'},pm:null},
+    {am:{t:'strength',n:'Bodyweight Circuit',d:'No gym needed · 4 rounds: 15 squats · 10 push-ups · 10 walking lunges per leg · 15 hip bridges · 30s plank · 10 burpees · rest 90s between rounds · about 30min',dur:'30m'},pm:null},
+    {am:{t:'rest',n:'Family Day',d:'Rest or beach walk · vacation recovery is real recovery',dur:''},pm:null},
+    {am:{t:'hyrox',n:'Hyrox Bodyweight',d:'W18 · VACATION HYROX — NO EQUIPMENT · beach or park · 4 rounds: 400m run · 20m burpee broad jumps · 30m walking lunges · 15 jump squats · 10 push-ups · rest 2min between rounds · last round at 80% effort · this keeps the engine warm — race in 9 days',dur:'35m'},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Rest · 15min stretching · race in 8 days',dur:''},pm:null},
+    {am:{t:'run-hard',n:'Quality Run',d:'50min total: 15min easy + 5x2min strong (RPE 7/10) with 2min easy jog between + 10min easy · keeps the legs sharp without smashing them',dur:'50m'},pm:null},
+    {am:{t:'run-z2',n:'Easy Run',d:'30min very easy + 4x100m strides · last vacation run · tomorrow you fly home · race in 6 days',dur:'30m'},pm:null}
   ]},
-  {ph:5,lbl:'W19',km:'10-14',sessions:5,doubles:1,days:[
-    {am:{t:'strength',n:'Legs B',d:'Hip thrust 4x10 · Good mornings · Step-ups · Leg curl · Leg extension · Glute bridge single · Calf raises · Pallof press',dur:'58m'},pm:null},
-    {am:{t:'strength',n:'Pull A',d:'Weighted pull-ups · Chest-supported row · Barbell rows · Face pulls · Hammer curls · Rear delt · Dead bug core',dur:'60m'},pm:null},
-    {am:{t:'run-z2',n:'Zone 2 Run',d:'5km · HR 125-148 · race week · easy and short · Hyrox in 4 days',dur:'5km'},pm:null},
-    {am:{t:'rest',n:'Rest',d:'Full rest · sleep 8h+ · walk if you want · no structured training',dur:''},pm:null},
-    {am:{t:'swim',n:'Swim',d:'15min very easy · activate · feel the water · no effort',dur:'15m'},pm:{t:'hyrox',n:'Hyrox',d:'Hyrox activation: each station at 50% effort only · no fatigue · race in 2 days · feel the movements',dur:'40m'}},
-    {am:{t:'custom',n:'Hyrox Race',d:'Hyrox Race · Sep 19 · 8km run + 8 stations · give everything · all 19 weeks led here · execute the plan',dur:''},pm:null},
-    {am:{t:'run-hard',n:'Shakeout Run',d:'3km shakeout · very easy · HR below 130 · stay loose · Hyrox tomorrow',dur:'3km'},pm:null}
-  ]},
+  {ph:5,lbl:'W19',km:'10-14',sessions:3,doubles:0,days:[
+    {am:{t:'rest',n:'Travel Home',d:'Return from Spain · travel day · walk, stretch, early sleep · race in 5 days',dur:''},pm:null},
+    {am:{t:'hyrox',n:'Hyrox Reactivation',d:'W19 · RACE IN 4 DAYS · 60% effort max · SkiErg 500m · Sled Push 25m light · Sled Pull 25m light · Rowing 500m · Farmers Carry 100m · Wall Balls 20 easy reps · short and crisp — reconnect with the equipment after vacation · do NOT test your fitness, it is already in the bank',dur:'40m'},pm:null},
+    {am:{t:'run-z2',n:'Easy Run',d:'5km easy + 4x100m strides · stay loose · race in 3 days',dur:'5km'},pm:null},
+    {am:{t:'rest',n:'Rest',d:'Full rest · prepare your race kit · review your station pacing plan from W18 and W10 times · sleep 8h+',dur:''},pm:null},
+    {am:{t:'run-z2',n:'Shakeout',d:'15-20min very easy jog + 3x50m light strides · race TOMORROW · feet up the rest of the day',dur:'20m'},pm:null},
+    {am:{t:'custom',n:'Hyrox Race',d:'Hyrox Race · Sep 19 · 8km run + 8 stations · pace the runs, do not sprint the first sled · save energy for sandbag lunges and wall balls · give everything on the last station · all 19 weeks led here',dur:''},pm:null},
+    {am:{t:'rest',n:'Celebrate',d:'Done · 19 weeks · a half marathon and a Hyrox in one summer · rest, eat, celebrate',dur:''},pm:null}
+  ]}
 ];
 
 // ═══════════════════════════════════════════
@@ -1002,7 +1023,20 @@ let _logCtx = null;
 let _hrvSelected = null;
 let chartInstances = {};
 
-function todayStr() { return new Date().toISOString().slice(0,10); }
+function todayStr() {
+  // Local date, not UTC — toISOString() gave the wrong day between midnight and ~2am
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// Maps a date string to its program position, so manually added sessions count in the right week
+function planPosForDate(dateStr) {
+  const start = new Date(PROGRAM_START+'T00:00:00');
+  const d = new Date(dateStr+'T00:00:00');
+  const diff = Math.round((d - start) / 86400000);
+  if (diff < 0 || diff >= 133) return { w: -1, d: -1 };
+  return { w: Math.floor(diff/7), d: diff%7 };
+}
 
 function sessionDate(wIdx, dIdx) {
   const start = new Date(PROGRAM_START+'T12:00:00');
@@ -1432,7 +1466,26 @@ function saveMacroModal() {
 //   null = slot was emptied (session moved to a previously empty slot)
 //   key absent = use PLAN default
 function getSwaps() { try { return JSON.parse(localStorage.getItem('session_overrides')||'{}'); } catch(e) { return {}; } }
-function saveSwaps(s) { localStorage.setItem('session_overrides', JSON.stringify(s)); }
+
+let _swapSyncTimer = null;
+function saveSwaps(s) {
+  localStorage.setItem('session_overrides', JSON.stringify(s));
+  // Sync to Supabase (debounced) so swaps survive cleared browser data and sync across devices
+  clearTimeout(_swapSyncTimer);
+  _swapSyncTimer = setTimeout(async () => {
+    try {
+      await sb.from('app_state').upsert({ key:'session_overrides', value:s, updated_at:new Date().toISOString() });
+    } catch(e) { /* offline or table not created yet — localStorage still has it */ }
+  }, 800);
+}
+
+// Pull cloud state on boot — cloud wins over local (it has the latest from any device)
+async function loadCloudState() {
+  try {
+    const { data } = await sb.from('app_state').select('key,value').eq('key','session_overrides').maybeSingle();
+    if (data?.value) localStorage.setItem('session_overrides', JSON.stringify(data.value));
+  } catch(e) { /* offline or table missing — fall back to localStorage */ }
+}
 function swapKey(wIdx,dIdx,slot) { return `${wIdx}-${dIdx}-${slot}`; }
 
 function resolveSession(wIdx, dIdx, slot) {
@@ -1544,6 +1597,8 @@ function resetAllSwaps() {
   if (!confirm('Reset all session moves and restore the original plan?')) return;
   localStorage.removeItem('session_overrides');
   localStorage.removeItem('session_swaps'); // also clear old format if present
+  // Clear the cloud copy too, or it would restore the swaps on next app start
+  sb.from('app_state').upsert({ key:'session_overrides', value:{}, updated_at:new Date().toISOString() }).then(()=>{},()=>{});
   if (activePanel==='today') renderToday();
   if (activePanel==='plan')  renderPlan();
 }
@@ -1687,9 +1742,13 @@ function buildAddSessionForm() {
     <div style="border-top:1px solid var(--border);padding-top:14px">
       <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:10px">Other / Extra Session</div>
       <div class="form-field"><div class="form-label">Type</div>
-        <select class="form-select" id="f-custom-type"><option>CrossFit</option><option>Football</option><option>Tennis</option><option>Cycling</option><option>Yoga / Mobility</option><option>Other</option></select>
+        <select class="form-select" id="f-custom-type"><option>Run</option><option>CrossFit</option><option>Football</option><option>Tennis</option><option>Cycling</option><option>Yoga / Mobility</option><option>Other</option></select>
       </div>
-      <div class="form-field"><div class="form-label">Session Name</div><input class="form-input" id="f-custom-name" type="text" placeholder="e.g. CrossFit class"></div>
+      <div class="form-field"><div class="form-label">Session Name</div><input class="form-input" id="f-custom-name" type="text" placeholder="e.g. Extra easy run"></div>
+      <div class="form-row">
+        <div class="form-field"><div class="form-label">Date</div><input class="form-input" id="f-custom-date" type="date" value="${todayStr()}"></div>
+        <div class="form-field"><div class="form-label">Distance (km, if run)</div><input class="form-input" id="f-custom-dist" type="number" step="0.1" placeholder="0"></div>
+      </div>
       <div class="form-row">
         <div class="form-field"><div class="form-label">Duration (min)</div><input class="form-input" id="f-dur" type="number" placeholder="60"></div>
         <div class="form-field"><div class="form-label">Avg HR</div><input class="form-input" id="f-hr" type="number" placeholder="150"></div>
@@ -1737,8 +1796,10 @@ async function savePresetSession() {
     hr: parseInt(document.getElementById('f-hr')?.value)||0,
     notes: document.getElementById('f-notes')?.value||''
   };
+  // Attribute to the correct program week/day so it counts in weekly stats and the habit tracker
+  const pos = planPosForDate(todayStr());
   const { error } = await sb.from('session_logs').insert({
-    date: todayStr(), week_idx:-1, day_idx:-1, slot:'custom',
+    date: todayStr(), week_idx: pos.w, day_idx: pos.d, slot:'custom',
     type:'strength', name: s.n, data
   });
   if (error) { showToast('Save failed — check connection'); return; }
@@ -1959,9 +2020,10 @@ function selectPlanWeek(idx) { planWeekIdx=idx; planWeekInitialized=true; render
 //  LOG MODAL
 // ═══════════════════════════════════════════
 async function openLogModal(wIdx, dIdx, slot, displayDate=null) {
-  // wIdx/dIdx/slot = ORIGINAL PLAN position (for session type/form lookup)
-  // displayDate = actual date the session is performed (overrides plan date for swapped sessions)
-  const s = slot==='pm' ? PLAN[wIdx]?.days[dIdx]?.pm : PLAN[wIdx]?.days[dIdx]?.am;
+  // wIdx/dIdx/slot = DISPLAY position. resolveSession returns what is actually
+  // scheduled there (swap-aware) — reading raw PLAN here was the "wrong training
+  // appears in the log modal" bug after a swap.
+  const s = resolveSession(wIdx, dIdx, slot);
   if (!s || s.t==='rest') { showToast('Session not found'); return; }
   const sDate = displayDate || sessionDate(wIdx, dIdx);
   const past = sDate < todayStr();
@@ -2197,7 +2259,9 @@ async function saveLogSession() {
   let data = { notes: document.getElementById('f-notes')?.value||'' };
 
   if (s.t==='strength') {
-    const exList = getExercisesForSession(s.n).slice(0,5);
+    // No slice — the form renders ALL exercises, so save ALL of them.
+    // The old .slice(0,5) silently discarded everything after the 5th exercise.
+    const exList = getExercisesForSession(s.n);
     const collectExBlock = (ei, exName) => {
       const block = document.getElementById('ex-block-'+ei);
       if (block && block.style.display === 'none') return null;
@@ -2251,11 +2315,19 @@ async function saveAddSession() {
   const type=document.getElementById('f-custom-type')?.value||'Other';
   const name=document.getElementById('f-custom-name')?.value||type;
   if (!name || name === type) { showToast('Enter a session name'); return; }
-  await sb.from('session_logs').insert({date:todayStr(),week_idx:-1,day_idx:-1,slot:'custom',type:'custom',name,
-    data:{customType:type,duration:parseInt(document.getElementById('f-dur')?.value)||0,hr:parseInt(document.getElementById('f-hr')?.value)||0,notes:document.getElementById('f-notes')?.value||''}});
+  const date = document.getElementById('f-custom-date')?.value || todayStr();
+  const pos = planPosForDate(date);
+  const { error } = await sb.from('session_logs').insert({date,week_idx:pos.w,day_idx:pos.d,slot:'custom',type:'custom',name,
+    data:{customType:type,
+      duration:parseInt(document.getElementById('f-dur')?.value)||0,
+      distance:parseFloat(document.getElementById('f-custom-dist')?.value)||0,
+      hr:parseInt(document.getElementById('f-hr')?.value)||0,
+      notes:document.getElementById('f-notes')?.value||''}});
+  if (error) { showToast('Save failed — check connection'); return; }
   closeModal();
   showToast('✓ Session saved');
   renderToday();
+  if (activePanel==='plan') renderPlan();
   if (activePanel==='log') renderLog();
 }
 
@@ -2840,6 +2912,7 @@ async function renderBody() {
       </div>`).join('') : '<div class="empty-state" style="padding:16px"><p>No body logs yet.</p></div>'}
 
     ${buildConnectionsCard()}
+    ${buildAccountCard()}
 
     <div class="sec-label">Injuries</div>
     ${active.length ? active.map(inj=>`
@@ -3066,6 +3139,47 @@ async function importPolar() {
 
 function disconnectPolar() { localStorage.removeItem('polar_auth'); renderBody(); }
 
+function buildAccountCard() {
+  return `
+    <div class="sec-label">Account &amp; Data</div>
+    <div class="card" style="margin-bottom:12px">
+      <div style="display:flex;gap:8px">
+        <button onclick="exportAllData()" style="flex:1;padding:10px;background:rgba(76,175,130,.1);border:1px solid rgba(76,175,130,.3);border-radius:8px;color:var(--green);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">⬇ Export Backup</button>
+        <button onclick="doLogout()" style="flex:1;padding:10px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Sign Out</button>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5">Export downloads ALL your data (sessions, body logs, injuries, swaps) as one JSON file. Do it monthly — it is your insurance.</div>
+    </div>`;
+}
+
+async function exportAllData() {
+  showToast('Building backup…');
+  try {
+    const [sessions, body, injuries] = await Promise.all([
+      sb.from('session_logs').select('*'),
+      sb.from('body_logs').select('*'),
+      sb.from('injuries').select('*'),
+    ]);
+    const backup = {
+      exported_at: new Date().toISOString(),
+      app: 'SUB-2 x HYROX',
+      session_logs: sessions.data || [],
+      body_logs: body.data || [],
+      injuries: injuries.data || [],
+      session_overrides: getSwaps(),
+      race_dates: getRaceDates(),
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type:'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `sub2hyrox_backup_${todayStr()}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast(`✓ Backup: ${backup.session_logs.length} sessions, ${backup.body_logs.length} body logs`);
+  } catch(e) {
+    showToast('Export failed — check connection');
+  }
+}
+
 function buildConnectionsCard() {
   const strava = safeParseJSON(localStorage.getItem('strava_auth'));
   const polar  = safeParseJSON(localStorage.getItem('polar_auth'));
@@ -3138,9 +3252,66 @@ function buildConnectionsCard() {
   else if (state === 'polar') handlePolarCallback(code).then(() => showPanel('body'));
 })();
 
-updateHeader();
-renderToday();
-initNotifications();
+// ── Auth gate ──────────────────────────────
+// The app is personal: one Supabase user (Felipe). RLS on the server blocks
+// anonymous reads/writes, so this login is the key to the data.
+function initApp() {
+  updateHeader();
+  loadCloudState().then(() => renderToday());
+  initNotifications();
+}
+
+function showLoginScreen(errMsg) {
+  document.getElementById('login-overlay')?.remove();
+  const div = document.createElement('div');
+  div.id = 'login-overlay';
+  div.style.cssText = 'position:fixed;inset:0;z-index:9999;background:var(--dark);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px';
+  div.innerHTML = `
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:3px;color:#fff;margin-bottom:2px">SUB-2 <span style="color:var(--orange)">×</span> HYROX</div>
+    <div style="font-size:10px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;margin-bottom:28px">Personal Training App</div>
+    <div style="width:100%;max-width:320px;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px">
+      ${errMsg?`<div style="background:rgba(232,84,84,.1);border:1px solid rgba(232,84,84,.3);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--red);margin-bottom:12px">${errMsg}</div>`:''}
+      <div class="form-field"><div class="form-label">Email</div><input class="form-input" id="login-email" type="email" autocomplete="username" placeholder="you@email.com"></div>
+      <div class="form-field" style="margin-top:10px"><div class="form-label">Password</div><input class="form-input" id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button id="login-btn" onclick="doLogin()" style="width:100%;margin-top:16px;padding:12px;background:var(--orange);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Sign In</button>
+      <div onclick="skipLogin()" style="text-align:center;margin-top:14px;font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline">Continue without login (local only)</div>
+    </div>`;
+  document.body.appendChild(div);
+  document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email')?.value?.trim();
+  const pass  = document.getElementById('login-pass')?.value;
+  if (!email || !pass) return;
+  const btn = document.getElementById('login-btn');
+  btn.textContent = 'Signing in…'; btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+  if (error) { showLoginScreen(error.message); return; }
+  document.getElementById('login-overlay')?.remove();
+  initApp();
+}
+
+function skipLogin() {
+  // App shell works; once RLS is enabled server-side, data calls return empty until login
+  document.getElementById('login-overlay')?.remove();
+  initApp();
+}
+
+async function doLogout() {
+  if (!confirm('Sign out? You will need your email and password to get back in.')) return;
+  try { await sb.auth.signOut(); } catch(e) {}
+  location.reload();
+}
+
+(async function authGate() {
+  if (!sb) { initApp(); return; } // Supabase failed to load — render from PLAN constant
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) initApp();
+    else showLoginScreen();
+  } catch(e) { initApp(); }
+})();
 
 // ═══════════════════════════════════════════
 //  NOTIFICATIONS — Service Worker + Scheduling
