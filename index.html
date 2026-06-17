@@ -1640,10 +1640,20 @@ function buildSessionCard(s, wIdx, dIdx, slot, done, isDouble) {
 
 async function saveSleepScore(val) {
   localStorage.setItem('sleep_'+todayStr(), val);
-  // Also save to body_logs
-  const { data: existing } = await sb.from('body_logs').select('id,sleep_score').eq('date',todayStr()).limit(1);
-  if (existing?.[0]) await sb.from('body_logs').update({sleep_score:parseInt(val)}).eq('id',existing[0].id);
-  else await sb.from('body_logs').insert({date:todayStr(),sleep_score:parseInt(val)});
+  if (!sb) { renderToday(); return; }
+  try {
+    const { data: existing, error: selErr } = await sb.from('body_logs').select('id,sleep_score').eq('date',todayStr()).limit(1);
+    if (selErr) { showToast('Sleep save failed: ' + selErr.message); console.error('saveSleepScore select:', selErr); renderToday(); return; }
+    let saveErr;
+    if (existing?.[0]) {
+      const { error } = await sb.from('body_logs').update({sleep_score:parseInt(val)}).eq('id',existing[0].id);
+      saveErr = error;
+    } else {
+      const { error } = await sb.from('body_logs').insert({date:todayStr(),sleep_score:parseInt(val)});
+      saveErr = error;
+    }
+    if (saveErr) { showToast('Sleep save failed: ' + saveErr.message); console.error('saveSleepScore write:', saveErr); }
+  } catch(e) { showToast('Sleep save error'); console.error('saveSleepScore:', e); }
   renderToday();
 }
 
