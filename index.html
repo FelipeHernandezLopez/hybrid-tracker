@@ -2311,7 +2311,7 @@ async function saveLogSession() {
   // Delete any existing log for this plan slot first, then insert fresh
   await sb.from('session_logs').delete().eq('week_idx',wIdx).eq('day_idx',dIdx).eq('slot',slot);
   const { error } = await sb.from('session_logs').insert({date:_logCtx.date||todayStr(),week_idx:wIdx,day_idx:dIdx,slot,type:s.t,name:s.n,data});
-  if (error) { showToast('Save failed — check connection'); console.error('saveLogSession:', error); return; }
+  if (error) { showToast('Save failed: ' + (error.message || error.code || JSON.stringify(error))); console.error('saveLogSession:', error); return; }
   closeModal();
   showToast('✓ Session saved');
   if (activePanel==='today') renderToday();
