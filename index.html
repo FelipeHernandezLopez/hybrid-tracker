@@ -15,7 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --orange:#F4541D;--dark:#0f0e0c;--card:#181714;--card2:#1f1c18;
+  --orange:#F4541D;--accent:#F4541D;--dark:#0f0e0c;--card:#181714;--card2:#1f1c18;
   --border:rgba(255,255,255,0.07);--text:#e8e4dc;--muted:#7a7568;
   --green:#4CAF82;--blue:#4A9EDB;--yellow:#E8B84B;--purple:#9B7FE8;--teal:#3EC9C1;--red:#E85454;
   --nav-h:60px;--hdr-h:52px;
@@ -3284,7 +3284,7 @@ function showLoginScreen(errMsg) {
       <div class="form-field"><div class="form-label">Email</div><input class="form-input" id="login-email" type="email" autocomplete="username" placeholder="you@email.com"></div>
       <div class="form-field" style="margin-top:10px"><div class="form-label">Password</div><input class="form-input" id="login-pass" type="password" autocomplete="current-password" placeholder="••••••••"></div>
       <button id="login-btn" onclick="doLogin()" style="width:100%;margin-top:16px;padding:12px;background:var(--orange);border:none;border-radius:9px;color:#fff;font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'DM Sans',sans-serif">Sign In</button>
-      <div onclick="skipLogin()" style="text-align:center;margin-top:14px;font-size:11px;color:var(--muted);cursor:pointer;text-decoration:underline">Continue without login (local only)</div>
+      <div style="text-align:center;margin-top:14px;font-size:11px;color:var(--muted);line-height:1.5">Credentials set in your Supabase dashboard<br>Authentication → Users → your account</div>
     </div>`;
   document.body.appendChild(div);
   document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
