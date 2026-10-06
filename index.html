@@ -523,9 +523,10 @@ function planDays() {
 }
 function oauthGo(who) {
   if (!connParts()) { toast("Primero pega tu código de conexión"); return; }
+  const st = who + "." + btoa(encodeURIComponent(S.conn)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
   location.href = who === "strava"
-    ? "https://www.strava.com/oauth/authorize?client_id=" + STRAVA_ID + "&response_type=code&redirect_uri=" + encodeURIComponent(REDIRECT) + "&approval_prompt=auto&scope=activity:read_all&state=strava"
-    : "https://flow.polar.com/oauth2/authorization?response_type=code&client_id=" + POLAR_ID + "&redirect_uri=" + encodeURIComponent(REDIRECT) + "&state=polar";
+    ? "https://www.strava.com/oauth/authorize?client_id=" + STRAVA_ID + "&response_type=code&redirect_uri=" + encodeURIComponent(REDIRECT) + "&approval_prompt=auto&scope=activity:read_all&state=" + st
+    : "https://flow.polar.com/oauth2/authorization?response_type=code&client_id=" + POLAR_ID + "&redirect_uri=" + encodeURIComponent(REDIRECT) + "&state=" + st;
 }
 async function oauthBack(who, code) {
   const nm = who === "strava" ? "Strava" : "Polar";
@@ -784,9 +785,17 @@ function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de 
 //  ARRANQUE
 // ═══════════════════════════════════════════
 (function boot() {
+  // Link personal: …/hybrid-tracker/#c=<código>. Así el código no depende de que el teléfono lo recuerde.
+  const hm = location.hash.match(/[#&]c=([^&]+)/);
+  if (hm) { try { const c = decodeURIComponent(hm[1]); if (c !== S.conn) { S.conn = c; save(); } } catch (e) {} }
   const q = new URLSearchParams(location.search);
-  const code = q.get("code"), st = q.get("state");
-  if (code && (st === "strava" || st === "polar")) { history.replaceState(null, "", location.pathname); render(); oauthBack(st, code); }
+  const code = q.get("code"), stRaw = q.get("state") || "";
+  const st = stRaw.split(".")[0];
+  if (code && (st === "strava" || st === "polar")) {
+    // El código de conexión viaja en "state": al volver de Polar puede abrirse otro contexto sin datos guardados
+    if (!connParts() && stRaw.indexOf(".") > 0) { try { S.conn = decodeURIComponent(atob(stRaw.slice(stRaw.indexOf(".") + 1).replace(/-/g, "+").replace(/_/g, "/"))); save(); } catch (e) {} }
+    history.replaceState(null, "", location.pathname + location.hash); render(); oauthBack(st, code);
+  }
   else { render(); refresh(false); if (connParts() && S.pushed !== planHash()) schedPush(); }
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return;
