@@ -200,10 +200,14 @@ function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e)
 //  c = indicaciones · k = nota de rodilla
 // ═══════════════════════════════════════════
 const EX = {
-  boxsq:   { n: "Box squat", g: "Fuerza", c: ["Cajón a la altura en que el muslo queda paralelo al suelo.", "Pies algo más abiertos que los hombros, rodillas empujando hacia afuera.", "Siéntate atrás de forma controlada, toca el cajón sin relajarte del todo y sube explosivo.", "Espalda neutra, aire y abdomen apretado antes de bajar."], k: "El cajón limita la profundidad y lleva la carga a cadera y glúteo: es la sentadilla más amable para tus rodillas." },
-  trap:    { n: "Peso muerto con trap bar", g: "Fuerza", c: ["Párate en el centro de la barra, agarres a los lados.", "Cadera atrás, pecho arriba, hombros encima de la barra.", "Empuja el suelo con las piernas y termina apretando glúteos sin echarte hacia atrás.", "Baja controlado por el mismo camino."], k: "Más vertical que el convencional, reparte la carga entre cadera y rodilla sin estresarla." },
-  rlunge:  { n: "Zancada hacia atrás", g: "Accesorio", c: ["Mancuernas a los lados o sandbag al hombro.", "Paso largo hacia atrás, baja hasta que la rodilla de atrás casi toque.", "El peso en el talón de adelante; sube empujando con esa pierna.", "Torso vertical, rodilla de adelante alineada con el pie."], k: "Hacia atrás frena menos la rodilla que la zancada hacia adelante." },
+  boxsq:   { n: "Sentadilla trasera", g: "Fuerza", c: ["Barra sobre los trapecios, agarre firme, codos hacia abajo.", "Pies al ancho de hombros, puntas un poco hacia afuera.", "Baja en 2-3 s rompiendo cadera y rodilla a la vez, hasta romper el paralelo.", "Sube empujando el suelo, rodillas siguiendo la línea de los pies."], k: "Si la rodilla se siente rígida en frío, haz una o dos series de aproximación más y baja lento las primeras repeticiones." },
+  trap:    { n: "Peso muerto", g: "Fuerza", c: ["Barra sobre la mitad del pie, agarre justo por fuera de las piernas.", "Espinillas tocan la barra, cadera arriba lo justo para que la espalda quede neutra.", "Aire y abdomen apretado, empuja el suelo con las piernas y luego extiende la cadera.", "La barra sube pegada al cuerpo; baja por el mismo camino."] },
+  rlunge:  { n: "Zancada hacia atrás", g: "Accesorio", c: ["Mancuernas a los lados o sandbag al hombro.", "Paso largo hacia atrás, baja hasta que la rodilla de atrás casi toque.", "El peso en el talón de adelante; sube empujando con esa pierna.", "Torso vertical, rodilla de adelante alineada con el pie."] },
   nordic:  { n: "Curl nórdico / femoral", g: "Accesorio", c: ["Rodillas en un cojín, tobillos sujetos (compañero o barra baja).", "Cuerpo recto de rodillas a cabeza, déjate caer lento resistiendo con los isquios.", "Cuando no aguantes, frena con las manos y vuelve empujando.", "Alternativa: curl femoral en máquina o con fitball."], k: "Isquios fuertes estabilizan la rodilla en el fútbol." },
+  stepdown:{ n: "Step-down lento", g: "Rodilla", c: ["De pie sobre un cajón de 20-30 cm con una pierna.", "Baja el talón de la otra pierna al suelo en 3-4 s, rodilla alineada con el pie.", "Toca suave y sube con la pierna del cajón.", "Añade una mancuerna cuando salgan las 8 fáciles."], k: "Excéntrico de cuádriceps: fortalece justo el rango donde molesta al bajar." },
+  tke:     { n: "Extensión terminal de rodilla (TKE)", g: "Rodilla", c: ["Banda anclada a un poste, detrás de la rodilla.", "Rodilla un poco flexionada, estírala del todo contra la banda.", "Aprieta el cuádriceps 2 s arriba y suelta lento."], k: "Activa el vasto interno, que estabiliza la rótula." },
+  tibialis:{ n: "Elevación de tibial", g: "Rodilla", c: ["Espalda contra la pared, talones a un pie de distancia.", "Sube las puntas de los pies lo más alto que puedas.", "Baja lento. Cuando sea fácil, aléjate más de la pared."], k: "Fortalece la parte delantera de la pierna y ayuda a absorber impactos." },
+  backdrag:{ n: "Arrastre de trineo hacia atrás", g: "Rodilla", c: ["Cuerda o cinta atada al trineo, agarra con los brazos estirados.", "Camina hacia atrás con pasos cortos, cadera baja, empujando con la punta del pie.", "Mantén el pecho arriba y no tires con los brazos."], k: "Trabaja el cuádriceps sin impacto ni fase de bajada: de lo mejor para rodillas que molestan." },
   spanish: { n: "Sentadilla española (isométrica)", g: "Rodilla", c: ["Banda gruesa anclada a un poste, detrás de las rodillas.", "Aléjate hasta que tense, baja a media sentadilla con las espinillas verticales.", "Aguanta el tiempo indicado sin dolor.", "Debe sentirse en el cuádriceps, no en la rodilla."], k: "Isométrico para el tendón rotuliano: suele bajar el dolor de rodilla tras unas semanas." },
   calf:    { n: "Elevación de gemelos", g: "Accesorio", c: ["De pie en un escalón con peso.", "Sube en punta, pausa 1 s arriba, baja 3 s hasta estirar.", "Rodilla casi estirada para gemelo; sentado para sóleo."] },
   pallof:  { n: "Pallof press", g: "Core", c: ["Banda o polea a la altura del pecho, de lado al anclaje.", "Empuja las manos al frente y aguanta 2 s sin girar el tronco.", "Glúteos y abdomen apretados."] },
@@ -216,18 +220,18 @@ const EX = {
   latraise:{ n: "Elevaciones laterales", g: "Accesorio", c: ["Mancuernas ligeras, codo levemente flexionado.", "Sube hasta la altura del hombro guiando con el codo.", "Baja en 3 segundos sin balanceo."] },
   hpc:     { n: "Hang power clean", g: "Potencia", c: ["Barra a mitad del muslo, espalda neutra, hombros por delante.", "Salta: extiende cadera, rodillas y tobillos de golpe.", "Encoge los hombros y mete los codos rápido para recibir en media sentadilla.", "Rápido y técnico, no pesado y lento."] },
   pushpress:{ n: "Push press", g: "Potencia", c: ["Barra en el rack frontal.", "Pequeño dip de rodillas con el torso vertical.", "Extiende las piernas y usa ese impulso para empujar la barra arriba.", "Bloquea arriba y baja amortiguando con las piernas."] },
-  frontsq: { n: "Front squat a cajón", g: "Fuerza", c: ["Barra en el rack frontal, codos altos.", "Siéntate al cajón (paralelo) con el torso vertical.", "Sube empujando el suelo con los codos arriba."], k: "Con cajón controlas la profundidad. Para si notas dolor en la rodilla." },
+  frontsq: { n: "Front squat", g: "Fuerza", c: ["Barra en el rack frontal, codos altos.", "Baja con el torso vertical hasta romper el paralelo.", "Sube empujando el suelo con los codos arriba."] },
   swing:   { n: "Kettlebell swing", g: "WOD", c: ["Es una bisagra de cadera, no una sentadilla.", "Lleva la KB atrás entre las piernas, extiende la cadera de golpe.", "Los brazos solo guían; la KB llega a la altura del pecho.", "Glúteos apretados arriba."] },
-  wallball:{ n: "Wall ball", g: "WOD", c: ["Balón al pecho, frente a la pared a un brazo de distancia.", "Sentadilla controlada y sube explosivo lanzando a la diana.", "Atrapa y baja directo a la siguiente repetición.", "Hyrox: 6 kg a 3 m (hombres)."], k: "Si duele la rodilla, baja a un cajón en cada repetición." },
-  sledpush:{ n: "Sled push (empuje de trineo)", g: "Hyrox", c: ["Brazos estirados o semiflexionados en los postes, cuerpo inclinado a 45°.", "Pasos cortos y potentes, empujando con la punta del pie.", "No te pares: es más fácil mantener que arrancar."], k: "Muy amable con la rodilla: no hay impacto ni fase excéntrica." },
+  wallball:{ n: "Wall ball", g: "WOD", c: ["Balón al pecho, frente a la pared a un brazo de distancia.", "Sentadilla controlada y sube explosivo lanzando a la diana.", "Atrapa y baja directo a la siguiente repetición.", "Hyrox: 6 kg a 3 m (hombres)."] },
+  sledpush:{ n: "Sled push (empuje de trineo)", g: "Hyrox", c: ["Brazos estirados o semiflexionados en los postes, cuerpo inclinado a 45°.", "Pasos cortos y potentes, empujando con la punta del pie.", "No te pares: es más fácil mantener que arrancar."] },
   sledpull:{ n: "Sled pull (arrastre de trineo)", g: "Hyrox", c: ["Cuerda en mano, de frente al trineo, cadera baja.", "Tira mano sobre mano usando piernas y espalda, no solo brazos.", "Camina hacia atrás si el área lo permite (en Hyrox hay zona marcada)."] },
   farmer:  { n: "Farmer carry", g: "Hyrox", c: ["Una KB o mancuerna pesada en cada mano.", "Hombros atrás y abajo, abdomen firme.", "Pasos rápidos y cortos, sin balancear el peso."] },
-  sblunge: { n: "Sandbag lunges", g: "Hyrox", c: ["Saco sobre los hombros, detrás del cuello.", "Zancadas caminando, la rodilla de atrás toca el suelo suave.", "Torso vertical, paso medio, ritmo constante."], k: "Es la estación más dura para la rodilla. En la fase 1 hazlas hacia atrás." },
-  bbj:     { n: "Burpee broad jump", g: "Hyrox", c: ["Pecho al suelo, levántate y salta hacia adelante (no hacia arriba).", "Aterriza suave con las rodillas flexionadas.", "Respira en cada repetición; ritmo constante."], k: "Mucho impacto. Hasta que la rodilla esté bien, haz burpees sin salto + paso largo." },
+  sblunge: { n: "Sandbag lunges", g: "Hyrox", c: ["Saco sobre los hombros, detrás del cuello.", "Zancadas caminando, la rodilla de atrás toca el suelo suave.", "Torso vertical, paso medio, ritmo constante."] },
+  bbj:     { n: "Burpee broad jump", g: "Hyrox", c: ["Pecho al suelo, levántate y salta hacia adelante (no hacia arriba).", "Aterriza suave con las rodillas flexionadas.", "Respira en cada repetición; ritmo constante."] },
   burpee:  { n: "Burpee sin salto", g: "WOD", c: ["Pecho al suelo, levántate y ponte de pie sin saltar.", "Ritmo constante, respira abajo."] },
   ski:     { n: "SkiErg", g: "Máquina", c: ["Brazos arriba, tira hacia abajo con dorsales y bisagra de cadera.", "Termina con las manos junto a los muslos.", "Vuelve arriba relajado. Damper 4-6."] },
   rower:   { n: "Remo (rower)", g: "Máquina", c: ["Piernas → espalda → brazos al tirar; al volver, al revés.", "Las piernas hacen el 60% del trabajo.", "No tires con la espalda redonda. Damper 4-6."] },
-  tread:   { n: "Cinta de correr", g: "Máquina", c: ["Inclinación 1% para simular el exterior.", "Zancada corta y cadencia alta (unos 170-180 pasos/min).", "En la fase 1, si molesta la rodilla, cambia a remo o ski."] },
+  tread:   { n: "Cinta de correr", g: "Máquina", c: ["Inclinación 1% para simular el exterior.", "Zancada corta y cadencia alta (unos 170-180 pasos/min)."] },
   ttb:     { n: "Toes to bar / elevaciones", g: "Core", c: ["Colgado de la barra, escápulas activas.", "Sube los pies a la barra (o rodillas al pecho) con control.", "Evita el balanceo descontrolado."] },
   pushup:  { n: "Push-ups", g: "WOD", c: ["Manos bajo los hombros, cuerpo recto.", "Pecho al suelo y bloquea arriba."] },
   goblet:  { n: "Goblet squat a cajón", g: "WOD", c: ["KB pegada al pecho.", "Siéntate al cajón y sube empujando el suelo."] },
@@ -291,11 +295,11 @@ const W_THU = [
   { f: "EMOM 20'", it: ["Min 1: 12 cal ski", "Min 2: 20 m sled push", "Min 3: 50 m farmer carry", "Min 4: 10 burpees sin salto"], m: ["ski", "sledpush", "farmer", "burpee"] },
   { f: "2 rondas · cap 22'", it: ["1000 m remo", "30 m sled push", "30 m sled pull", "20 wall balls"], m: ["rower", "sledpush", "sledpull", "wallball"] },
   { f: "AMRAP 20'", it: ["250 m ski", "250 m remo", "10 sandbag cleans", "40 m farmer carry"], m: ["ski", "rower", "sbclean", "farmer"] },
-  { f: "Por tiempo · cap 22'", it: ["1000 m ski", "40 zancadas con sandbag (atrás en fase 1)", "1000 m remo", "30 wall balls"], m: ["ski", "sblunge", "rower", "wallball"] },
+  { f: "Por tiempo · cap 22'", it: ["1000 m ski", "40 zancadas caminando con sandbag", "1000 m remo", "30 wall balls"], m: ["ski", "sblunge", "rower", "wallball"] },
   { f: "5 rondas por tiempo", it: ["200 m cinta", "10 KB swings · 24 kg", "10 push-ups", "10 cal remo"], m: ["tread", "swing", "pushup", "rower"] }
 ];
 const W_HYROX = [
-  { f: "Media simulación A", it: ["4× (1 km cinta + estación):", "SkiErg 1000 m", "Sled push 50 m", "Sled pull 50 m", "Burpee broad jumps 40 m (sin salto si duele)"], m: ["tread", "ski", "sledpush", "sledpull", "bbj"] },
+  { f: "Media simulación A", it: ["4× (1 km cinta + estación):", "SkiErg 1000 m", "Sled push 50 m", "Sled pull 50 m", "Burpee broad jumps 40 m"], m: ["tread", "ski", "sledpush", "sledpull", "bbj"] },
   { f: "Media simulación B", it: ["4× (1 km cinta + estación):", "Remo 1000 m", "Farmer carry 200 m", "Sandbag lunges 50 m", "Wall balls 50"], m: ["tread", "rower", "farmer", "sblunge", "wallball"] },
   { f: "Compromised running", it: ["6× (800 m a ritmo de carrera + estación al 50%)", "Rota: ski 500 · sled push 25 m · remo 500 · farmer 100 m · lunges 25 m · 25 wall balls"], m: ["tread", "ski", "sledpush", "rower", "farmer", "sblunge", "wallball"] },
   { f: "Simulacro completo al 80%", it: ["8× 1 km + las 8 estaciones a distancia de carrera", "Ski 1000 · push 50 · pull 50 · BBJ 80 · remo 1000 · farmer 200 · lunges 100 · 100 wall balls", "Cronometra todo: es tu ensayo"], m: ["tread", "ski", "sledpush", "sledpull", "bbj", "rower", "farmer", "sblunge", "wallball"] },
@@ -386,13 +390,12 @@ function sessionFor(ds) {
   if (wi.deload) { if (d === 0) return special("test_inf", ds, wi); if (d === 1) return special("test_sup", ds, wi); if (d === 2) return special("test_motor", ds, wi); }
   if (d === 0) {
     const ph1 = wi.ph === 1;
-    return { type: "gym", t: "Fuerza inferior", sub: "+ WOD · 65 min", warm: "inf", cool: "cool", wi: wi, nut: "train",
+    return { type: "gym", t: "Fuerza inferior", sub: "+ rodilla + WOD · 75 min", warm: "inf", cool: "cool", wi: wi, nut: "train",
       str: [main("boxsq", "squat", wi), main("trap", "trap", wi, 1, -1),
-        acc("rlunge", light ? "2×8/pierna" : "3×8/pierna", "Mancuernas pesadas, 2 reps en reserva"),
-        acc("nordic", light ? "2×6" : "3×6-8", "Lento en la bajada"),
-        acc("spanish", "3×45 s", "Siempre: protege la rodilla"),
-        acc("calf", "3×12", ph1 ? "Pesado, pausa arriba" : "Pesado"),
-        acc("pallof", "3×10/lado", "")],
+        ph1 ? acc("rlunge", light ? "2×8/pierna" : "3×8/pierna", "Mancuernas pesadas, 2 reps en reserva") : acc("sblunge", light ? "2×10/pierna" : "3×10/pierna", "Caminando con sandbag de 20 kg"),
+        acc("nordic", light ? "2×6" : "3×6-8", "Lento en la bajada")],
+      knee: [acc("spanish", "3×45 s", "Pesada: banda gruesa y bien atrás"), acc("stepdown", "3×8/pierna", "Bajada en 3-4 s"),
+        acc("tke", "3×15", "Pausa de 2 s arriba"), acc("tibialis", "3×15", "En superserie con gemelos"), acc("calf", "3×12", ph1 ? "Pesado, pausa arriba" : "Pesado")],
       wod: Object.assign({}, W_MON[rot], { note: lightNote }) };
   }
   if (d === 1) {
@@ -414,12 +417,14 @@ function sessionFor(ds) {
       const deloadWod = { f: "Descarga · técnica de estaciones", it: ["3 rondas suaves:", "500 m ski · 25 m sled push · 25 m sled pull", "500 m remo · 100 m farmer · 20 wall balls"], m: ["ski", "sledpush", "sledpull", "rower", "farmer", "wallball"] };
       return { type: "gym", t: "Hyrox", sub: "Simulación · 75 min", warm: "full", cool: "cool", wi: wi, nut: "train",
         str: (wi.deload || wi.taper) ? [] : [acc("hpc", "4×3", "Rápido, RPE 7")],
-        wod: (wi.deload || wi.taper) ? Object.assign({}, deloadWod, wi.taper ? { f: "Taper · estaciones a ritmo de carrera, poco volumen" } : {}) : W_HYROX[idx] };
+        wod: (wi.deload || wi.taper) ? Object.assign({}, deloadWod, wi.taper ? { f: "Taper · estaciones a ritmo de carrera, poco volumen" } : {}) : W_HYROX[idx],
+        knee: (wi.deload || wi.taper) ? [] : [acc("backdrag", "3×20 m", "Pesado, pasos cortos")], kneeAfter: true };
     }
     const fs = wi.ph === 1 ? main("frontsq", "squat", wi, 0.8, -1) : main("pushpress", "ohp", wi, 1.15, -1);
     return { type: "gym", t: "Full body", sub: "Estilo Hyrox · 70 min", warm: "full", cool: "cool", wi: wi, nut: "train",
       str: [acc("hpc", wi.ph === 1 ? "5×3" : "5×2", "Técnica: rápido, RPE 7 (empieza en ~60 kg)"), fs],
-      wod: Object.assign({}, W_THU[rot], { note: lightNote }) };
+      wod: Object.assign({}, W_THU[rot], { note: lightNote }),
+      knee: [acc("backdrag", light ? "2×20 m" : "4×20 m", "Pesado, pasos cortos")], kneeAfter: true };
   }
   if (d === 4) return special("futbol", ds, wi);
   if (d === 5) return special("sat", ds, wi);
@@ -510,7 +515,7 @@ function planDays() {
   const out = [];
   for (let ds = "2026-10-05"; ds <= addD(S.race, 1); ds = addD(ds, 1)) {
     const s = sessionFor(ds); if (!s) continue; const wi = s.wi;
-    const st = (s.str || []).map(function (e) { return EX[e.ex].n + " " + e.sr + (e.kg === "PC" ? " PC" : e.kg != null ? " " + e.kg + " kg" : ""); }).join(" · ");
+    const st = (s.str || []).concat(s.knee || []).map(function (e) { return EX[e.ex].n + " " + e.sr + (e.kg === "PC" ? " PC" : e.kg != null ? " " + e.kg + " kg" : ""); }).join(" · ");
     const wd = s.wod ? s.wod.f + ": " + s.wod.it.join(", ") : "";
     out.push({ d: ds, w: wi ? wi.w + 1 : 0, ph: wi ? PHASE[wi.ph] + (wi.deload ? " · pruebas" : wi.taper ? " · taper" : "") : "Pruebas", dia: DF[dow(ds)], ses: s.t, loads: [st, wd].filter(Boolean).join(" | ") });
   }
@@ -576,7 +581,10 @@ function renderHoy() {
     h += '<div class="sec">Fuerza<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">Descanso 2-3\' en básicos</span></div>';
     s.str.forEach(function (e) { h += exHTML(e); });
   }
+  const kneeH = s.knee && s.knee.length ? '<div class="sec">Rodilla<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">' + (s.kneeAfter ? "Para cerrar" : "10 min") + "</span></div>" + s.knee.map(exHTML).join("") : "";
+  if (!s.kneeAfter) h += kneeH;
   if (s.wod) h += wodHTML(s.wod, s.type === "engine" ? "Motor" : s.type === "test" ? "Final" : "WOD");
+  if (s.kneeAfter) h += kneeH;
   if (s.info) h += '<div class="list">' + s.info.map(function (x) { return '<div class="li"><span>' + esc(x) + "</span></div>"; }).join("") + "</div>";
   h += testHTML(s, ds);
   if (s.cool) h += mobHTML(s.cool);
@@ -624,7 +632,7 @@ function studyHTML(ds) {
 function toggleStudy(ds, k) { S.study[ds] = S.study[ds] || {}; S.study[ds][k] = !S.study[ds][k]; save(); renderHoy(); schedPush(); }
 
 // Resultados de pruebas y medidas: lo único que se apunta a mano
-const TF_LBL = { squat: "Box squat kg", trap: "Trap bar kg", bench: "Banca kg", ohp: "Press militar kg", pull: "Dominada lastre kg", row2k: "Remo 2k m:ss", km1: "1 km m:ss" };
+const TF_LBL = { squat: "Sentadilla kg", trap: "Peso muerto kg", bench: "Banca kg", ohp: "Press militar kg", pull: "Dominada lastre kg", row2k: "Remo 2k m:ss", km1: "1 km m:ss" };
 const LIFT_KEYS = ["squat", "trap", "bench", "ohp", "pull"];
 function testFields(s) {
   if (!s || !s.test) return [];
@@ -744,7 +752,7 @@ function renderAj() {
     '<button class="btn2" style="width:100%" onclick="saveConn()">Guardar código</button></div>';
   h += '<div class="sec">Fuentes</div><div class="card">' + srcRow("strava", "Strava", "Entrenos: tipo, duración, ritmo, pulso, calorías", S.strava) + '<div style="height:1px;background:var(--line);margin:12px 0"></div>' + srcRow("polar", "Polar", "VO2 max, sueño, recuperación y FC en reposo", S.polar) + "</div>";
   h += '<div class="sec">Mis 5RM</div><div class="card"><p class="sm mu" style="margin-bottom:12px">Se actualizan solos cuando apuntas una prueba. Aquí puedes corregirlos.</p>' +
-    '<div class="g2">' + lf("squat", "Box squat") + lf("trap", "Trap bar") + lf("bench", "Banca") + lf("ohp", "Press militar") + lf("pull", "Dominada (lastre)") + '<div class="fld"><div class="lbl">Peso corporal</div><input class="inp" id="lf-bw" inputmode="decimal" value="' + S.bw + '"></div>' +
+    '<div class="g2">' + lf("squat", "Sentadilla") + lf("trap", "Peso muerto") + lf("bench", "Banca") + lf("ohp", "Press militar") + lf("pull", "Dominada (lastre)") + '<div class="fld"><div class="lbl">Peso corporal</div><input class="inp" id="lf-bw" inputmode="decimal" value="' + S.bw + '"></div>' +
     '<div class="fld"><div class="lbl">Remo 2k</div><input class="inp" id="lf-row2k" placeholder="7:15" value="' + esc(S.row2k) + '"></div><div class="fld"><div class="lbl">1 km</div><input class="inp" id="lf-km1" placeholder="3:45" value="' + esc(S.km1) + '"></div></div>' +
     '<button class="btn2" style="width:100%" onclick="saveLifts()">Guardar</button></div>';
   h += '<div class="sec">Plan</div><div class="card"><div class="fld"><div class="lbl">Fecha del Hyrox</div><input class="inp" type="date" value="' + S.race + '" onchange="setRace(this.value)"></div>' +
