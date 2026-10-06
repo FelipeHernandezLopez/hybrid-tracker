@@ -74,7 +74,7 @@ details.list summary::-webkit-details-marker{display:none}
 details.list summary span{color:var(--mu);font-weight:500;font-size:12px}
 details.list[open] summary{border-bottom:1px solid var(--line)}
 .strava{display:flex;align-items:center;gap:12px;background:rgba(95,208,138,.1);border:1px solid rgba(95,208,138,.28);border-radius:14px;padding:12px 14px;margin-bottom:12px}
-.strava .ic{width:34px;height:34px;border-radius:10px;background:var(--strava);display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px;flex-shrink:0}
+.strava .ic{width:34px;height:34px;border-radius:10px;background:#D10027;display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;font-size:15px;flex-shrink:0}
 .strava b{color:var(--ok)}
 .macros{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:6px;margin-top:10px}
 .mac{background:var(--c2);border-radius:12px;padding:10px 6px;text-align:center}
@@ -147,7 +147,7 @@ details.list[open] summary{border-bottom:1px solid var(--line)}
 // ═══════════════════════════════════════════
 //  CONFIG
 //  La app solo GUÍA: qué toca, pesos sugeridos y técnica.
-//  Lo hecho llega de Strava. Nada se registra a mano salvo los
+//  Lo hecho llega de Polar (vía la hoja). Nada se registra a mano salvo los
 //  checks de estudio y los 5RM de las pruebas.
 // ═══════════════════════════════════════════
 const START = "2026-10-12";            // lunes, semana 1
@@ -481,7 +481,7 @@ function raceWeek(off, wi) {
 
 // ═══════════════════════════════════════════
 //  SINCRONIZACIÓN CON LA HOJA
-//  La hoja (Apps Script) es la única que habla con Strava y Polar.
+//  La hoja (Apps Script) es la única que habla con Polar (Strava cerró su API gratuita en 2026).
 //  La app lee de ella y le manda plan, pruebas, cuerpo y estudio.
 // ═══════════════════════════════════════════
 const ACT_T = { Run: "Carrera", VirtualRun: "Carrera", TrailRun: "Trail", Soccer: "Fútbol", Tennis: "Tenis", WeightTraining: "Gym", Crossfit: "CrossFit", Workout: "Entreno", HighIntensityIntervalTraining: "HIIT", Rowing: "Remo", Swim: "Natación", Walk: "Caminata", Hike: "Caminata", Ride: "Bici", Yoga: "Yoga" };
@@ -499,7 +499,7 @@ function applyData(d) {
 async function refresh(manual) {
   if (!connParts()) { if (manual) toast("Pega tu código de conexión en Ajustes"); return; }
   try {
-    if (manual) { toast("Sincronizando con Strava y Polar…"); if (applyData(await apiPost({ a: "sync" }))) toast("Todo al día"); }
+    if (manual) { toast("Sincronizando con Polar…"); if (applyData(await apiPost({ a: "sync" }))) toast("Todo al día"); }
     else applyData(await apiGet());
   } catch (e) { if (manual) toast("No se pudo conectar con la hoja"); }
 }
@@ -594,7 +594,7 @@ function renderHoy() {
 function actsHTML(ds) {
   const a = dayActs(ds); if (!a.length) return "";
   return a.map(function (x) {
-    return '<div class="strava"><div class="ic">S</div><div style="flex:1;min-width:0"><b>Hecho · ' + esc(ACT_T[x.t] || x.t) + '</b><div class="sm mu2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.n) + "</div></div>" +
+    return '<div class="strava"><div class="ic">P</div><div style="flex:1;min-width:0"><b>Hecho · ' + esc(ACT_T[x.t] || x.t) + '</b><div class="sm mu2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.n) + "</div></div>" +
       '<div class="sm mu2" style="text-align:right;white-space:nowrap">' + x.min + " min" + (x.km ? "<br>" + x.km + " km" : "") + (x.hr ? "<br>♥ " + x.hr : "") + "</div></div>";
   }).join("");
 }
@@ -700,7 +700,7 @@ function renderPlan() {
   const t = todayS(), T = totalWeeks();
   let done = 0, due = 0;
   for (let d = "2026-10-07"; d <= t && d <= S.race; d = addD(d, 1)) { const s = sessionFor(d); if (s && s.type !== "rest") { due++; if (dayActs(d).length) done++; } }
-  let h = '<div class="count"><div class="c l"><b>' + Math.max(0, diff(S.race, t)) + '</b><span class="sm mu">días al Hyrox</span></div><div class="c"><b>' + done + "<span class=\"mu\" style=\"font-size:20px\">/" + due + '</span></b><span class="sm mu">sesiones en Strava</span></div></div>';
+  let h = '<div class="count"><div class="c l"><b>' + Math.max(0, diff(S.race, t)) + '</b><span class="sm mu">días al Hyrox</span></div><div class="c"><b>' + done + "<span class=\"mu\" style=\"font-size:20px\">/" + due + '</span></b><span class="sm mu">sesiones hechas</span></div></div>';
   const lastB = S.body.length ? S.body[S.body.length - 1] : null, firstB = S.body.length ? S.body[0] : null;
   h += '<div class="count"><div class="c"><b>' + (S.vo2 || "—") + '</b><span class="sm mu">VO2 max · Polar</span></div><div class="c"><b>' + (lastB ? lastB.kg : "—") + (lastB && firstB && lastB !== firstB ? '<span class="mu" style="font-size:16px"> ' + (lastB.kg - firstB.kg > 0 ? "+" : "") + (Math.round((lastB.kg - firstB.kg) * 10) / 10) + "</span>" : "") + '</b><span class="sm mu">peso kg</span></div></div>';
   // semana 0
@@ -750,7 +750,7 @@ function renderAj() {
        : '<p class="sm mu" style="margin-bottom:10px">Pega el código de conexión de tu hoja (la URL que termina en ?k=…).</p>') +
     '<div class="fld" style="margin-top:12px"><div class="lbl">Código de conexión</div><input class="inp" id="aj-conn" placeholder="https://script.google.com/…/exec?k=…" value="' + esc(S.conn) + '"></div>' +
     '<button class="btn2" style="width:100%" onclick="saveConn()">Guardar código</button></div>';
-  h += '<div class="sec">Fuentes</div><div class="card">' + srcRow("strava", "Strava", "Entrenos: tipo, duración, ritmo, pulso, calorías", S.strava) + '<div style="height:1px;background:var(--line);margin:12px 0"></div>' + srcRow("polar", "Polar", "VO2 max, sueño, recuperación y FC en reposo", S.polar) + "</div>";
+  h += '<div class="sec">Fuentes</div><div class="card">' + srcRow("polar", "Polar", "Entrenos, running index, VO2 max, sueño y recuperación", S.polar) + "</div>";
   h += '<div class="sec">Mis 5RM</div><div class="card"><p class="sm mu" style="margin-bottom:12px">Se actualizan solos cuando apuntas una prueba. Aquí puedes corregirlos.</p>' +
     '<div class="g2">' + lf("squat", "Sentadilla") + lf("trap", "Peso muerto") + lf("bench", "Banca") + lf("ohp", "Press militar") + lf("pull", "Dominada (lastre)") + '<div class="fld"><div class="lbl">Peso corporal</div><input class="inp" id="lf-bw" inputmode="decimal" value="' + S.bw + '"></div>' +
     '<div class="fld"><div class="lbl">Remo 2k</div><input class="inp" id="lf-row2k" placeholder="7:15" value="' + esc(S.row2k) + '"></div><div class="fld"><div class="lbl">1 km</div><input class="inp" id="lf-km1" placeholder="3:45" value="' + esc(S.km1) + '"></div></div>' +
