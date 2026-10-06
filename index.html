@@ -485,8 +485,15 @@ function raceWeek(off, wi) {
 //  La app lee de ella y le manda plan, pruebas, cuerpo y estudio.
 // ═══════════════════════════════════════════
 const ACT_T = { Run: "Carrera", VirtualRun: "Carrera", TrailRun: "Trail", Soccer: "Fútbol", Tennis: "Tenis", WeightTraining: "Gym", Crossfit: "CrossFit", Workout: "Entreno", HighIntensityIntervalTraining: "HIIT", Rowing: "Remo", Swim: "Natación", Walk: "Caminata", Hike: "Caminata", Ride: "Bici", Yoga: "Yoga" };
+// Acepta el código (…/exec?k=…) o el link personal (…/hybrid-tracker/?c=… o #c=…)
+function normConn(v) {
+  v = String(v || "").trim();
+  const m = v.match(/[?#&]c=([^&#\s]+)/);
+  if (m && v.indexOf("script.google.com/macros") !== 0) { try { return decodeURIComponent(m[1]); } catch (e) {} }
+  return v;
+}
 function connParts() {
-  const raw = (S.conn || "").trim(); if (!raw) return null;
+  const raw = normConn(S.conn); if (!raw) return null;
   try { const u = new URL(raw); const k = u.searchParams.get("k"); u.search = ""; return k ? { url: u.toString(), k: k } : null; } catch (e) { return null; }
 }
 async function apiGet() { const c = connParts(); const r = await fetch(c.url + "?a=data&k=" + encodeURIComponent(c.k)); return r.json(); }
@@ -767,7 +774,7 @@ function srcRow(k, n, d, on) {
     (on ? '<button class="btn2" onclick="disconnect(\'' + k + '\')">Quitar</button>' : '<button class="btn2 ' + (k === "strava" ? "s" : "") + '" onclick="oauthGo(\'' + k + '\')">Conectar</button>') + "</div>";
 }
 function saveConn() {
-  S.conn = ($("aj-conn").value || "").trim(); save();
+  S.conn = normConn($("aj-conn").value); save();
   if (!connParts()) { toast("El código no parece correcto: debe terminar en ?k=…"); return; }
   toast("Conectando con la hoja…"); pushAll().then(function () { renderAj(); });
 }
@@ -786,7 +793,7 @@ function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de 
 // ═══════════════════════════════════════════
 (function boot() {
   // Link personal: …/hybrid-tracker/#c=<código>. Así el código no depende de que el teléfono lo recuerde.
-  const hm = location.hash.match(/[#&]c=([^&]+)/);
+  const hm = (location.search + location.hash).match(/[?#&]c=([^&#]+)/);
   if (hm) { try { const c = decodeURIComponent(hm[1]); if (c !== S.conn) { S.conn = c; save(); } } catch (e) {} }
   const q = new URLSearchParams(location.search);
   const code = q.get("code"), stRaw = q.get("state") || "";
