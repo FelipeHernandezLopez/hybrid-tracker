@@ -196,7 +196,8 @@ const DEF = {
   lifts: { squat: 100, trap: 120, bench: 90, ohp: 55, pull: 10 },
   liftsWeek: 0, row2k: "", km1: "", tested: false,
   study: {}, tests: [], body: [], acts: {}, lastSync: 0,
-  conn: "", planName: "", strava: false, polar: false, vo2: "", rhr: "", sheetSync: "", pushed: ""
+  conn: "", planName: "", strava: false, polar: false, vo2: "", rhr: "", sheetSync: "", pushed: "",
+  actMap: {}, dayPick: {}, recov: {}
 };
 let S = load();
 let tab = "hoy";
@@ -204,7 +205,7 @@ let viewDate = todayS();
 let openedOn = todayS();
 
 function load() {
-  try { const p = JSON.parse(localStorage.getItem(LS) || "{}"); const o = Object.assign({}, DEF, p); o.lifts = Object.assign({}, DEF.lifts, p.lifts || {}); o.tests = o.tests || []; o.body = o.body || []; return o; }
+  try { const p = JSON.parse(localStorage.getItem(LS) || "{}"); const o = Object.assign({}, DEF, p); o.lifts = Object.assign({}, DEF.lifts, p.lifts || {}); o.tests = o.tests || []; o.body = o.body || []; o.actMap = o.actMap || {}; o.dayPick = o.dayPick || {}; o.recov = o.recov || {}; return o; }
   catch (e) { return JSON.parse(JSON.stringify(DEF)); }
 }
 function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
@@ -416,57 +417,151 @@ function acc(ex, sr, note) { return { ex: ex, sr: sr, note: note }; }
 // ═══════════════════════════════════════════
 //  SESIÓN DEL DÍA
 // ═══════════════════════════════════════════
-function sessionFor(ds) {
-  if (PRE[ds]) return special(PRE[ds], ds, null);
-  const wi = posOf(ds); if (!wi) return null;
-  const off = diff(ds, S.race);
-  if (off > -7) return raceWeek(off, wi);
-  const d = dow(ds), rot = wi.w % 8;
-  const light = wi.deload || wi.taper;
+// ═══════════════════════════════════════════
+//  SESIONES CLAVE: A Pierna · B Torso · M Motor · H Hyrox/Full
+//  (semana de pruebas: TI inferior · TS superior · TM motor · H suave)
+// ═══════════════════════════════════════════
+const KEY_NAME = { A: "Pierna", B: "Torso", M: "Motor", H: "Hyrox / Full", TI: "Prueba inferior", TS: "Prueba superior", TM: "Prueba de motor" };
+function keySession(k, wi, ds) {
+  const rot = wi.w % 8, light = wi.deload || wi.taper;
   const lightNote = light ? "Semana de descarga: WOD al 70% y sin llegar al fallo." : "";
-  // Semana de descarga = semana de pruebas: así se mide el progreso real cada 4 semanas
-  if (wi.deload) { if (d === 0) return special("test_inf", ds, wi); if (d === 1) return special("test_sup", ds, wi); if (d === 2) return special("test_motor", ds, wi); }
-  if (d === 0) {
+  let s;
+  if (k === "TI") s = special("test_inf", ds, wi);
+  else if (k === "TS") s = special("test_sup", ds, wi);
+  else if (k === "TM") s = special("test_motor", ds, wi);
+  else if (k === "A") {
     const ph1 = wi.ph === 1;
-    return { type: "gym", t: "Fuerza inferior", sub: "+ rodilla + WOD · 75 min", warm: "inf", cool: "cool", wi: wi, nut: "train",
+    s = { type: "gym", t: "Fuerza inferior", sub: "+ rodilla + WOD · 75 min", warm: "inf", cool: "cool", wi: wi, nut: "train",
       str: [main("boxsq", "squat", wi), main("trap", "trap", wi, 1, -1),
         ph1 ? acc("rlunge", light ? "2×8/pierna" : "3×8/pierna", "Mancuernas pesadas, 2 reps en reserva") : acc("sblunge", light ? "2×10/pierna" : "3×10/pierna", "Caminando con sandbag de 20 kg"),
         acc("nordic", light ? "2×6" : "3×6-8", "Lento en la bajada")],
       knee: [acc("spanish", "3×45 s", "Pesada: banda gruesa y bien atrás"), acc("stepdown", "3×8/pierna", "Bajada en 3-4 s"),
         acc("tke", "3×15", "Pausa de 2 s arriba"), acc("tibialis", "3×15", "En superserie con gemelos"), acc("calf", "3×12", ph1 ? "Pesado, pausa arriba" : "Pesado")],
       wod: Object.assign({}, W_MON[rot], { note: lightNote }) };
-  }
-  if (d === 1) {
-    return { type: "gym", t: "Fuerza superior", sub: "+ WOD · 60 min", warm: "sup", cool: "cool", wi: wi, nut: "train",
+  } else if (k === "B") {
+    s = { type: "gym", t: "Fuerza superior", sub: "+ WOD · 60 min", warm: "sup", cool: "cool", wi: wi, nut: "train",
       str: [main("bench", "bench", wi), main("pullup", "pull", wi),
         main("ohp", "ohp", wi, wi.ph === 2 ? 0.85 : 0.9, -1),
         acc("row", light ? "2×10" : "3×10", "2 reps en reserva"),
         acc("dips", "3×máx", "Lastra si pasas de 12"),
         acc("facepull", "3×15", "Ligero"), acc("latraise", "3×15", "Lento")],
       wod: Object.assign({}, W_TUE[rot], { note: lightNote }) };
-  }
-  if (d === 2) {
-    return { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
+  } else if (k === "M") {
+    s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
       wod: Object.assign({}, W_WED[rot], { note: (light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote() }) };
-  }
-  if (d === 3) {
-    if (wi.ph === 3) {
-      const idx = Math.min(W_HYROX.length - 1, [0, 1, 2, 0, 3, 4][Math.min(5, wi.l)]);
-      const deloadWod = { f: "Descarga · técnica de estaciones", it: ["3 rondas suaves:", "500 m ski · 25 m sled push · 25 m sled pull", "500 m remo · 100 m farmer · 20 wall balls"], m: ["ski", "sledpush", "sledpull", "rower", "farmer", "wallball"] };
-      return { type: "gym", t: "Hyrox", sub: "Simulación · 75 min", warm: "full", cool: "cool", wi: wi, nut: "train",
-        str: (wi.deload || wi.taper) ? [] : [acc("hpc", "4×3", "Rápido, RPE 7")],
-        wod: (wi.deload || wi.taper) ? Object.assign({}, deloadWod, wi.taper ? { f: "Taper · estaciones a ritmo de carrera, poco volumen" } : {}) : W_HYROX[idx],
-        knee: (wi.deload || wi.taper) ? [] : [acc("backdrag", "3×20 m", "Pesado, pasos cortos")], kneeAfter: true };
-    }
+  } else if (wi.ph === 3) {
+    const idx = Math.min(W_HYROX.length - 1, [0, 1, 2, 0, 3, 4][Math.min(5, wi.l)]);
+    const deloadWod = { f: "Descarga · técnica de estaciones", it: ["3 rondas suaves:", "500 m ski · 25 m sled push · 25 m sled pull", "500 m remo · 100 m farmer · 20 wall balls"], m: ["ski", "sledpush", "sledpull", "rower", "farmer", "wallball"] };
+    s = { type: "gym", t: "Hyrox", sub: "Simulación · 75 min", warm: "full", cool: "cool", wi: wi, nut: "train",
+      str: (wi.deload || wi.taper) ? [] : [acc("hpc", "4×3", "Rápido, RPE 7")],
+      wod: (wi.deload || wi.taper) ? Object.assign({}, deloadWod, wi.taper ? { f: "Taper · estaciones a ritmo de carrera, poco volumen" } : {}) : W_HYROX[idx],
+      knee: (wi.deload || wi.taper) ? [] : [acc("backdrag", "3×20 m", "Pesado, pasos cortos")], kneeAfter: true };
+  } else {
     const fs = wi.ph === 1 ? main("frontsq", "squat", wi, 0.8, -1) : main("pushpress", "ohp", wi, 1.15, -1);
-    return { type: "gym", t: "Full body", sub: "Estilo Hyrox · 70 min", warm: "full", cool: "cool", wi: wi, nut: "train",
+    s = { type: "gym", t: "Full body", sub: "Estilo Hyrox · 70 min", warm: "full", cool: "cool", wi: wi, nut: "train",
       str: [acc("hpc", wi.ph === 1 ? "5×3" : "5×2", "Técnica: rápido, RPE 7 (empieza en ~60 kg)"), fs],
       wod: Object.assign({}, W_THU[rot], { note: lightNote }),
       knee: [acc("backdrag", light ? "2×20 m" : "4×20 m", "Pesado, pasos cortos")], kneeAfter: true };
   }
+  s.key = k; return s;
+}
+// Semanas fijas (taper): cada día tiene su sesión, como antes
+function fixedFor(ds, wi) {
+  const d = dow(ds);
   if (d === 4) return special("futbol", ds, wi);
   if (d === 5) return special("sat", ds, wi);
-  return special("domingo", ds, wi);
+  if (d === 6) return special("domingo", ds, wi);
+  return keySession(["A", "B", "M", "H"][d], wi, ds);
+}
+
+// ═══════════════════════════════════════════
+//  SEMANA FLEXIBLE
+//  El plan son 4 sesiones clave por semana. Polar dice qué hiciste;
+//  la app decide qué clave cumplió y qué te toca hoy.
+// ═══════════════════════════════════════════
+const GYM_T = { WeightTraining: 1, Crossfit: 1, Workout: 1, HighIntensityIntervalTraining: 1, Rowing: 1 };
+const FOOTBALL_DOW = 4; // viernes
+let _wk = {};
+function actKind(a) { return GYM_T[a.t] ? "gym" : (a.t === "Walk" || a.t === "Hike") ? "walk" : "sport"; }
+function poorRecovery(ds) { const r = (S.recov || {})[ds]; return !!r && ((r.nr !== "" && +r.nr <= 2) || (r.ans !== "" && +r.ans <= -6)); }
+function playedFootball(ds) { return (S.acts[ds] || []).some(function (a) { return a.t === "Soccer"; }); }
+function weekPlan(w) {
+  if (_wk[w]) return _wk[w];
+  const wi = weekInfo(w), ws = addD(START, w * 7), t = todayS();
+  const order = wi.deload ? ["TI", "TS", "TM", "H"] : ["A", "B", "M", "H"];
+  const prio = wi.deload ? ["TI", "TS", "TM", "H"] : ["A", "H", "B", "M"];
+  const done = {}, days = [];
+  let streak = 0, keysReal = 0, extras = 0, mins = 0;
+  // racha de días activos que viene de la semana anterior
+  for (let k = 1; k <= 3; k++) { if (dayActs(addD(ws, -k)).length) streak++; else break; }
+  for (let d = 0; d < 7; d++) {
+    const ds = addD(ws, d), acts = dayActs(ds), future = ds > t;
+    const pending = order.filter(function (k) { return !done[k]; });
+    // 1) qué sugeriría la app este día, con lo hecho hasta ayer
+    let sug = { special: null, key: null, why: "" };
+    let slots = 0; for (let x = d; x < 7; x++) if (x !== FOOTBALL_DOW) slots++;
+    const tight = slots <= pending.length;
+    const tired = streak >= 3, poor = poorRecovery(ds);
+    const nearFootball = d === FOOTBALL_DOW - 1 || d === FOOTBALL_DOW + 1 || playedFootball(addD(ds, -1));
+    if (d === FOOTBALL_DOW) sug.special = "futbol";
+    else if (!pending.length) sug.special = d === 5 ? "sat" : d === 6 ? "domingo" : "libre";
+    else if ((tired || poor) && !tight) { sug.special = "descanso"; sug.why = tired ? "Llevas 3 días seguidos entrenando." : "Polar marca recuperación baja esta noche."; }
+    else {
+      const list = tight ? prio : order;
+      for (let i = 0; i < list.length && !sug.key; i++) {
+        const k = list[i]; if (done[k]) continue;
+        if ((k === "A" || k === "TI") && nearFootball && !tight) continue;
+        if (poor && k !== "M" && k !== "TM" && !tight) continue;
+        sug.key = k;
+      }
+      if (!sug.key) sug.key = pending[0];
+      if (poor) sug.why = "Polar marca recuperación baja: baja un 10-15% las cargas.";
+      else if (tight && pending.length > 1) sug.why = "Quedan " + pending.length + " sesiones clave y " + slots + " días: prioridad a lo más importante.";
+    }
+    const pick = S.dayPick[ds];
+    const want = pick && pick !== "rest" && !done[pick] ? pick : (pick === "rest" ? null : sug.key);
+    // 2) qué cumplió lo que hiciste (Polar), dobles sesiones incluidas
+    const assigned = acts.map(function (a) {
+      mins += +a.min || 0;
+      const ov = S.actMap[a.id];
+      let k = null;
+      if (ov) k = ov !== "extra" && order.indexOf(ov) >= 0 && !done[ov] ? ov : null;
+      else if (actKind(a) === "gym") {
+        if ((a.t === "Crossfit" || a.t === "HighIntensityIntervalTraining") && order.indexOf("H") >= 0 && !done.H) k = "H";
+        else if (a.t === "Rowing" && !done.M && order.indexOf("M") >= 0) k = "M";
+        else if (want && !done[want]) k = want;
+        else k = prio.filter(function (x) { return !done[x]; })[0] || null;
+      }
+      if (k) { done[k] = { ds: ds, real: true }; keysReal++; } else extras++;
+      return { a: a, k: k };
+    });
+    const did = assigned.filter(function (x) { return x.k; }).map(function (x) { return x.k; });
+    // 3) la sesión que se muestra
+    let session;
+    const past = ds < t;
+    if (did.length) session = keySession(did[0], wi, ds);
+    else if (past && acts.length) session = special(acts.some(function (a) { return a.t === "Soccer"; }) ? "futbol" : "sat", ds, wi);
+    else if (pick === "rest") session = special("descanso", ds, wi);
+    else if (want) session = keySession(want, wi, ds);
+    else session = special(sug.special || "libre", ds, wi);
+    if (sug.why && !did.length && !past) session.why = sug.why;
+    if (past && !acts.length && want) session.why = "Ese día no hubo entreno registrado en Polar. La sesión pasa a los días que quedan.";
+    // los días que vienen se planean como si siguieras la sugerencia
+    if (!did.length && want && ds >= t) done[want] = { ds: ds, projected: true };
+    const active = acts.length > 0 || (ds >= t && (want || session.type === "soccer"));
+    streak = active ? streak + 1 : 0;
+    days.push({ ds: ds, session: session, assigned: assigned, did: did, sug: sug });
+  }
+  return (_wk[w] = { wi: wi, days: days, order: order, keysReal: keysReal, extras: extras, mins: mins,
+    doneKeys: Object.keys(done).filter(function (k) { return done[k].real; }) });
+}
+function sessionFor(ds) {
+  if (PRE[ds]) return special(PRE[ds], ds, null);
+  const wi = posOf(ds); if (!wi) return null;
+  const off = diff(ds, S.race);
+  if (off > -7) return raceWeek(off, wi);
+  if (wi.taper) return fixedFor(ds, wi);
+  return weekPlan(wi.w).days[dow(ds)].session;
 }
 function paceNote() {
   if (!S.row2k) return "Haz la prueba de 2.000 m de remo para ver tus ritmos.";
@@ -491,6 +586,8 @@ function special(kind, ds, wi) {
   if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: null, nut: "high", test: "run_pre", info: ["Calienta 10' suave.", "1 km a tope en cinta al 1% de inclinación.", "Luego 25-30' suave, o tenis si te apetece."] };
   if (kind === "test_motor") return { type: "test", t: "Prueba de motor", sub: "Remo 2k + 1 km · 50 min", wi: wi, nut: "train", test: kind, warm: "eng", cool: "long", str: [],
     wod: { f: "Pruebas", it: ["2.000 m de remo a tope · damper 5-6", "15' suave: caminar y movilidad", "1 km a tope en cinta al 1%"], m: ["rower", "tread"], note: "Apunta los dos tiempos abajo." } };
+  if (kind === "descanso") return { type: "rest", t: "Descanso", sub: "Recupera para lo que viene", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min y movilidad suave.", "Si te sientes muy bien, puedes hacer la sesión clave que toca: elígela abajo."] };
+  if (kind === "libre") return { type: "rest", t: "Semana completa", sub: "Las 4 sesiones clave están hechas", wi: wi, nut: "rest", cool: "long", info: ["Hoy: descanso, movilidad o un deporte que te apetezca (cuenta como extra).", "Lo importante de la semana ya está."] };
   if (kind === "domingo") return { type: "rest", t: "Descanso", sub: "Movilidad 20 min", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min suma y ayuda a recuperar.", "Duerme 7-8 h: aquí es donde se construye el cuerpo."] };
   if (kind === "test_inf") return { type: "test", t: "Prueba inferior", sub: "Busca tu 5RM · 70 min", wi: wi, nut: "train", test: kind, warm: "inf", cool: "cool",
     str: [acc("boxsq", "Hasta tu 5RM", "Barra×5 · 50%×5 · 70%×3 · 85%×2 · luego series de 5 subiendo 5 kg hasta que te queden 1-2 reps en reserva. Máximo 4 intentos, 3' descanso"),
@@ -538,7 +635,7 @@ async function apiGet() { const c = connParts(); const r = await fetch(c.url + "
 async function apiPost(body) { const c = connParts(); if (!c) throw new Error("sin conexión"); const r = await fetch(c.url, { method: "POST", body: JSON.stringify(Object.assign({ k: c.k }, body)) }); return r.json(); }
 function applyData(d) {
   if (!d || !d.ok) { if (d && d.error) toast("Hoja: " + d.error); return false; }
-  S.acts = d.acts || {}; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr;
+  S.acts = d.acts || {}; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr; if (d.recov) S.recov = d.recov; _wk = {};
   mergeFromSheet(d);
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
@@ -569,7 +666,7 @@ function mergeFromSheet(d) {
   const st = d.settings || {};
   if (st.at && st.at > (S.setAt || 0)) {
     if (st.lifts) S.lifts = Object.assign({}, S.lifts, st.lifts);
-    ["liftsWeek", "row2k", "km1", "bw", "race", "planName"].forEach(function (k) { if (st[k] !== undefined && st[k] !== null) S[k] = st[k]; });
+    ["liftsWeek", "row2k", "km1", "bw", "race", "planName", "actMap", "dayPick"].forEach(function (k) { if (st[k] !== undefined && st[k] !== null) S[k] = st[k]; });
     S.setAt = st.at;
   } else if (!st.at && S.setAt) missing = true;
   else if (!st.at && !S.setAt && S.tests.length) {
@@ -589,7 +686,7 @@ async function pushAll() {
   if (!connParts()) return;
   try {
     const r = await apiPost({ a: "push", plan: { name: planName(), start: START, pre: "2026-10-05", race: S.race }, days: planDays(), tests: S.tests, body: S.body, study: S.study,
-      settings: { at: S.setAt || 0, lifts: S.lifts, liftsWeek: S.liftsWeek, row2k: S.row2k, km1: S.km1, bw: S.bw, race: S.race, planName: S.planName } });
+      settings: { at: S.setAt || 0, lifts: S.lifts, liftsWeek: S.liftsWeek, row2k: S.row2k, km1: S.km1, bw: S.bw, race: S.race, planName: S.planName, actMap: S.actMap, dayPick: S.dayPick } });
     S.dirty = !(r && r.ok);
     if (!S.dirty) { S.pushed = planHash(); save(); applyData(r); } else save();
   } catch (e) { S.dirty = true; save(); }
@@ -631,6 +728,7 @@ function show(t) {
   render();
 }
 function render() {
+  _wk = {};
   updHeader();
   if (tab === "hoy") renderHoy(); else if (tab === "plan") renderPlan(); else if (tab === "tec") renderTec(); else renderAj();
 }
@@ -661,7 +759,9 @@ function renderHoy() {
   const wi = s.wi;
   const tags = wi ? '<span class="pill l">Semana ' + (wi.w + 1) + " · " + PHASE[wi.ph] + "</span> " + (wi.deload ? '<span class="pill w">Descarga</span>' : "") + (wi.taper ? '<span class="pill w">Taper</span>' : "") : '<span class="pill l">Semana 0 · Pruebas</span>';
   h += '<div class="hero">' + tags + "<h1>" + s.t + "</h1><p>" + s.sub + "</p>" + ART.sky + "</div>";
-  h += actsHTML(ds);
+  h += weekCardHTML(ds) + actsHTML(ds);
+  if (s.why) h += '<div class="knee" style="margin:0 0 12px">' + esc(s.why) + "</div>";
+  if (weekOfDay(ds) && ds >= todayS()) h += '<button class="btn2" style="width:100%;margin-bottom:12px" onclick="choosePick(\'' + ds + '\')">Prefiero otra sesión hoy</button>';
   if (s.warm) h += mobHTML(s.warm);
   if (s.str && s.str.length) {
     h += '<div class="sec">Fuerza<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">Descanso 2-3\' en básicos</span></div>';
@@ -677,12 +777,47 @@ function renderHoy() {
   h += bodyHTML(ds) + nutHTML(s.nut) + studyHTML(ds);
   $("p-hoy").innerHTML = h;
 }
+function weekOfDay(ds) { const wi = posOf(ds); return wi && !wi.taper && diff(ds, S.race) <= -7 && !PRE[ds] ? weekPlan(wi.w) : null; }
 function actsHTML(ds) {
   const a = dayActs(ds); if (!a.length) return "";
+  const wp = weekOfDay(ds), day = wp ? wp.days[dow(ds)] : null;
   return a.map(function (x) {
-    return '<div class="strava"><div class="ic">P</div><div style="flex:1;min-width:0"><b>Hecho · ' + esc(ACT_T[x.t] || x.t) + '</b><div class="sm mu2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(x.n) + "</div></div>" +
+    const as = day ? day.assigned.filter(function (y) { return y.a.id === x.id; })[0] : null;
+    const tag = as ? (as.k ? "Cuenta como " + KEY_NAME[as.k] : "Extra · suma a tu semana") : "";
+    return '<div class="strava"><div class="ic">P</div><div style="flex:1;min-width:0"><b>Hecho · ' + esc(ACT_T[x.t] || x.t) + '</b><div class="sm mu2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(tag || x.n) + "</div>" +
+      (wp && x.id ? '<a class="sm" style="font-weight:600" onclick="changeAct(\'' + esc(x.id) + "','" + ds + '\')">Cambiar</a>' : "") + "</div>" +
       '<div class="sm mu2" style="text-align:right;white-space:nowrap">' + x.min + " min" + (x.km ? "<br>" + x.km + " km" : "") + (x.hr ? "<br>♥ " + x.hr : "") + "</div></div>";
   }).join("");
+}
+function changeAct(id, ds) {
+  const wp = weekOfDay(ds); if (!wp) return;
+  const cur = S.actMap[id];
+  let h = '<p class="sm mu" style="margin-bottom:10px">¿Qué fue esta actividad? La app reacomoda el resto de la semana.</p>';
+  wp.order.concat(["extra"]).forEach(function (k) {
+    h += '<button class="btn2" style="width:100%;margin-bottom:8px;text-align:left' + (cur === k ? ';outline:1.5px solid var(--lime)' : "") + '" onclick="setAct(\'' + id + "','" + k + '\')">' + (k === "extra" ? "Extra (deporte u otra cosa)" : KEY_NAME[k]) + "</button>";
+  });
+  if (cur) h += '<button class="btn2 r" style="width:100%" onclick="setAct(\'' + id + '\',null)">Que la app lo decida</button>';
+  openModal("Cambiar actividad", h);
+}
+function setAct(id, k) { if (k) S.actMap[id] = k; else delete S.actMap[id]; touch(); save(); closeModal(); _wk = {}; render(); schedPush(); }
+function choosePick(ds) {
+  const wp = weekOfDay(ds); if (!wp) return;
+  const cur = S.dayPick[ds];
+  let h = '<p class="sm mu" style="margin-bottom:10px">Elige qué quieres hacer este día. El resto de la semana se reacomoda solo.</p>';
+  wp.order.forEach(function (k) {
+    const doneK = wp.doneKeys.indexOf(k) >= 0;
+    h += '<button class="btn2" style="width:100%;margin-bottom:8px;text-align:left' + (cur === k ? ';outline:1.5px solid var(--lime)' : "") + (doneK ? ';opacity:.45' : "") + '" ' + (doneK ? "disabled" : 'onclick="setPick(\'' + ds + "','" + k + '\')"') + ">" + KEY_NAME[k] + (doneK ? " · ya hecha" : "") + "</button>";
+  });
+  h += '<button class="btn2" style="width:100%;margin-bottom:8px;text-align:left' + (cur === "rest" ? ';outline:1.5px solid var(--lime)' : "") + '" onclick="setPick(\'' + ds + '\',\'rest\')">Descanso</button>';
+  if (cur) h += '<button class="btn2 r" style="width:100%" onclick="setPick(\'' + ds + '\',null)">Que la app decida</button>';
+  openModal("Elegir sesión", h);
+}
+function setPick(ds, k) { if (k) S.dayPick[ds] = k; else delete S.dayPick[ds]; touch(); save(); closeModal(); _wk = {}; render(); schedPush(); }
+function weekCardHTML(ds) {
+  const wp = weekOfDay(ds); if (!wp) return "";
+  const n = wp.order.length, h = Math.floor(wp.mins / 60), m = wp.mins % 60;
+  const chips = wp.order.map(function (k) { const ok = wp.doneKeys.indexOf(k) >= 0; return '<span class="pill ' + (ok ? "l" : "") + '" style="margin:0 4px 4px 0">' + (ok ? "✓ " : "") + KEY_NAME[k] + "</span>"; }).join("");
+  return '<div class="card" style="padding:12px 14px"><div class="row sp"><b>Esta semana</b><span class="sm mu">' + wp.keysReal + " de " + n + " claves · " + wp.extras + " extra" + (wp.extras === 1 ? "" : "s") + " · " + h + " h " + (m < 10 ? "0" : "") + m + '</span></div><div style="margin-top:8px">' + chips + "</div></div>";
 }
 function exHTML(e) {
   const x = EX[e.ex];
