@@ -9,8 +9,8 @@
 <meta name="apple-mobile-web-app-title" content="Hybrid">
 <meta name="theme-color" content="#111214">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
-<link rel="icon" type="image/png" href="icon-192.png?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=3">
+<link rel="icon" type="image/png" href="icon-192.png?v=3">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <title>Hybrid</title>
@@ -25,6 +25,19 @@ a{color:var(--lime)}
 .hdr{position:fixed;top:0;left:0;right:0;height:calc(var(--hdr) + env(safe-area-inset-top));padding:env(safe-area-inset-top) 18px 0;background:var(--bg);display:flex;align-items:center;justify-content:space-between;z-index:50;border-bottom:1px solid var(--line)}
 .logo{font-family:"Barlow Condensed";font-weight:700;font-size:24px;letter-spacing:1px}
 .logo i{color:var(--lime);font-style:normal}
+.logo{display:flex;align-items:center;gap:9px}
+.logo img{width:30px;height:30px;border-radius:8px}
+.hero{position:relative}
+.hero .sky{display:block;width:100%;height:auto;margin-top:12px;opacity:.28;pointer-events:none}
+.phase svg{width:40px;height:26px;flex-shrink:0;align-self:center}
+.phase .pt{display:flex;flex-direction:column}
+.phase .pm{font-family:Inter;font-size:12px;color:var(--mu);font-weight:500;text-transform:none;margin-top:2px}
+.bean{width:18px;height:23px;display:block;margin:0 auto 2px}
+.seal{display:block;margin:18px auto 4px;width:190px;height:190px}
+#splash{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;transition:opacity .45s}
+#splash.out{opacity:0;pointer-events:none}
+#splash .seal{width:210px;height:210px;margin:0}
+#splash p{font-size:11px;letter-spacing:2px;color:var(--mu);margin-top:14px;text-transform:uppercase}
 .hr{text-align:right;font-size:11px;color:var(--mu);line-height:1.3}
 .hr b{display:block;color:var(--lime);font-family:"Barlow Condensed";font-size:15px;letter-spacing:.6px;font-weight:600}
 main{position:fixed;top:calc(var(--hdr) + env(safe-area-inset-top));bottom:calc(var(--nav) + env(safe-area-inset-bottom));left:0;right:0}
@@ -126,7 +139,8 @@ details.list[open] summary{border-bottom:1px solid var(--line)}
 </style>
 </head>
 <body>
-<header class="hdr"><div class="logo">HYBRID<i>.</i></div><div class="hr" id="hr"></div></header>
+<div id="splash"></div>
+<header class="hdr"><div class="logo"><img src="icon-192.png?v=3" alt=""><span>HYBRID<i>.</i></span></div><div class="hr" id="hr"></div></header>
 <main>
   <section id="p-hoy" class="panel on"></section>
   <section id="p-plan" class="panel"></section>
@@ -305,6 +319,30 @@ const W_HYROX = [
   { f: "Simulacro completo al 80%", it: ["8× 1 km + las 8 estaciones a distancia de carrera", "Ski 1000 · push 50 · pull 50 · BBJ 80 · remo 1000 · farmer 200 · lunges 100 · 100 wall balls", "Cronometra todo: es tu ensayo"], m: ["tread", "ski", "sledpush", "sledpull", "bbj", "rower", "farmer", "sblunge", "wallball"] },
   { f: "Simulacro completo al 90%", it: ["Igual que la carrera, a ritmo objetivo", "Practica la nutrición: gel a mitad", "Anota los tiempos de cada estación"], m: ["tread", "ski", "sledpush", "sledpull", "bbj", "rower", "farmer", "sblunge", "wallball"] }
 ];
+
+// ═══════════════════════════════════════════
+//  ARTE · Colombia, Budapest y Holanda (línea fina, mismo trazo en toda la app)
+// ═══════════════════════════════════════════
+const ART = {
+  andes: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M2,37 L20,12 L30,24 L42,4 L58,37"/><path d="M37,12 L42,4 L47,12" fill="currentColor"/></svg>',
+  bridge: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M16,37 L16,7 M44,37 L44,7 M16,9 Q30,30 44,9 M2,27 Q9,15 16,9 M44,9 Q51,15 58,27"/><path d="M0,29 L60,29"/></svg>',
+  mill: '<svg viewBox="0 0 60 40" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"><path d="M24,38 L27,18 L33,18 L36,38 Z"/><path d="M30,15 L16,3 M30,15 L44,3 M30,15 L44,27 M30,15 L16,27"/></svg>',
+  bean: '<svg viewBox="0 0 60 40"><g transform="translate(30 20) rotate(-35)"><ellipse rx="11" ry="16" fill="currentColor"/><path d="M0,-15 C-5,-6 5,6 0,15" stroke="#111214" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg>',
+  sky: '<svg class="sky" viewBox="0 0 360 80" fill="none" stroke="#F2F3F0" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M4,76 L44,36 L64,52 L92,18 L128,76"/><path d="M84,28 L92,18 L100,28" fill="#F2F3F0"/><path d="M150,76 L150,30 M214,76 L214,30 M150,32 Q182,62 214,32 M134,56 Q142,42 150,32 M214,32 Q222,42 230,56 M134,60 L230,60"/><path d="M290,76 L294,46 L306,46 L310,76 Z M300,42 L282,26 M300,42 L318,26 M300,42 L318,58 M300,42 L282,58"/><path d="M0,76 L360,76"/></svg>'
+};
+function beanSVG(on) {
+  return '<svg class="bean" viewBox="0 0 20 26" aria-hidden="true"><g transform="translate(10 13) rotate(-30)"><ellipse rx="7.5" ry="11" ' + (on ? 'fill="currentColor"' : 'fill="none" stroke="currentColor" stroke-width="1.8"') + '/><path d="M0,-10 C-3.5,-4 3.5,4 0,10" stroke="' + (on ? "#C6F432" : "currentColor") + '" stroke-width="1.8" fill="none" stroke-linecap="round"/></g></svg>';
+}
+function sealSVG() {
+  const fl = function (x, c, w) { let y = 150, out = ""; c.forEach(function (col, k) { const hh = 13 * w[k]; out += '<rect x="' + x + '" y="' + y.toFixed(2) + '" width="20" height="' + (hh + 0.3).toFixed(2) + '" fill="' + col + '"/>'; y += hh; }); return out; };
+  return '<svg class="seal" viewBox="0 0 220 220" aria-hidden="true"><circle cx="110" cy="110" r="100" fill="none" stroke="#F2F3F0" stroke-width="2.5"/><circle cx="110" cy="110" r="89" fill="none" stroke="#C6F432" stroke-width="1"/>' +
+    '<defs><path id="sarc" d="M110,110 m-93,0 a93,93 0 1,1 186,0"/></defs><text font-family="Barlow Condensed,Inter,sans-serif" font-weight="700" font-size="15" letter-spacing="3" fill="#F2F3F0"><textPath href="#sarc" startOffset="50%" text-anchor="middle">HERNÁNDEZ · HYBRID</textPath></text>' +
+    '<g transform="translate(110 104) scale(.115) translate(-512 -512)"><path d="M294,232 Q160,520 40,640" stroke="#F2F3F0" stroke-width="16" fill="none" stroke-linecap="round"/><path d="M565,232 Q680,470 722,676" stroke="#F2F3F0" stroke-width="16" fill="none" stroke-linecap="round"/><rect x="225" y="225" width="138" height="574" rx="12" fill="#C6F432"/><rect x="496" y="225" width="138" height="574" rx="12" fill="#C6F432"/><rect x="360" y="454" width="140" height="116" fill="#C6F432"/><path d="M266,420 L266,302 A28,28 0 0 1 322,302 L322,420 Z M537,420 L537,302 A28,28 0 0 1 593,302 L593,420 Z" fill="#111214"/><g transform="translate(736 737) rotate(-35)"><ellipse rx="56" ry="76" fill="#F2F3F0"/><path d="M0,-70 C-22,-30 22,30 0,70" stroke="#111214" stroke-width="12" fill="none" stroke-linecap="round"/></g><rect x="40" y="800" width="944" height="12" rx="6" fill="#F2F3F0"/></g>' +
+    fl(76, ["#FCD116", "#003893", "#CE1126"], [.5, .25, .25]) + fl(100, ["#CD2A3E", "#F2F3F0", "#436F4D"], [1/3, 1/3, 1/3]) + fl(124, ["#AE1C28", "#F2F3F0", "#21468B"], [1/3, 1/3, 1/3]) +
+    '<text x="110" y="182" text-anchor="middle" font-family="Barlow Condensed,Inter,sans-serif" font-weight="600" font-size="10" letter-spacing="3" fill="#7E847A">CO · HU · NL</text></svg>';
+}
+const PHASE_ART = ["", "andes", "bridge", "mill"];
+const PHASE_MEAN = ["", "Los Andes · la base", "El puente · cruzar al siguiente nivel", "El molino · energía para la carrera"];
 
 // ═══════════════════════════════════════════
 //  UTILIDADES
@@ -582,7 +620,7 @@ function renderHoy() {
   }
   const wi = s.wi;
   const tags = wi ? '<span class="pill l">Semana ' + (wi.w + 1) + " · " + PHASE[wi.ph] + "</span> " + (wi.deload ? '<span class="pill w">Descarga</span>' : "") + (wi.taper ? '<span class="pill w">Taper</span>' : "") : '<span class="pill l">Semana 0 · Pruebas</span>';
-  h += '<div class="hero">' + tags + "<h1>" + s.t + "</h1><p>" + s.sub + "</p></div>";
+  h += '<div class="hero">' + tags + "<h1>" + s.t + "</h1><p>" + s.sub + "</p>" + ART.sky + "</div>";
   h += actsHTML(ds);
   if (s.warm) h += mobHTML(s.warm);
   if (s.str && s.str.length) {
@@ -634,7 +672,7 @@ function studyHTML(ds) {
   const done = S.study[ds] || {};
   return '<div class="sec">Estudio</div><div class="study">' + STUDY.map(function (x) {
     const ok = !!done[x.k];
-    return '<button class="st ' + (ok ? "ok" : "") + '" onclick="toggleStudy(\'' + ds + "','" + x.k + '\')"><div class="i">' + x.i + "</div><b>" + x.n + "</b><small>" + (ok ? "✓ hecho" : x.min + " min") + "</small>" + (streak(x.k) > 1 ? "<small>🔥 " + streak(x.k) + " días</small>" : "") + "</button>";
+    return '<button class="st ' + (ok ? "ok" : "") + '" onclick="toggleStudy(\'' + ds + "','" + x.k + '\')">' + beanSVG(ok) + "<b>" + x.n + "</b><small>" + (ok ? "✓ hecho" : x.min + " min") + "</small>" + (streak(x.k) > 1 ? "<small>🔥 " + streak(x.k) + " días</small>" : "") + "</button>";
   }).join("") + "</div>";
 }
 function toggleStudy(ds, k) { S.study[ds] = S.study[ds] || {}; S.study[ds][k] = !S.study[ds][k]; save(); renderHoy(); schedPush(); }
@@ -712,11 +750,11 @@ function renderPlan() {
   const lastB = S.body.length ? S.body[S.body.length - 1] : null, firstB = S.body.length ? S.body[0] : null;
   h += '<div class="count"><div class="c"><b>' + (S.vo2 || "—") + '</b><span class="sm mu">VO2 max · Polar</span></div><div class="c"><b>' + (lastB ? lastB.kg : "—") + (lastB && firstB && lastB !== firstB ? '<span class="mu" style="font-size:16px"> ' + (lastB.kg - firstB.kg > 0 ? "+" : "") + (Math.round((lastB.kg - firstB.kg) * 10) / 10) + "</span>" : "") + '</b><span class="sm mu">peso kg</span></div></div>';
   // semana 0
-  h += '<div class="phase">Semana 0 <small>Pruebas · 7-11 oct</small></div>' + weekHTML("2026-10-05", null, t);
+  h += '<div class="phase" style="color:var(--lime)">' + ART.bean + '<div class="pt"><span style="color:var(--tx)">Semana 0 · Pruebas</span><span class="pm">El café · el origen · 7-11 oct</span></div></div>' + weekHTML("2026-10-05", null, t);
   let lastPh = 0;
   for (let w = 0; w < T; w++) {
     const wi = weekInfo(w);
-    if (wi.ph !== lastPh) { lastPh = wi.ph; h += '<div class="phase">Fase ' + wi.ph + " · " + PHASE[wi.ph] + " <small>" + PHASE_SUB[wi.ph] + "</small></div>"; }
+    if (wi.ph !== lastPh) { lastPh = wi.ph; h += '<div class="phase" style="color:var(--lime)">' + ART[PHASE_ART[wi.ph]] + '<div class="pt"><span style="color:var(--tx)">Fase ' + wi.ph + " · " + PHASE[wi.ph] + '</span><span class="pm">' + PHASE_MEAN[wi.ph] + " · " + PHASE_SUB[wi.ph].toLowerCase() + "</span></div></div>"; }
     h += weekHTML(addD(START, w * 7), wi, t);
   }
   $("p-plan").innerHTML = h;
@@ -766,6 +804,7 @@ function renderAj() {
   h += '<div class="sec">Plan</div><div class="card"><div class="fld"><div class="lbl">Fecha del Hyrox</div><input class="inp" type="date" value="' + S.race + '" onchange="setRace(this.value)"></div>' +
     '<div class="fld"><div class="lbl">Nombre del plan (en la hoja)</div><input class="inp" value="' + esc(planName()) + '" onchange="S.planName=this.value.trim();save();schedPush()"></div><p class="sm mu">' + totalWeeks() + " semanas hasta la carrera.</p></div>";
   h += '<div class="sec">Datos</div><div class="card"><p class="sm mu">Todo queda guardado en tu hoja de Google. En el teléfono solo hay una copia.</p><button class="btn2 r" style="width:100%;margin-top:12px" onclick="resetAll()">Borrar la copia del teléfono</button></div>';
+  h += sealSVG() + '<p class="sm mu" style="text-align:center;letter-spacing:1px">Colombia · Budapest · Nederland</p>';
   h += '<p class="sm mu" style="text-align:center;margin-top:10px">Pesos y calorías son orientativos. Si la rodilla duele al bajar escaleras o al día siguiente, consulta con un fisio.</p>';
   $("p-aj").innerHTML = h;
 }
@@ -792,6 +831,8 @@ function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de 
 //  ARRANQUE
 // ═══════════════════════════════════════════
 (function boot() {
+  const sp = $("splash");
+  if (sp) { sp.innerHTML = sealSVG() + "<p>Hyrox · " + fdate(S.race) + " " + S.race.slice(0, 4) + "</p>"; setTimeout(function () { sp.classList.add("out"); setTimeout(function () { sp.remove(); }, 500); }, 1100); }
   // Link personal: …/hybrid-tracker/#c=<código>. Así el código no depende de que el teléfono lo recuerde.
   const hm = (location.search + location.hash).match(/[?#&]c=([^&#]+)/);
   if (hm) { try { const c = decodeURIComponent(hm[1]); if (c !== S.conn) { S.conn = c; save(); } } catch (e) {} }
