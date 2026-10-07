@@ -539,6 +539,7 @@ async function apiPost(body) { const c = connParts(); if (!c) throw new Error("s
 function applyData(d) {
   if (!d || !d.ok) { if (d && d.error) toast("Hoja: " + d.error); return false; }
   S.acts = d.acts || {}; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr;
+  mergeFromSheet(d);
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
 async function refresh(manual) {
@@ -548,11 +549,50 @@ async function refresh(manual) {
     else applyData(await apiGet());
   } catch (e) { if (manual) toast("No se pudo conectar con la hoja"); }
 }
+// La hoja es el respaldo: si este teléfono perdió su memoria (ícono nuevo, datos borrados), recupera de ahí
+function mergeFromSheet(d) {
+  let missing = false;
+  (d.tests || []).forEach(function (t) {
+    if (!t.d) return;
+    if (!S.tests.some(function (x) { return x.d === t.d; })) {
+      const c = { d: t.d }; ["squat", "trap", "bench", "ohp", "pull", "bw"].forEach(function (k) { if (t[k] !== "" && t[k] != null) c[k] = +t[k]; });
+      ["row2k", "km1"].forEach(function (k) { if (t[k]) c[k] = t[k]; }); S.tests.push(c);
+    }
+  });
+  S.tests.sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+  (d.body || []).forEach(function (b) { if (b.d && !S.body.some(function (x) { return x.d === b.d; })) S.body.push({ d: b.d, kg: +b.kg, waist: b.waist || "" }); });
+  S.body.sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+  Object.keys(d.study || {}).forEach(function (ds) {
+    const r = d.study[ds], l = S.study[ds] = S.study[ds] || {};
+    ["read", "dutch", "cour"].forEach(function (k) { if (r[k] && !l[k]) l[k] = true; });
+  });
+  const st = d.settings || {};
+  if (st.at && st.at > (S.setAt || 0)) {
+    if (st.lifts) S.lifts = Object.assign({}, S.lifts, st.lifts);
+    ["liftsWeek", "row2k", "km1", "bw", "race", "planName"].forEach(function (k) { if (st[k] !== undefined && st[k] !== null) S[k] = st[k]; });
+    S.setAt = st.at;
+  } else if (!st.at && S.setAt) missing = true;
+  else if (!st.at && !S.setAt && S.tests.length) {
+    // sin ajustes guardados en ningún lado: los 5RM salen de la última prueba de cada ejercicio
+    let lastD = "";
+    S.tests.forEach(function (t) { LIFT_KEYS.forEach(function (k) { if (t[k] !== undefined && t[k] !== "") { S.lifts[k] = +t[k]; if (t.d > lastD) lastD = t.d; } }); if (t.row2k) S.row2k = t.row2k; if (t.km1) S.km1 = t.km1; });
+    if (lastD) { const wi = posOf(lastD); S.liftsWeek = wi ? wi.w + 1 : 0; touch(); missing = true; }
+  }
+  // si el teléfono tiene cosas que la hoja no, se reenvían
+  if (S.tests.length > (d.tests || []).length || S.body.length > (d.body || []).length || S.dirty) missing = true;
+  if (missing) schedPush();
+}
+function touch() { S.setAt = Date.now(); }
 let _pt = null;
-function schedPush() { clearTimeout(_pt); _pt = setTimeout(pushAll, 2500); }
+function schedPush() { S.dirty = true; save(); clearTimeout(_pt); _pt = setTimeout(pushAll, 2500); }
 async function pushAll() {
   if (!connParts()) return;
-  try { if (applyData(await apiPost({ a: "push", plan: { name: planName(), start: START, pre: "2026-10-05", race: S.race }, days: planDays(), tests: S.tests, body: S.body, study: S.study }))) { S.pushed = planHash(); save(); } } catch (e) {}
+  try {
+    const r = await apiPost({ a: "push", plan: { name: planName(), start: START, pre: "2026-10-05", race: S.race }, days: planDays(), tests: S.tests, body: S.body, study: S.study,
+      settings: { at: S.setAt || 0, lifts: S.lifts, liftsWeek: S.liftsWeek, row2k: S.row2k, km1: S.km1, bw: S.bw, race: S.race, planName: S.planName } });
+    S.dirty = !(r && r.ok);
+    if (!S.dirty) { S.pushed = planHash(); save(); applyData(r); } else save();
+  } catch (e) { S.dirty = true; save(); }
 }
 function planName() { return S.planName || ("Hyrox " + fdate(S.race) + " " + S.race.slice(0, 4)); }
 function planHash() { return JSON.stringify([S.race, S.lifts, S.liftsWeek, S.row2k, S.bw, planName()]); }
@@ -708,6 +748,7 @@ function saveTest(ds) {
   Object.keys(vals).forEach(function (k) { t[k] = vals[k]; if (LIFT_KEYS.indexOf(k) >= 0) S.lifts[k] = vals[k]; else S[k] = vals[k]; });
   t.bw = S.bw;
   if (Object.keys(vals).some(function (k) { return LIFT_KEYS.indexOf(k) >= 0; })) { S.liftsWeek = s.wi ? s.wi.w + 1 : 0; S.tested = true; }
+  touch();
   save(); schedPush(); toast("Guardado · pesos del plan actualizados"); renderHoy();
 }
 function bodyHTML(ds) {
@@ -722,7 +763,7 @@ function saveBody(ds) {
   const kg = parseFloat(($("bd-kg").value || "").replace(",", ".")), w = parseFloat(($("bd-w").value || "").replace(",", "."));
   if (!(kg > 40 && kg < 200)) { toast("Escribe un peso válido"); return; }
   S.body = S.body.filter(function (x) { return x.d !== ds; }); S.body.push({ d: ds, kg: kg, waist: w > 40 ? w : "" });
-  S.body.sort(function (a, b) { return a.d < b.d ? -1 : 1; }); S.bw = kg;
+  S.body.sort(function (a, b) { return a.d < b.d ? -1 : 1; }); S.bw = kg; touch();
   save(); schedPush(); toast("Medidas guardadas"); renderHoy();
 }
 function streak(k) {
@@ -802,7 +843,7 @@ function renderAj() {
     '<div class="fld"><div class="lbl">Remo 2k</div><input class="inp" id="lf-row2k" placeholder="7:15" value="' + esc(S.row2k) + '"></div><div class="fld"><div class="lbl">1 km</div><input class="inp" id="lf-km1" placeholder="3:45" value="' + esc(S.km1) + '"></div></div>' +
     '<button class="btn2" style="width:100%" onclick="saveLifts()">Guardar</button></div>';
   h += '<div class="sec">Plan</div><div class="card"><div class="fld"><div class="lbl">Fecha del Hyrox</div><input class="inp" type="date" value="' + S.race + '" onchange="setRace(this.value)"></div>' +
-    '<div class="fld"><div class="lbl">Nombre del plan (en la hoja)</div><input class="inp" value="' + esc(planName()) + '" onchange="S.planName=this.value.trim();save();schedPush()"></div><p class="sm mu">' + totalWeeks() + " semanas hasta la carrera.</p></div>";
+    '<div class="fld"><div class="lbl">Nombre del plan (en la hoja)</div><input class="inp" value="' + esc(planName()) + '" onchange="S.planName=this.value.trim();touch();save();schedPush()"></div><p class="sm mu">' + totalWeeks() + " semanas hasta la carrera.</p></div>";
   h += '<div class="sec">Datos</div><div class="card"><p class="sm mu">Todo queda guardado en tu hoja de Google. En el teléfono solo hay una copia.</p><button class="btn2 r" style="width:100%;margin-top:12px" onclick="resetAll()">Borrar la copia del teléfono</button></div>';
   h += sealSVG() + '<p class="sm mu" style="text-align:center;letter-spacing:1px">Colombia · Budapest · Nederland</p>';
   h += '<p class="sm mu" style="text-align:center;margin-top:10px">Pesos y calorías son orientativos. Si la rodilla duele al bajar escaleras o al día siguiente, consulta con un fisio.</p>';
@@ -822,9 +863,9 @@ function saveLifts() {
   LIFT_KEYS.forEach(function (k) { const v = parseFloat(($("lf-" + k).value || "").replace(",", ".")); if (!isNaN(v)) S.lifts[k] = v; });
   const bw = parseFloat(($("lf-bw").value || "").replace(",", ".")); if (bw > 40) S.bw = bw;
   ["row2k", "km1"].forEach(function (k) { const v = ($("lf-" + k).value || "").trim(); if (!v || parse2k(v)) S[k] = v; });
-  save(); schedPush(); toast("Guardado: los pesos del plan se actualizaron");
+  touch(); save(); schedPush(); toast("Guardado: los pesos del plan se actualizaron");
 }
-function setRace(v) { if (!v || diff(v, START) < 70) { toast("Elige una fecha al menos 10 semanas después del 12 de octubre"); renderAj(); return; } S.race = v; save(); schedPush(); toast("Ciclo ajustado: " + totalWeeks() + " semanas"); renderAj(); updHeader(); }
+function setRace(v) { if (!v || diff(v, START) < 70) { toast("Elige una fecha al menos 10 semanas después del 12 de octubre"); renderAj(); return; } S.race = v; touch(); save(); schedPush(); toast("Ciclo ajustado: " + totalWeeks() + " semanas"); renderAj(); updHeader(); }
 function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de Google no se toca.")) return; const keep = { race: S.race, conn: S.conn }; S = JSON.parse(JSON.stringify(DEF)); Object.assign(S, keep); save(); refresh(false); render(); }
 
 // ═══════════════════════════════════════════
@@ -844,7 +885,7 @@ function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de 
     if (!connParts() && stRaw.indexOf(".") > 0) { try { S.conn = decodeURIComponent(atob(stRaw.slice(stRaw.indexOf(".") + 1).replace(/-/g, "+").replace(/_/g, "/"))); save(); } catch (e) {} }
     history.replaceState(null, "", location.pathname + location.hash); render(); oauthBack(st, code);
   }
-  else { render(); refresh(false); if (connParts() && S.pushed !== planHash()) schedPush(); }
+  else { render(); refresh(false); if (connParts() && (S.pushed !== planHash() || S.dirty)) schedPush(); }
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return;
     if (openedOn !== todayS()) { openedOn = todayS(); viewDate = todayS(); }
