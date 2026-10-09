@@ -167,7 +167,7 @@ details.list[open] summary{border-bottom:1px solid var(--line)}
 const START = "2026-10-12";            // lunes, semana 1
 const PRE = {                           // semana 0 · pruebas
   "2026-10-07": "test_inf", "2026-10-08": "test_sup", "2026-10-09": "futbol",
-  "2026-10-10": "run_pre", "2026-10-11": "domingo"
+  "2026-10-10": "run_pre", "2026-10-11": "test_sup"   // jue 8 no se hizo: prueba superior + remo pasan al domingo
 };
 // Solo IDs públicos: las claves secretas viven en el Apps Script de la hoja
 const STRAVA_ID = "246619";
@@ -246,7 +246,8 @@ const EX = {
   burpee:  { n: "Burpee sin salto", g: "WOD", c: ["Pecho al suelo, levántate y ponte de pie sin saltar.", "Ritmo constante, respira abajo."] },
   ski:     { n: "SkiErg", g: "Máquina", c: ["Brazos arriba, tira hacia abajo con dorsales y bisagra de cadera.", "Termina con las manos junto a los muslos.", "Vuelve arriba relajado. Damper 4-6."] },
   rower:   { n: "Remo (rower)", g: "Máquina", c: ["Piernas → espalda → brazos al tirar; al volver, al revés.", "Las piernas hacen el 60% del trabajo.", "No tires con la espalda redonda. Damper 4-6."] },
-  tread:   { n: "Cinta de correr", g: "Máquina", c: ["Inclinación 1% para simular el exterior.", "Zancada corta y cadencia alta (unos 170-180 pasos/min)."] },
+  tread:   { n: "Cinta motorizada", g: "Máquina", c: ["Para los km a ritmo Hyrox: pon la velocidad exacta y apréndete el ritmo.", "Inclinación 1% para simular el exterior.", "Zancada corta y cadencia alta (unos 170-180 pasos/min)."] },
+  curve:   { n: "Cinta curva", g: "Máquina", c: ["Sin motor: tú marcas el ritmo. Para sprints, intervalos cortos y la prueba de 1 km.", "Corre en la parte alta de la curva, apoyando el antepié: cuanto más adelante, más rápido va.", "Para frenar, échate atrás hacia la parte plana y agárrate de las barras."], k: "Es más dura que la motorizada y que la calle: tus tiempos aquí solo se comparan con la misma cinta." },
   ttb:     { n: "Toes to bar / elevaciones", g: "Core", c: ["Colgado de la barra, escápulas activas.", "Sube los pies a la barra (o rodillas al pecho) con control.", "Evita el balanceo descontrolado."] },
   pushup:  { n: "Push-ups", g: "WOD", c: ["Manos bajo los hombros, cuerpo recto.", "Pecho al suelo y bloquea arriba."] },
   goblet:  { n: "Goblet squat a cajón", g: "WOD", c: ["KB pegada al pecho.", "Siéntate al cajón y sube empujando el suelo."] },
@@ -305,17 +306,17 @@ const W_WED = [
 ];
 const W_THU = [
   { f: "Por tiempo · cap 18'", it: ["500 m remo", "20 m sled push", "15 thrusters con mancuernas · 2×15 kg", "20 m sled pull", "200 m farmer carry", "500 m ski"], m: ["rower", "sledpush", "thruster", "sledpull", "farmer", "ski"] },
-  { f: "3 rondas por tiempo", it: ["400 m cinta, ritmo moderado", "15 wall balls · 6 kg", "10 zancadas hacia atrás con sandbag/pierna", "12 cal ski"], m: ["tread", "wallball", "rlunge", "ski"] },
+  { f: "3 rondas por tiempo", it: ["400 m cinta curva, ritmo moderado", "15 wall balls · 6 kg", "10 zancadas hacia atrás con sandbag/pierna", "12 cal ski"], m: ["curve", "wallball", "rlunge", "ski"] },
   { f: "Chipper · cap 20'", it: ["50 cal remo", "40 KB swings", "30 wall balls", "20 burpees sin salto", "10 dominadas"], m: ["rower", "swing", "wallball", "burpee", "pullup"] },
   { f: "EMOM 20'", it: ["Min 1: 12 cal ski", "Min 2: 20 m sled push", "Min 3: 50 m farmer carry", "Min 4: 10 burpees sin salto"], m: ["ski", "sledpush", "farmer", "burpee"] },
   { f: "2 rondas · cap 22'", it: ["1000 m remo", "30 m sled push", "30 m sled pull", "20 wall balls"], m: ["rower", "sledpush", "sledpull", "wallball"] },
   { f: "AMRAP 20'", it: ["250 m ski", "250 m remo", "10 sandbag cleans", "40 m farmer carry"], m: ["ski", "rower", "sbclean", "farmer"] },
   { f: "Por tiempo · cap 22'", it: ["1000 m ski", "40 zancadas caminando con sandbag", "1000 m remo", "30 wall balls"], m: ["ski", "sblunge", "rower", "wallball"] },
-  { f: "5 rondas por tiempo", it: ["200 m cinta", "10 KB swings · 24 kg", "10 push-ups", "10 cal remo"], m: ["tread", "swing", "pushup", "rower"] }
+  { f: "5 rondas por tiempo", it: ["200 m sprint en cinta curva", "10 KB swings · 24 kg", "10 push-ups", "10 cal remo"], m: ["curve", "swing", "pushup", "rower"] }
 ];
 const W_HYROX = [
-  { f: "Media simulación A", it: ["4× (1 km cinta + estación):", "SkiErg 1000 m", "Sled push 50 m", "Sled pull 50 m", "Burpee broad jumps 40 m"], m: ["tread", "ski", "sledpush", "sledpull", "bbj"] },
-  { f: "Media simulación B", it: ["4× (1 km cinta + estación):", "Remo 1000 m", "Farmer carry 200 m", "Sandbag lunges 50 m", "Wall balls 50"], m: ["tread", "rower", "farmer", "sblunge", "wallball"] },
+  { f: "Media simulación A", it: ["4× (1 km cinta motorizada a ritmo Hyrox + estación):", "SkiErg 1000 m", "Sled push 50 m", "Sled pull 50 m", "Burpee broad jumps 40 m"], m: ["tread", "ski", "sledpush", "sledpull", "bbj"] },
+  { f: "Media simulación B", it: ["4× (1 km cinta motorizada a ritmo Hyrox + estación):", "Remo 1000 m", "Farmer carry 200 m", "Sandbag lunges 50 m", "Wall balls 50"], m: ["tread", "rower", "farmer", "sblunge", "wallball"] },
   { f: "Compromised running", it: ["6× (800 m a ritmo de carrera + estación al 50%)", "Rota: ski 500 · sled push 25 m · remo 500 · farmer 100 m · lunges 25 m · 25 wall balls"], m: ["tread", "ski", "sledpush", "rower", "farmer", "sblunge", "wallball"] },
   { f: "Simulacro completo al 80%", it: ["8× 1 km + las 8 estaciones a distancia de carrera", "Ski 1000 · push 50 · pull 50 · BBJ 80 · remo 1000 · farmer 200 · lunges 100 · 100 wall balls", "Cronometra todo: es tu ensayo"], m: ["tread", "ski", "sledpush", "sledpull", "bbj", "rower", "farmer", "sblunge", "wallball"] },
   { f: "Simulacro completo al 90%", it: ["Igual que la carrera, a ritmo objetivo", "Practica la nutrición: gel a mitad", "Anota los tiempos de cada estación"], m: ["tread", "ski", "sledpush", "sledpull", "bbj", "rower", "farmer", "sblunge", "wallball"] }
@@ -579,13 +580,13 @@ function special(kind, ds, wi) {
     let run;
     if (!wi || wi.ph === 1) run = ["40-50 min suave en zona 2 (puedes hablar frases)", "Si la rodilla molesta: 30' remo + 20' cinta caminando inclinada"];
     else if (wi.ph === 2) run = wi.w % 2 === 0 ? ["Progresivo 50 min: 20' suave + 20' medio + 10' fuerte"] : ["10' suave + 6× (3' fuerte / 2' suave) + 10' suave"];
-    else run = wi.w % 2 === 0 ? ["8× 1 km a ritmo Hyrox · 1' descanso"] : ["60-70 min suave, largo y cómodo"];
+    else run = wi.w % 2 === 0 ? ["8× 1 km a ritmo Hyrox en cinta motorizada · 1' descanso"] : ["60-70 min suave, largo y cómodo"];
     if (wi && (wi.deload || wi.taper)) run = ["30-40 min suave, sin nada de intensidad"];
     return { type: "run", t: "Tenis o carrera", sub: "Elige lo que te apetezca", wi: wi, nut: "high", info: ["Opción carrera:"].concat(run).concat(["Opción tenis: juega y estira 5 min al terminar."]) };
   }
-  if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: null, nut: "high", test: "run_pre", info: ["Calienta 10' suave.", "1 km a tope en cinta al 1% de inclinación.", "Luego 25-30' suave, o tenis si te apetece."] };
+  if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: null, nut: "high", test: "run_pre", info: ["En el gym, en la cinta curva (siempre la misma para poder comparar).", "Calienta 10' suave.", "1 km a tope en la cinta curva.", "Luego 20-25' suave, o tenis si te apetece."] };
   if (kind === "test_motor") return { type: "test", t: "Prueba de motor", sub: "Remo 2k + 1 km · 50 min", wi: wi, nut: "train", test: kind, warm: "eng", cool: "long", str: [],
-    wod: { f: "Pruebas", it: ["2.000 m de remo a tope · damper 5-6", "15' suave: caminar y movilidad", "1 km a tope en cinta al 1%"], m: ["rower", "tread"], note: "Apunta los dos tiempos abajo." } };
+    wod: { f: "Pruebas", it: ["2.000 m de remo a tope · damper 5-6", "15' suave: caminar y movilidad", "1 km a tope en la cinta curva"], m: ["rower", "curve"], note: "Apunta los dos tiempos abajo." } };
   if (kind === "descanso") return { type: "rest", t: "Descanso", sub: "Recupera para lo que viene", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min y movilidad suave.", "Si te sientes muy bien, puedes hacer la sesión clave que toca: elígela abajo."] };
   if (kind === "libre") return { type: "rest", t: "Semana completa", sub: "Las 4 sesiones clave están hechas", wi: wi, nut: "rest", cool: "long", info: ["Hoy: descanso, movilidad o un deporte que te apetezca (cuenta como extra).", "Lo importante de la semana ya está."] };
   if (kind === "domingo") return { type: "rest", t: "Descanso", sub: "Movilidad 20 min", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min suma y ayuda a recuperar.", "Duerme 7-8 h: aquí es donde se construye el cuerpo."] };
@@ -603,7 +604,7 @@ function special(kind, ds, wi) {
 function raceWeek(off, wi) {
   const M = {
     "-6": { type: "gym", t: "Activación", sub: "40 min", warm: "full", cool: "cool", nut: "train", str: [main("boxsq", "squat", wi), main("bench", "bench", wi)], wod: { f: "6' suave", it: ["Ski 250 · remo 250 · 20 m sled push"], m: ["ski", "rower", "sledpush"] } },
-    "-5": { type: "engine", t: "Chispa", sub: "30 min", warm: "eng", cool: "cool", nut: "train", str: [], wod: { f: "Intervalos cortos", it: ["4× 400 m cinta a ritmo carrera", "4× 250 m ski", "Todo con 1' descanso"], m: ["tread", "ski"] } },
+    "-5": { type: "engine", t: "Chispa", sub: "30 min", warm: "eng", cool: "cool", nut: "train", str: [], wod: { f: "Intervalos cortos", it: ["4× 400 m en cinta curva, rápido", "4× 250 m ski", "Todo con 1' descanso"], m: ["curve", "ski"] } },
     "-4": { type: "rest", t: "Descanso", sub: "Movilidad", nut: "rest", cool: "long", info: ["Movilidad suave y caminar."] },
     "-3": { type: "engine", t: "Openers", sub: "20 min", warm: "eng", cool: "cool", nut: "train", str: [], wod: { f: "Activación", it: ["10' remo suave", "3× 1' a ritmo de carrera", "10 wall balls · 20 m sled push"], m: ["rower", "wallball", "sledpush"] } },
     "-2": { type: "rest", t: "Descanso", sub: "Prepara el material", nut: "high", info: ["Prepara zapatillas, guantes, ropa y geles.", "Repasa los tiempos objetivo por estación.", "Carbohidratos altos: unos 400 g."] },
@@ -853,7 +854,7 @@ function studyHTML(ds) {
 function toggleStudy(ds, k) { S.study[ds] = S.study[ds] || {}; S.study[ds][k] = !S.study[ds][k]; save(); renderHoy(); schedPush(); }
 
 // Resultados de pruebas y medidas: lo único que se apunta a mano
-const TF_LBL = { squat: "Sentadilla kg", trap: "Peso muerto kg", bench: "Banca kg", ohp: "Press militar kg", pull: "Dominada lastre kg", row2k: "Remo 2k m:ss", km1: "1 km m:ss" };
+const TF_LBL = { squat: "Sentadilla kg", trap: "Peso muerto kg", bench: "Banca kg", ohp: "Press militar kg", pull: "Dominada lastre kg", row2k: "Remo 2k m:ss", km1: "1 km cinta curva m:ss" };
 const LIFT_KEYS = ["squat", "trap", "bench", "ohp", "pull"];
 function testFields(s) {
   if (!s || !s.test) return [];
