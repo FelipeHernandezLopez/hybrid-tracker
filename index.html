@@ -171,6 +171,10 @@ const PRE = {                           // semana 0 · pruebas
 };
 // Solo IDs públicos: las claves secretas viven en el Apps Script de la hoja
 const STRAVA_ID = "246619";
+// Pruebas de la semana 0 que se hicieron tarde: ese día es la prueba y no gasta una sesión clave
+const MOVED = { "2026-10-12": "test_sup" };   // fin de semana con la familia: superior + remo 2k el lunes
+// Mientras falte el 1 km, la app lo muestra cada día como prueba pendiente
+const KM1_FROM = "2026-10-12";
 const POLAR_ID = "8034e007-b5e5-463d-bb19-13dcebc363d8";
 const REDIRECT = "https://felipehernandezlopez.github.io/hybrid-tracker/";
 const LS = "hybrid_v2";
@@ -519,6 +523,13 @@ function weekPlan(w) {
       if (poor) sug.why = "Polar marca recuperación baja: baja un 10-15% las cargas.";
       else if (tight && pending.length > 1) sug.why = "Quedan " + pending.length + " sesiones clave y " + slots + " días: prioridad a lo más importante.";
     }
+    if (MOVED[ds]) {
+      const session = special(MOVED[ds], ds, null);
+      const assigned = acts.map(function (a) { mins += +a.min || 0; extras++; return { a: a, k: null }; });
+      streak = acts.length || ds >= t ? streak + 1 : 0;
+      days.push({ ds: ds, session: session, assigned: assigned, did: [], sug: sug });
+      continue;
+    }
     const pick = S.dayPick[ds];
     const want = pick && pick !== "rest" && !done[pick] ? pick : (pick === "rest" ? null : sug.key);
     // 2) qué cumplió lo que hiciste (Polar), dobles sesiones incluidas
@@ -762,7 +773,7 @@ function renderHoy() {
   h += '<div class="hero">' + tags + "<h1>" + s.t + "</h1><p>" + s.sub + "</p>" + ART.sky + "</div>";
   h += weekCardHTML(ds) + actsHTML(ds);
   if (s.why) h += '<div class="knee" style="margin:0 0 12px">' + esc(s.why) + "</div>";
-  if (weekOfDay(ds) && ds >= todayS()) h += '<button class="btn2" style="width:100%;margin-bottom:12px" onclick="choosePick(\'' + ds + '\')">Prefiero otra sesión hoy</button>';
+  if (weekOfDay(ds) && ds >= todayS() && !MOVED[ds]) h += '<button class="btn2" style="width:100%;margin-bottom:12px" onclick="choosePick(\'' + ds + '\')">Prefiero otra sesión hoy</button>';
   if (s.warm) h += mobHTML(s.warm);
   if (s.str && s.str.length) {
     h += '<div class="sec">Fuerza<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">Descanso 2-3\' en básicos</span></div>';
@@ -773,7 +784,7 @@ function renderHoy() {
   if (s.wod) h += wodHTML(s.wod, s.type === "engine" ? "Motor" : s.type === "test" ? "Final" : "WOD");
   if (s.kneeAfter) h += kneeH;
   if (s.info) h += '<div class="list">' + s.info.map(function (x) { return '<div class="li"><span>' + esc(x) + "</span></div>"; }).join("") + "</div>";
-  h += testHTML(s, ds);
+  h += testHTML(s, ds) + pendingKmHTML(s, ds);
   if (s.cool) h += mobHTML(s.cool);
   h += bodyHTML(ds) + nutHTML(s.nut) + studyHTML(ds);
   $("p-hoy").innerHTML = h;
@@ -871,6 +882,18 @@ function testHTML(s, ds) {
     const time = k === "row2k" || k === "km1";
     return '<div class="fld"><div class="lbl">' + TF_LBL[k] + '</div><input class="inp" id="tf-' + k + '" ' + (time ? 'placeholder="' + (k === "km1" ? "3:45" : "7:15") + '"' : 'inputmode="decimal"') + ' value="' + esc(t[k] == null ? "" : t[k]) + '"></div>';
   }).join("") + '</div><button class="btn" onclick="saveTest(\'' + ds + '\')">Guardar resultados</button></div>';
+}
+function pendingKmHTML(s, ds) {
+  if (S.km1 || ds !== todayS() || ds < KM1_FROM || testFields(s).indexOf("km1") >= 0) return "";
+  return '<div class="sec">Prueba pendiente</div><div class="card"><p class="sm mu" style="margin-bottom:10px">Te falta la prueba de 1 km. Hazla el día que puedas, antes de tu sesión: 10\' de calentamiento y 1 km a tope en la cinta curva (unos 15 min).</p>' +
+    '<div class="fld"><div class="lbl">' + TF_LBL.km1 + '</div><input class="inp" id="pk-km1" placeholder="4:00"></div><button class="btn2" style="width:100%" onclick="savePendingKm(\'' + ds + '\')">Guardar tiempo</button></div>';
+}
+function savePendingKm(ds) {
+  const v = ($("pk-km1").value || "").trim();
+  if (!parse2k(v)) { toast("Usa el formato m:ss, por ejemplo 4:05"); return; }
+  let t = S.tests.find(function (x) { return x.d === ds; }); if (!t) { t = { d: ds }; S.tests.push(t); }
+  t.km1 = v; t.bw = S.bw; S.km1 = v;
+  touch(); save(); schedPush(); toast("Guardado · prueba de 1 km lista"); renderHoy();
 }
 function saveTest(ds) {
   const s = sessionFor(ds), f = testFields(s), vals = {};
