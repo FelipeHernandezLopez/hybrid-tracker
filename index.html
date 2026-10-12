@@ -1057,6 +1057,20 @@ function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de 
   const q = new URLSearchParams(location.search);
   const code = q.get("code"), stRaw = q.get("state") || "";
   const st = stRaw.split(".")[0];
+  // Puente de Polar para las otras apps Hybrid (Polar solo acepta esta dirección de regreso):
+  // el código va a la hoja de esa persona y se vuelve a su app, sin tocar nada de esta.
+  if (code && st === "polarx") {
+    let x = null; try { x = JSON.parse(decodeURIComponent(atob(stRaw.slice(7).replace(/-/g, "+").replace(/_/g, "/")))); } catch (e) {}
+    const u = x && x.c ? new URL(x.c) : null;
+    if (u && x.r && /^https:\/\/felipehernandezlopez\.github\.io\//.test(x.r)) {
+      document.body.innerHTML = '<p style="color:#F2F3F0;font:15px Inter,sans-serif;text-align:center;margin-top:40vh">Connecting Polar…</p>';
+      const k = u.searchParams.get("k"); u.search = "";
+      fetch(u.toString(), { method: "POST", body: JSON.stringify({ k: k, a: "polar", code: code }) }).then(function (r) { return r.json(); })
+        .then(function (d) { return d && d.ok ? "ok" : "fail"; }).catch(function () { return "fail"; })
+        .then(function (res) { location.replace(x.r + "?c=" + encodeURIComponent(x.c) + "&polar=" + res); });
+      return;
+    }
+  }
   if (code && (st === "strava" || st === "polar")) {
     // El código de conexión viaja en "state": al volver de Polar puede abrirse otro contexto sin datos guardados
     if (!connParts() && stRaw.indexOf(".") > 0) { try { S.conn = decodeURIComponent(atob(stRaw.slice(stRaw.indexOf(".") + 1).replace(/-/g, "+").replace(/_/g, "/"))); save(); } catch (e) {} }
