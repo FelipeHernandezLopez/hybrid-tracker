@@ -942,6 +942,23 @@ function tech(k) {
 // ═══════════════════════════════════════════
 const SHORT = { gym: "Gym", engine: "Motor", soccer: "Fútbol", run: "Run", rest: "Desc", test: "Test", race: "RACE" };
 function shortName(s) { if (!s) return "—"; if (s.t === "Fuerza inferior") return "Pierna"; if (s.t === "Fuerza superior") return "Torso"; if (s.t === "Full body") return "Full"; if (s.t === "Hyrox") return "Hyrox"; if (s.type === "run") return "Run/Ten"; return SHORT[s.type] || s.t; }
+// Metas de Felipe (12 oct): cintura < 90 cm (la mitad de su estatura) y piernas fuertes sin perder el torso.
+// Las de fuerza son máximo a 1 repetición, estimado desde el 5RM (5RM ≈ 87% del máximo).
+const GOALS = [
+  { n: "Cintura", u: "cm", from: 95, to: 90, cur: function () { const b = S.body.filter(function (x) { return x.waist; }).pop(); return b ? +b.waist : null; } },
+  { n: "Sentadilla · máximo", u: "kg", from: 92, to: 120, cur: function () { return S.lifts.squat ? Math.round(S.lifts.squat / 0.87) : null; } },
+  { n: "Peso muerto · máximo", u: "kg", from: 103, to: 140, cur: function () { return S.lifts.trap ? Math.round(S.lifts.trap / 0.87) : null; } }
+];
+function goalsHTML() {
+  return '<div class="card" style="padding:12px 14px"><div class="row sp"><b>Mis metas</b><span class="sm mu">para marzo</span></div>' + GOALS.map(function (g) {
+    const c = g.cur(), v = c == null ? g.from : c;
+    const pct = Math.max(0, Math.min(100, Math.round((v - g.from) / (g.to - g.from) * 100)));
+    const left = Math.abs(g.to - v), ok = g.to < g.from ? v <= g.to : v >= g.to;
+    return '<div style="margin-top:10px"><div class="row sp sm"><span>' + g.n + '</span><span><b>' + (c == null ? "—" : c) + "</b> → " + g.to + " " + g.u + "</span></div>" +
+      '<div style="height:6px;border-radius:3px;background:var(--c2);margin-top:6px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--lime)"></div></div>' +
+      '<div class="sm mu" style="margin-top:4px">' + (ok ? "¡Meta cumplida!" : "Te faltan " + String(Math.round(left * 10) / 10).replace(".", ",") + " " + g.u) + "</div></div>";
+  }).join("") + '<p class="sm mu" style="margin-top:10px">El máximo de fuerza se estima desde tu 5RM de cada prueba. El torso se mantiene: banca, press y dominadas siguen cada semana.</p></div>';
+}
 function renderPlan() {
   const t = todayS(), T = totalWeeks();
   let done = 0, due = 0;
@@ -949,6 +966,7 @@ function renderPlan() {
   let h = '<div class="count"><div class="c l"><b>' + Math.max(0, diff(S.race, t)) + '</b><span class="sm mu">días al Hyrox</span></div><div class="c"><b>' + done + "<span class=\"mu\" style=\"font-size:20px\">/" + due + '</span></b><span class="sm mu">sesiones hechas</span></div></div>';
   const lastB = S.body.length ? S.body[S.body.length - 1] : null, firstB = S.body.length ? S.body[0] : null;
   h += '<div class="count"><div class="c"><b>' + (S.vo2 || "—") + '</b><span class="sm mu">VO2 max · Polar</span></div><div class="c"><b>' + (lastB ? lastB.kg : "—") + (lastB && firstB && lastB !== firstB ? '<span class="mu" style="font-size:16px"> ' + (lastB.kg - firstB.kg > 0 ? "+" : "") + (Math.round((lastB.kg - firstB.kg) * 10) / 10) + "</span>" : "") + '</b><span class="sm mu">peso kg</span></div></div>';
+  h += goalsHTML();
   // semana 0
   h += '<div class="phase" style="color:var(--lime)">' + ART.bean + '<div class="pt"><span style="color:var(--tx)">Semana 0 · Pruebas</span><span class="pm">El café · el origen · 7-11 oct</span></div></div>' + weekHTML("2026-10-05", null, t);
   let lastPh = 0;
