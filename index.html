@@ -705,13 +705,19 @@ async function pushAll() {
 }
 function planName() { return S.planName || ("Hyrox " + fdate(S.race) + " " + S.race.slice(0, 4)); }
 function planHash() { return JSON.stringify([S.race, S.lifts, S.liftsWeek, S.row2k, S.bw, planName()]); }
+// En la hoja, los días de descanso y las sesiones que se movieron a otro día dicen "Descanso": no cuentan como fallados
+function sheetName(s, ds) {
+  if (s.type === "rest") return /Descanso|Recuperar/.test(s.t) ? s.t : "Descanso · " + s.t;
+  if (ds < todayS() && !dayActs(ds).length && /no hubo entreno/.test(s.why || "")) return "Descanso · " + s.t + " pasó a otro día";
+  return s.t;
+}
 function planDays() {
   const out = [];
   for (let ds = "2026-10-05"; ds <= addD(S.race, 1); ds = addD(ds, 1)) {
     const s = sessionFor(ds); if (!s) continue; const wi = s.wi;
     const st = (s.str || []).concat(s.knee || []).map(function (e) { return EX[e.ex].n + " " + e.sr + (e.kg === "PC" ? " PC" : e.kg != null ? " " + e.kg + " kg" : ""); }).join(" · ");
     const wd = s.wod ? s.wod.f + ": " + s.wod.it.join(", ") : "";
-    out.push({ d: ds, w: wi ? wi.w + 1 : 0, ph: wi ? PHASE[wi.ph] + (wi.deload ? " · pruebas" : wi.taper ? " · taper" : "") : "Pruebas", dia: DF[dow(ds)], ses: s.t, loads: [st, wd].filter(Boolean).join(" | ") });
+    out.push({ d: ds, w: wi ? wi.w + 1 : 0, ph: wi ? PHASE[wi.ph] + (wi.deload ? " · pruebas" : wi.taper ? " · taper" : "") : "Pruebas", dia: DF[dow(ds)], ses: sheetName(s, ds), loads: [st, wd].filter(Boolean).join(" | ") });
   }
   return out;
 }
