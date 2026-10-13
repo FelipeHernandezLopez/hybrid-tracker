@@ -144,12 +144,14 @@ details.list[open] summary{border-bottom:1px solid var(--line)}
 <main>
   <section id="p-hoy" class="panel on"></section>
   <section id="p-plan" class="panel"></section>
+  <section id="p-prog" class="panel"></section>
   <section id="p-tec" class="panel"></section>
   <section id="p-aj" class="panel"></section>
 </main>
 <nav>
   <button id="n-hoy" class="on" onclick="show('hoy')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Hoy</button>
   <button id="n-plan" onclick="show('plan')"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Plan</button>
+  <button id="n-prog" onclick="show('prog')"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Progreso</button>
   <button id="n-tec" onclick="show('tec')"><svg viewBox="0 0 24 24"><path d="M6 8v8M18 8v8M3 10v4M21 10v4M6 12h12"/></svg>Técnica</button>
   <button id="n-aj" onclick="show('aj')"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>Ajustes</button>
 </nav>
@@ -647,7 +649,7 @@ async function apiGet() { const c = connParts(); const r = await fetch(c.url + "
 async function apiPost(body) { const c = connParts(); if (!c) throw new Error("sin conexión"); const r = await fetch(c.url, { method: "POST", body: JSON.stringify(Object.assign({ k: c.k }, body)) }); return r.json(); }
 function applyData(d) {
   if (!d || !d.ok) { if (d && d.error) toast("Hoja: " + d.error); return false; }
-  S.acts = d.acts || {}; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr; if (d.recov) S.recov = d.recov; _wk = {};
+  S.acts = d.acts || {}; if (d.vo2h) S.vo2h = d.vo2h; if (d.sleeph) S.sleeph = d.sleeph; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr; if (d.recov) S.recov = d.recov; _wk = {};
   mergeFromSheet(d);
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
@@ -742,13 +744,13 @@ function dayActs(ds) { return (S.acts[ds] || []).filter(function (a) { return a.
 // ═══════════════════════════════════════════
 function show(t) {
   tab = t;
-  ["hoy", "plan", "tec", "aj"].forEach(function (x) { $("p-" + x).classList.toggle("on", x === t); $("n-" + x).classList.toggle("on", x === t); });
+  ["hoy", "plan", "prog", "tec", "aj"].forEach(function (x) { $("p-" + x).classList.toggle("on", x === t); $("n-" + x).classList.toggle("on", x === t); });
   render();
 }
 function render() {
   _wk = {};
   updHeader();
-  if (tab === "hoy") renderHoy(); else if (tab === "plan") renderPlan(); else if (tab === "tec") renderTec(); else renderAj();
+  if (tab === "hoy") renderHoy(); else if (tab === "plan") renderPlan(); else if (tab === "prog") renderProg(); else if (tab === "tec") renderTec(); else renderAj();
 }
 function updHeader() {
   const t = todayS(); const wi = posOf(t); const days = diff(S.race, t);
@@ -1050,6 +1052,116 @@ function saveLifts() {
 }
 function setRace(v) { if (!v || diff(v, START) < 70) { toast("Elige una fecha al menos 10 semanas después del 12 de octubre"); renderAj(); return; } S.race = v; touch(); save(); schedPush(); toast("Ciclo ajustado: " + totalWeeks() + " semanas"); renderAj(); updHeader(); }
 function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de Google no se toca.")) return; const keep = { race: S.race, conn: S.conn }; S = JSON.parse(JSON.stringify(DEF)); Object.assign(S, keep); save(); refresh(false); render(); }
+
+// ═══════════════════════════════════════════
+//  CHARTS · small SVG line and bar charts (no libraries)
+// ═══════════════════════════════════════════
+const CH = { lime: "#C6F432", white: "#F2F3F0", orange: "#FF8A1F", blue: "#7DB8FF", pink: "#FF8FB1", mu: "#7E847A", grid: "rgba(255,255,255,.07)" };
+function chNum(v) { return v === "" || v == null || isNaN(+v) ? null : +v; }
+// series: [{ name, color, pts: [[ds, value]], dash }] · o: { goal, goalLabel, fmt, invert, h }
+function lineChart(series, o) {
+  o = o || {}; const W = 320, H = o.h || 150, L = 36, R = 12, T = 12, B = 22;
+  series = series.map(function (s) { return Object.assign({}, s, { pts: s.pts.filter(function (p) { return p[0] && chNum(p[1]) != null; }).map(function (p) { return [p[0], +p[1]]; }).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; }) }); }).filter(function (s) { return s.pts.length; });
+  if (!series.length) return '<p class="sm mu" style="padding:18px 0;text-align:center">' + (o.empty || "No data yet") + "</p>";
+  const fmt = o.fmt || function (v) { return String(Math.round(v * 10) / 10); };
+  const ds = [], vs = [];
+  series.forEach(function (s) { s.pts.forEach(function (p) { ds.push(p[0]); vs.push(p[1]); }); });
+  const goals = o.goals || (o.goal != null ? [{ v: o.goal, label: o.goalLabel }] : []);
+  goals.forEach(function (x) { vs.push(x.v); });
+  let d0 = ds.reduce(function (a, b) { return a < b ? a : b; }), d1 = ds.reduce(function (a, b) { return a > b ? a : b; });
+  if (d0 === d1) { d0 = addD(d0, -7); d1 = addD(d1, 7); }
+  let v0 = Math.min.apply(null, vs), v1 = Math.max.apply(null, vs);
+  const pos = v0 >= 0, pad = (v1 - v0) * 0.12 || Math.max(1, Math.abs(v1) * 0.05); v0 -= pad; v1 += pad; if (pos && v0 < 0) v0 = 0;
+  const span = diff(d1, d0) || 1;
+  const X = function (d) { return L + (W - L - R) * diff(d, d0) / span; };
+  const Y = function (v) { const f = (v - v0) / (v1 - v0); return o.invert ? T + (H - T - B) * f : H - B - (H - T - B) * f; };
+  let g = "";
+  for (let i = 0; i <= 3; i++) { const v = v0 + (v1 - v0) * i / 3, y = Y(v); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + CH.grid + '"/><text x="' + (L - 5) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + fmt(v) + "</text>"; }
+  goals.forEach(function (x) { const c = x.color || CH.lime, y = Y(x.v).toFixed(1); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="' + c + '" stroke-dasharray="4 4" opacity=".7"/><text x="' + (W - R) + '" y="' + (+y - 4) + '" text-anchor="end" font-size="9" font-weight="600" fill="' + c + '">' + esc(x.label || fmt(x.v)) + "</text>"; });
+  series.forEach(function (s) {
+    const c = s.color || CH.lime;
+    if (s.pts.length > 1) g += '<polyline fill="none" stroke="' + c + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"' + (s.dash ? ' stroke-dasharray="5 4"' : "") + ' points="' + s.pts.map(function (p) { return X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1); }).join(" ") + '"/>';
+    s.pts.forEach(function (p, i) { const last = i === s.pts.length - 1; g += '<circle cx="' + X(p[0]).toFixed(1) + '" cy="' + Y(p[1]).toFixed(1) + '" r="' + (last ? 3.6 : 2.4) + '" fill="' + c + '"/>'; });
+  });
+  g += '<text x="' + L + '" y="' + (H - 6) + '" font-size="9" fill="' + CH.mu + '">' + fdate(d0) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + fdate(d1) + "</text>";
+  const leg = series.length > 1 || o.legend ? '<div class="chips" style="margin-top:6px">' + series.map(function (s) { return '<span class="sm" style="color:' + (s.color || CH.lime) + '">● ' + esc(s.name) + " " + fmt(s.pts[s.pts.length - 1][1]) + "</span>"; }).join("") + "</div>" : "";
+  return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:230px;display:block" font-family="Inter,sans-serif">' + g + "</svg>" + leg;
+}
+// bars: [{ label, a, b }] stacked (a = main colour, b = second) · o: { aName, bName, goal, aColor, bColor, fmt }
+function barChart(bars, o) {
+  o = o || {}; if (!bars.length) return '<p class="sm mu" style="padding:18px 0;text-align:center">No data yet</p>';
+  const W = 320, H = o.h || 140, L = 26, R = 8, T = 12, B = 20;
+  const max = Math.max(o.goal || 0, Math.max.apply(null, bars.map(function (b) { return (b.a || 0) + (b.b || 0); }))) * 1.12 || 1;
+  const n = bars.length, bw = Math.min(26, (W - L - R) / n * 0.62), step = (W - L - R) / n;
+  const Y = function (v) { return H - B - (H - T - B) * v / max; };
+  const fmt = o.fmt || function (v) { return String(Math.round(v)); };
+  let g = "";
+  for (let i = 0; i <= 2; i++) { const v = max * i / 2, y = Y(v); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + CH.grid + '"/><text x="' + (L - 4) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + fmt(v) + "</text>"; }
+  if (o.goal) { const y = Y(o.goal).toFixed(1); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="' + CH.lime + '" stroke-dasharray="4 4" opacity=".6"/>'; }
+  bars.forEach(function (b, i) {
+    const x = L + step * i + (step - bw) / 2, a = b.a || 0, c = b.b || 0;
+    if (a) g += '<rect x="' + x.toFixed(1) + '" y="' + Y(a).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (Y(0) - Y(a)).toFixed(1) + '" rx="3" fill="' + (o.aColor || CH.lime) + '"/>';
+    if (c) g += '<rect x="' + x.toFixed(1) + '" y="' + Y(a + c).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (Y(a) - Y(a + c)).toFixed(1) + '" rx="3" fill="' + (o.bColor || "#4A4F45") + '"/>';
+    if (n <= 16 || i % 2 === 0) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + CH.mu + '">' + esc(b.label) + "</text>";
+  });
+  const leg = o.bName ? '<div class="chips" style="margin-top:6px"><span class="sm" style="color:' + (o.aColor || CH.lime) + '">● ' + esc(o.aName) + '</span><span class="sm mu">● ' + esc(o.bName) + "</span></div>" : "";
+  return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:230px;display:block" font-family="Inter,sans-serif">' + g + "</svg>" + leg;
+}
+function chartCard(title, big, sub, svg) {
+  return '<div class="card" style="padding:13px 14px 12px"><div class="row sp" style="align-items:flex-start"><div><div class="lbl" style="margin:0">' + esc(title) + "</div>" + (sub ? '<div class="sm mu">' + sub + "</div>" : "") + '</div><b style="font-family:\'Barlow Condensed\';font-size:24px;line-height:1;color:var(--lime);white-space:nowrap">' + (big == null ? "" : big) + '</b></div><div style="margin-top:8px">' + svg + "</div></div>";
+}
+// weekly average of daily values [[ds, v]] → [[weekStartDs, avg]]
+function weeklyAvg(pts, start) {
+  const W = {}; pts.forEach(function (p) { const v = chNum(p[1]); if (v == null || p[0] < start) return; const w = addD(start, Math.floor(diff(p[0], start) / 7) * 7); (W[w] = W[w] || []).push(v); });
+  return Object.keys(W).sort().map(function (w) { return [w, W[w].reduce(function (a, b) { return a + b; }, 0) / W[w].length]; });
+}
+
+// ═══════════════════════════════════════════
+//  PROGRESO · lo mismo que el Panel de la hoja, en el teléfono
+// ═══════════════════════════════════════════
+function tS(s) { s = Math.round(s); return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60); }
+function sgn(v, u) { v = Math.round(v * 10) / 10; return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v) + (u || ""); }
+function renderProg() {
+  let h = "";
+  // 1 · cintura y peso
+  const wa = S.body.filter(function (b) { return b.waist; }).map(function (b) { return [b.d, +b.waist]; });
+  const wl = wa[wa.length - 1];
+  h += chartCard("Cintura", wl ? wl[1] + " cm" : "—", wl ? (wa.length > 1 ? sgn(wl[1] - wa[0][1], " cm") + " desde el inicio · " : "") + (wl[1] > 90 ? "te faltan " + Math.round((wl[1] - 90) * 10) / 10 + " cm" : "¡meta cumplida!") : "Meta: 90 cm",
+    lineChart([{ name: "Cintura", pts: wa }], { goal: 90, goalLabel: "Meta 90 cm", empty: "Apunta tu cintura cada lunes" }));
+  const kg = S.body.filter(function (b) { return b.kg; }).map(function (b) { return [b.d, +b.kg]; }), kl = kg[kg.length - 1];
+  h += chartCard("Peso", kl ? kl[1] + " kg" : "—", kl && kg.length > 1 ? sgn(kl[1] - kg[0][1], " kg") + " desde el inicio" : "Cada lunes en ayunas", lineChart([{ name: "Peso", color: CH.white, pts: kg }], { empty: "Apunta tu peso cada lunes" }));
+  // 2 · fuerza
+  const T = S.tests || [];
+  const mx = function (k) { return T.filter(function (t) { return chNum(t[k]) != null; }).map(function (t) { return [t.d, Math.round(+t[k] / 0.87)]; }); };
+  const sq = mx("squat"), dl = mx("trap");
+  h += chartCard("Piernas · máximo estimado", sq.length ? sq[sq.length - 1][1] + " / " + (dl.length ? dl[dl.length - 1][1] : "—") : "—", "Sentadilla / peso muerto · metas 120 y 140 kg",
+    lineChart([{ name: "Sentadilla", pts: sq }, { name: "Peso muerto", color: CH.orange, pts: dl }], { goals: [{ v: 120, label: "Meta 120" }, { v: 140, label: "Meta 140", color: CH.orange }], fmt: function (v) { return Math.round(v); } }));
+  const rm = function (k) { return T.filter(function (t) { return chNum(t[k]) != null; }).map(function (t) { return [t.d, +t[k]]; }); };
+  h += chartCard("Torso · 5RM", null, "Banca, press militar y dominada con lastre (kg)",
+    lineChart([{ name: "Banca", pts: rm("bench") }, { name: "Press", color: CH.blue, pts: rm("ohp") }, { name: "Dominada +kg", color: CH.white, pts: rm("pull") }]));
+  // 3 · remo y 1 km
+  const tt = function (k) { return T.filter(function (t) { return t[k] && parse2k(t[k]); }).map(function (t) { return [t.d, parse2k(t[k])]; }); };
+  const r2 = tt("row2k"), k1 = tt("km1");
+  h += chartCard("Remo 2.000 m", r2.length ? tS(r2[r2.length - 1][1]) : "—", r2.length > 1 ? sgn(r2[r2.length - 1][1] - r2[0][1], " s") + " desde la 1ª prueba · más bajo = mejor" : "Más bajo = mejor", lineChart([{ name: "Remo", pts: r2 }], { invert: true, fmt: tS }));
+  h += chartCard("1 km · cinta curva", k1.length ? tS(k1[k1.length - 1][1]) : "—", "Más bajo = mejor", lineChart([{ name: "1 km", color: CH.orange, pts: k1 }], { invert: true, fmt: tS, empty: "Aparece cuando hagas tu prueba de 1 km" }));
+  // 4 y 5 · semanas
+  const cw = posOf(todayS()), bars = [], mins = [];
+  for (let w = 0; cw && w <= cw.w; w++) { const wp = weekPlan(w); bars.push({ label: "S" + (w + 1), a: wp.keysReal, b: wp.extras }); mins.push({ label: "S" + (w + 1), a: wp.mins }); }
+  const lb = bars[bars.length - 1];
+  h += chartCard("Sesiones por semana", lb ? lb.a + "/4" : "—", "Clave hechas (lima) + extras", barChart(bars, { goal: 4, aName: "Clave", bName: "Extras" }));
+  const lm = mins[mins.length - 1];
+  h += chartCard("Minutos por semana", lm ? Math.round(lm.a / 6) / 10 + " h" : "—", "Todo lo que registra Polar", barChart(mins, { aColor: CH.white }));
+  // 6 · VO2 máx
+  const vo = (S.vo2h || []).filter(function (p) { return chNum(p[1]) != null; });
+  h += chartCard("VO2 máx · Polar", vo.length ? vo[vo.length - 1][1] : S.vo2 || "—", vo.length > 1 ? sgn(vo[vo.length - 1][1] - vo[0][1]) + " desde la 1ª medición · Fitness Test" : "Se actualiza con el Fitness Test del reloj",
+    lineChart([{ name: "VO2", pts: vo }], { fmt: function (v) { return Math.round(v); }, empty: "Aparece cuando actualices tu hoja" }));
+  // 7 · sueño y recuperación
+  const sl = S.sleeph || [], first = sl.length ? sl[0][0] : todayS(), mon = addD(first, -dow(first));
+  const ss = weeklyAvg(sl.map(function (r) { return [r[0], r[1]]; }), mon), nr = weeklyAvg(sl.map(function (r) { return [r[0], r[3]]; }), mon);
+  h += chartCard("Sueño · promedio semanal", ss.length ? Math.round(ss[ss.length - 1][1]) : "—", "Puntaje de sueño de Polar (0-100)", lineChart([{ name: "Sueño", color: CH.blue, pts: ss }], { fmt: function (v) { return Math.round(v); }, empty: "Aparece cuando actualices tu hoja" }));
+  h += chartCard("Nightly Recharge · promedio semanal", nr.length ? Math.round(nr[nr.length - 1][1] * 10) / 10 : "—", "De 1 (muy bajo) a 6 (muy bueno)", lineChart([{ name: "Recharge", color: CH.pink, pts: nr }], { empty: "Aparece cuando actualices tu hoja" }));
+  $("p-prog").innerHTML = h;
+}
 
 // ═══════════════════════════════════════════
 //  ARRANQUE
