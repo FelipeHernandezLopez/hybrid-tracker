@@ -424,6 +424,23 @@ function main(ex, key, wi, mult, setsAdj) {
   return { ex: ex, sr: Math.max(2, sc.s + (setsAdj || 0)) + "×" + sc.r, kg: v === "PC" ? "PC" : v, unit: v === "PC" ? "peso corporal" : (key === "pull" ? "kg lastre" : "kg") };
 }
 function acc(ex, sr, note) { return { ex: ex, sr: sr, note: note }; }
+function sup(e, tag) { e.ss = tag; return e; }   // superserie: A1 y A2 se alternan sin descanso
+// Sesiones de ~60 min (14 oct): el WOD de los días de fuerza tiene un máximo de minutos
+function capWod(w, max) {
+  w = Object.assign({}, w); let f = w.f, note = "";
+  const m = f.match(/^(AMRAP|EMOM) (\d+)'/);
+  if (m && +m[2] > max) {
+    let n = max;
+    if (m[1] === "EMOM") { const cyc = w.it.filter(function (x) { return /^Min \d/.test(x); }).length || 1; n = Math.floor(max / cyc) * cyc || cyc; }
+    f = f.replace(m[2] + "'", n + "'");
+  }
+  const c = f.match(/cap (\d+)'/);
+  if (c && +c[1] > max) { f = f.replace("cap " + c[1] + "'", "cap " + max + "'"); note = "Máximo " + max + "': si llegas, para y apunta hasta dónde llegaste."; }
+  else if (!c && /por tiempo/.test(f) && !/^\d+-/.test(f)) { f += " · cap " + max + "'"; note = "Máximo " + max + "': si llegas, para y apunta hasta dónde llegaste."; }
+  if (/^Tabata x4/.test(f) && max < 19) { f = f.replace("x4", "x3"); w.it = w.it.slice(0, 3); w.m = (w.m || []).slice(0, 3); }
+  w.f = f; w.capNote = note; return w;
+}
+function withNote(w, n) { const t = [w.capNote, n].filter(Boolean).join(" "); return Object.assign({}, w, { note: t }); }
 
 // ═══════════════════════════════════════════
 //  SESIÓN DEL DÍA
@@ -442,21 +459,21 @@ function keySession(k, wi, ds) {
   else if (k === "TM") s = special("test_motor", ds, wi);
   else if (k === "A") {
     const ph1 = wi.ph === 1;
-    s = { type: "gym", t: "Fuerza inferior", sub: "+ rodilla + WOD · 75 min", warm: "inf", cool: "cool", wi: wi, nut: "train",
+    s = { type: "gym", t: "Fuerza inferior", sub: "+ rodilla + WOD · 60 min", warm: "inf", cool: "cool", wi: wi, nut: "train", kneeCircuit: true,
       str: [main("boxsq", "squat", wi), main("trap", "trap", wi, 1, -1),
-        ph1 ? acc("rlunge", light ? "2×8/pierna" : "3×8/pierna", "Mancuernas pesadas, 2 reps en reserva") : acc("sblunge", light ? "2×10/pierna" : "3×10/pierna", "Caminando con sandbag de 20 kg"),
-        acc("nordic", light ? "2×6" : "3×6-8", "Lento en la bajada")],
-      knee: [acc("spanish", "3×45 s", "Pesada: banda gruesa y bien atrás"), acc("stepdown", "3×8/pierna", "Bajada en 3-4 s"),
-        acc("tke", "3×15", "Pausa de 2 s arriba"), acc("tibialis", "3×15", "En superserie con gemelos"), acc("calf", "3×12", ph1 ? "Pesado, pausa arriba" : "Pesado")],
-      wod: Object.assign({}, W_MON[rot], { note: lightNote }) };
+        sup(ph1 ? acc("rlunge", light ? "2×8/pierna" : "3×8/pierna", "Mancuernas pesadas, 2 reps en reserva") : acc("sblunge", light ? "2×10/pierna" : "3×10/pierna", "Caminando con sandbag de 20 kg"), "A1"),
+        sup(acc("nordic", light ? "2×6" : "3×6-8", "Lento en la bajada"), "A2")],
+      knee: [acc("spanish", "45 s", "Pesada: banda gruesa y bien atrás"), acc("stepdown", "8/pierna", "Bajada en 3-4 s"),
+        acc("tke", "15", "Pausa de 2 s arriba"), acc("tibialis", "15", ""), acc("calf", "12", ph1 ? "Pesado, pausa arriba" : "Pesado")],
+      wod: withNote(capWod(W_MON[rot], 12), lightNote) };
   } else if (k === "B") {
     s = { type: "gym", t: "Fuerza superior", sub: "+ WOD · 60 min", warm: "sup", cool: "cool", wi: wi, nut: "train",
-      str: [main("bench", "bench", wi), main("pullup", "pull", wi),
-        main("ohp", "ohp", wi, wi.ph === 2 ? 0.85 : 0.9, -1),
-        acc("row", light ? "2×10" : "3×10", "2 reps en reserva"),
-        acc("dips", "3×máx", "Lastra si pasas de 12"),
-        acc("facepull", "3×15", "Ligero"), acc("latraise", "3×15", "Lento")],
-      wod: Object.assign({}, W_TUE[rot], { note: lightNote }) };
+      str: [main("bench", "bench", wi), sup(main("pullup", "pull", wi), "A1"),
+        sup(main("ohp", "ohp", wi, wi.ph === 2 ? 0.85 : 0.9, -1), "A2"),
+        sup(acc("row", light ? "2×10" : "3×10", "2 reps en reserva"), "B1"),
+        sup(acc("dips", light ? "2×máx" : "3×máx", "Lastra si pasas de 12"), "B2"),
+        sup(acc("facepull", "2×15", "Ligero"), "C1"), sup(acc("latraise", "2×15", "Lento"), "C2")],
+      wod: withNote(capWod(W_TUE[rot], 12), lightNote) };
   } else if (k === "M") {
     s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
       wod: Object.assign({}, W_WED[rot], { note: (light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote() }) };
@@ -469,9 +486,9 @@ function keySession(k, wi, ds) {
       knee: (wi.deload || wi.taper) ? [] : [acc("backdrag", "3×20 m", "Pesado, pasos cortos")], kneeAfter: true };
   } else {
     const fs = wi.ph === 1 ? main("frontsq", "squat", wi, 0.8, -1) : main("pushpress", "ohp", wi, 1.15, -1);
-    s = { type: "gym", t: "Full body", sub: "Estilo Hyrox · 70 min", warm: "full", cool: "cool", wi: wi, nut: "train",
+    s = { type: "gym", t: "Full body", sub: "Estilo Hyrox · 60 min", warm: "full", cool: "cool", wi: wi, nut: "train",
       str: [acc("hpc", wi.ph === 1 ? "5×3" : "5×2", "Técnica: rápido, RPE 7 (empieza en ~60 kg)"), fs],
-      wod: Object.assign({}, W_THU[rot], { note: lightNote }),
+      wod: withNote(capWod(W_THU[rot], 15), lightNote),
       knee: [acc("backdrag", light ? "2×20 m" : "4×20 m", "Pesado, pasos cortos")], kneeAfter: true };
   }
   s.key = k; return s;
@@ -788,10 +805,10 @@ function renderHoy() {
   if (weekOfDay(ds) && ds >= todayS() && !MOVED[ds]) h += '<button class="btn2" style="width:100%;margin-bottom:12px" onclick="choosePick(\'' + ds + '\')">Prefiero otra sesión hoy</button>';
   if (s.warm) h += mobHTML(s.warm);
   if (s.str && s.str.length) {
-    h += '<div class="sec">Fuerza<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">Descanso 2-3\' en básicos</span></div>';
+    h += '<div class="sec">Fuerza<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">' + (s.str.some(function (e) { return e.ss; }) ? "Principal: 2\' de descanso · A1→A2 sin parar, 90 s tras el par" : "Descanso 2-3\' en básicos") + "</span></div>";
     s.str.forEach(function (e) { h += exHTML(e); });
   }
-  const kneeH = s.knee && s.knee.length ? '<div class="sec">Rodilla<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">' + (s.kneeAfter ? "Para cerrar" : "10 min") + "</span></div>" + s.knee.map(exHTML).join("") : "";
+  const kneeH = s.knee && s.knee.length ? '<div class="sec">Rodilla<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">' + (s.kneeAfter ? "Para cerrar" : s.kneeCircuit ? "Circuito · 2 vueltas · 8 min" : "10 min") + "</span></div>" + s.knee.map(exHTML).join("") : "";
   if (!s.kneeAfter) h += kneeH;
   if (s.wod) h += wodHTML(s.wod, s.type === "engine" ? "Motor" : s.type === "test" ? "Final" : "WOD");
   if (s.kneeAfter) h += kneeH;
@@ -849,7 +866,7 @@ function exHTML(e) {
   if (e.kg != null && e.kg !== "PC") right = "<b>" + e.kg + "</b><small>" + e.unit + "</small>";
   else if (e.kg === "PC") right = "<b>PC</b><small>peso corporal</small>";
   else right = "<b>" + e.sr + "</b>";
-  return '<div class="ex" onclick="tech(\'' + e.ex + '\')"><div><div class="n">' + x.n + '</div><div class="s">' + (e.kg !== undefined && e.kg !== null ? e.sr + (e.note ? " · " : "") : "") + esc(e.note || "") + "</div></div>" +
+  return '<div class="ex" onclick="tech(\'' + e.ex + '\')"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + x.n + '</div><div class="s">' + (e.kg !== undefined && e.kg !== null ? e.sr + (e.note ? " · " : "") : "") + esc(e.note || "") + "</div></div>" +
     '<div class="k">' + right + "</div></div>";
 }
 // Qué significa cada formato de WOD y cómo hacerlo (desplegable dentro de la tarjeta)
