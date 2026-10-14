@@ -603,7 +603,7 @@ function paceNote() {
   if (!S.row2k) return "Haz la prueba de 2.000 m de remo para ver tus ritmos.";
   const p = parse2k(S.row2k); if (!p) return "";
   const sp = p / 4;
-  return "Tu split del 2k: " + mmss(sp) + " /500 m · +6 s = " + mmss(sp + 6) + " · −2 s = " + mmss(sp - 2);
+  return "Tus ritmos en el monitor (/500m): split del 2k " + mmss(sp) + " · fuerte +6 s = " + mmss(sp + 6) + " · muy fuerte −2 s = " + mmss(sp - 2) + " · suave ≈ " + mmss(sp + 30);
 }
 function parse2k(t) { const m = String(t).match(/^(\d{1,2}):(\d{2})(?:\.(\d))?$/); return m ? (+m[1] * 60 + +m[2] + (m[3] ? +m[3] / 10 : 0)) : null; }
 function mmss(s) { const m = Math.floor(s / 60), x = s - m * 60; return m + ":" + (x < 10 ? "0" : "") + x.toFixed(1); }
@@ -675,12 +675,18 @@ function applyData(d) {
   mergeFromSheet(d);
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
+// El botón "Sincronizar ahora" muestra que está trabajando y cómo terminó
+function syncBtn(txt, end) {
+  const b = document.querySelector('[onclick="refresh(true)"]'); if (!b) return;
+  b.textContent = txt; b.disabled = !end; b.style.opacity = end ? "1" : ".6";
+  if (end) setTimeout(function () { if (tab === "aj") renderAj(); }, 1800);
+}
 async function refresh(manual) {
   if (!connParts()) { if (manual) toast("Pega tu código de conexión en Ajustes"); return; }
   try {
-    if (manual) { toast("Sincronizando con Polar…"); if (applyData(await apiPost({ a: "sync" }))) toast("Todo al día"); }
+    if (manual) { syncBtn("Sincronizando…"); toast("Sincronizando con Polar…"); if (applyData(await apiPost({ a: "sync" }))) { toast("Todo al día"); syncBtn("✓ Todo al día", true); } else syncBtn("No se pudo sincronizar", true); }
     else applyData(await apiGet());
-  } catch (e) { if (manual) toast("No se pudo conectar con la hoja"); }
+  } catch (e) { if (manual) { toast("No se pudo conectar con la hoja"); syncBtn("No se pudo conectar", true); } }
 }
 // La hoja es el respaldo: si este teléfono perdió su memoria (ícono nuevo, datos borrados), recupera de ahí
 function mergeFromSheet(d) {
@@ -882,7 +888,7 @@ function wodHow(f) {
   if (/\d+-\d+/.test(f)) return P(["<b>Escalera</b>: haces todos los ejercicios con el primer número de repeticiones, luego con el siguiente, y así (" + esc(f.split(" ")[0]) + ").", "Es <b>por tiempo</b>: lo más rápido posible con buena técnica. El tiempo final es tu marca.", fin]);
   if (/tiempo|rondas/i.test(f)) return P(["<b>Por tiempo</b> (<i>For time</i>): haces todo lo indicado lo más rápido posible con buena técnica. El tiempo final es tu marca.", /cap/.test(f) ? "<b>Cap</b> = tiempo máximo: si llegas, paras y apuntas hasta dónde llegaste." : "Si son rondas, repite la lista ese número de veces.", "Divide las series grandes desde el inicio (15 wall balls = 8 + 7) y respira entre bloques. " + fin]);
   if (/Zona 2/.test(f)) return P(["<b>Zona 2</b>: ritmo suave en el que puedes hablar en frases. Pulso entre 115 y 135 (60-70% de tu máximo de 188).", "Si el pulso sube de 140, baja el ritmo. Construye el motor sin cansarte."]);
-  if (/Intervalos|Escalera|Remo 1:1|Umbral|Ski|Mixto|Remo \+/.test(f)) return P(["<b>Intervalos</b>: trabajo fuerte y descanso como se indica. La última repetición debe salir igual de rápida que la primera.", "Si el remo marca un ritmo (split), mantenlo en todas. Damper 5-6 siempre igual para poder comparar.", "Pulso al final de cada repetición fuerte: 160-175. En el descanso deja que baje a ~130."]);
+  if (/Intervalos|Escalera|Remo 1:1|Umbral|Ski|Mixto|Remo \+/.test(f)) return P(["<b>Intervalos</b>: tramos fuertes y suaves seguidos. Lo \"suave\" es seguir remando despacio, no parar (salvo que diga descanso). Por ejemplo 5× (4' fuerte / 2' suave) = 5 bloques de 6 minutos seguidos, 30 minutos sin bajarte.", "<b>Split</b> = el tiempo que tardarías en remar 500 m a ese ritmo. En el monitor del remo es el número grande que dice <b>/500m</b>: más bajo = más rápido. Tus ritmos están arriba de esta tarjeta.", "<b>Fuerte</b>: mantén el split indicado, unas 24-28 paladas por minuto (s/m). <b>Suave</b>: unos 30 s más lento que tu split del 2k, 18-20 s/m, respirando.", "Damper 5-6 siempre igual. La última repetición debe salir igual que la primera: si no llegas al split, baja 2-3 s en las siguientes.", "Pulso al final de cada tramo fuerte: 160-175. En el suave deja que baje a ~130."]);
   if (/simulaci|Simulacro|Compromised/.test(f)) return P(["<b>Simulación de Hyrox</b>: correr + estación, en orden, como en la carrera.", "Corre a tu ritmo de carrera, no más rápido: el objetivo es aprender a correr cansado después de cada estación.", "Cronometra cada parte y apúntalo en notas para comparar en la próxima."]);
   return "";
 }
@@ -892,9 +898,55 @@ function wodHTML(w, lab) {
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") +
     (wodHow(w.f) ? '<details class="how"><summary>¿Qué es y cómo se hace? ▾</summary>' + wodHow(w.f) + "</details>" : "") + "</div>";
 }
+// Cómo se hace cada ejercicio de calentamiento, vuelta a la calma y movilidad (toca la fila)
+const MOBX = {
+  "Remo suave": ["Damper 5-6, ritmo conversacional (split ~2:30-2:40).", "Piernas → espalda → brazos al tirar; al volver, brazos → espalda → piernas."],
+  "Remo o ski suave": ["3 minutos a ritmo cómodo, subiendo un poco al final.", "Solo para calentar: deberías poder hablar."],
+  "Remo progresivo": ["4 minutos: empieza muy suave y sube un poco cada minuto.", "El último minuto, cerca del ritmo de los intervalos."],
+  "SkiErg suave": ["Brazos casi estirados arriba, tira hacia abajo doblando la cadera.", "Ritmo cómodo, sin forzar."],
+  "Ski progresivo": ["2 minutos subiendo el ritmo poco a poco.", "Cadera atrás y abdomen firme en cada tirón."],
+  "90/90 de cadera": ["Sentado, una pierna delante y otra al lado, ambas rodillas a 90°.", "Espalda recta, inclínate un poco sobre la pierna de adelante.", "Respira lento y cambia de lado."],
+  "Transiciones 90/90": ["Desde la posición 90/90, gira las dos rodillas al otro lado sin usar las manos.", "Lento y controlado: 10 cambios en total."],
+  "Flexor de cadera de rodillas": ["Una rodilla en el suelo, la otra pierna adelante.", "Aprieta el glúteo de la pierna de atrás y lleva la cadera un poco adelante.", "Sientes el estiramiento delante de la cadera, no en la lumbar."],
+  "Couch stretch": ["Rodilla de atrás pegada a la pared o a un banco, empeine apoyado arriba.", "Pierna de adelante en el suelo, tronco erguido, glúteo apretado.", "Intenso en el cuádriceps: respira y aguanta."],
+  "Tobillo a la pared": ["Pie a un palmo de la pared, lleva la rodilla a tocarla sin levantar el talón.", "Si toca fácil, aleja el pie. Rodilla en línea con el dedo gordo."],
+  "Puente de glúteo": ["Boca arriba, rodillas dobladas.", "Sube la cadera apretando glúteos, pausa 1 s y baja lento."],
+  "Sentadilla española": ["Banda gruesa detrás de las rodillas, anclada a un rack.", "Siéntate atrás con las tibias verticales y aguanta.", "Arde el cuádriceps sin dolor de rodilla: por eso está aquí."],
+  "Series de aproximación del primer ejercicio": ["Barra vacía × 8, luego ~50% × 5 y ~70% × 3.", "Después empiezas tus series de trabajo."],
+  "Dislocaciones con banda": ["Banda o palo con agarre ancho, brazos estirados.", "Pasa la banda por encima de la cabeza hasta atrás y vuelve.", "Si duele el hombro, abre más el agarre."],
+  "Gato-vaca": ["En cuadrupedia: redondea la espalda al exhalar y arquéala al inhalar.", "Movimiento lento, vértebra por vértebra."],
+  "Rotación torácica en cuadrupedia": ["En cuadrupedia, una mano detrás de la cabeza.", "Gira el codo hacia el techo siguiéndolo con la mirada, y vuelve.", "Gira la espalda alta, no la lumbar."],
+  "Face pull con banda": ["Banda a la altura de la cara, tira hacia la frente separando las manos.", "Codos altos, junta los omóplatos."],
+  "Scap push-ups": ["En posición de plancha con brazos estirados.", "Junta y separa los omóplatos sin doblar los codos."],
+  "Colgado activo de la barra": ["Cuélgate y baja los hombros lejos de las orejas, sin doblar los brazos.", "Mantén 30 s respirando."],
+  "Colgado de la barra": ["Cuélgate relajado, deja que la espalda y los hombros se estiren.", "Pies cerca del suelo si quieres quitar peso."],
+  "Dorsal colgado": ["Cuélgate de la barra relajado, o agárrate a un rack y lleva la cadera atrás.", "Siente el estiramiento a los lados de la espalda."],
+  "Inchworm": ["De pie, baja las manos al suelo y camina con ellas hasta plancha.", "Vuelve caminando los pies hacia las manos y sube."],
+  "World's greatest stretch": ["Zancada larga, mano del mismo lado del pie de adelante en el suelo.", "Codo hacia el tobillo, luego gira y lleva ese brazo al techo.", "Cambia de lado."],
+  "KB swing ligero": ["Kettlebell ligera, bisagra de cadera: la cadera atrás, no sentadilla.", "Empuja la cadera adelante y deja que la pesa suba a la altura del pecho."],
+  "Técnica de clean con barra vacía": ["Barra a medio muslo, salta extendiendo la cadera y encoge los hombros.", "Recibe la barra sobre los hombros con codos altos, en cuarto de sentadilla."],
+  "Leg swings": ["Agarrado a algo, balancea la pierna adelante-atrás y luego de lado a lado.", "Amplitud creciente, sin forzar."],
+  "2 aceleraciones de 20 s": ["En la máquina del día, 20 s subiendo hasta el ritmo fuerte de los intervalos.", "Descansa 40 s suave entre las dos."],
+  "Cuádriceps de pie": ["Agarra el empeine detrás de ti, rodillas juntas.", "Aprieta el glúteo y empuja la cadera un poco adelante."],
+  "Isquios": ["Talón en un banco bajo, pierna estirada.", "Inclínate adelante con la espalda recta hasta sentir el estiramiento atrás del muslo."],
+  "Isquios con banda": ["Boca arriba, banda en el pie, sube la pierna estirada.", "Tira suave con la banda, la otra pierna estirada en el suelo."],
+  "Paloma": ["Desde cuadrupedia, lleva una rodilla adelante con la pierna doblada delante de ti.", "La otra pierna estirada atrás; baja el tronco si puedes.", "Siente el glúteo de la pierna de adelante."],
+  "Frog stretch": ["En cuadrupedia, abre las rodillas todo lo que puedas, pies hacia afuera.", "Lleva la cadera atrás despacio. Estira los aductores."],
+  "Pecho en la pared": ["Antebrazo en la pared a la altura del hombro.", "Gira el cuerpo hacia el lado contrario hasta sentir el pecho."],
+  "Respiración nasal tumbado": ["Boca arriba, piernas en un banco o en la pared.", "Inhala por la nariz 4 s, exhala 6 s. Baja pulsaciones y empieza a recuperar."],
+  "Foam roller: cuádriceps, IT, gemelo": ["Rueda lento sobre cada zona ~1 minuto.", "Donde duela un poco, para 20-30 s y respira. Nunca sobre la rodilla."],
+  "Cobra → postura del niño": ["Boca abajo, empuja con las manos y arquea suave la espalda (cobra).", "Lleva la cadera atrás a los talones con los brazos estirados (niño). Alterna."],
+  "Thread the needle": ["En cuadrupedia, pasa un brazo por debajo del otro, apoyando el hombro en el suelo.", "Luego abre ese brazo hacia el techo. Gira la espalda alta."],
+  "Gemelo en la pared": ["Manos en la pared, una pierna atrás estirada con el talón en el suelo.", "Inclínate adelante. Luego dobla un poco esa rodilla para el sóleo."]
+};
+function mobTech(el) {
+  const n = decodeURIComponent(el.getAttribute("data-n")), c = MOBX[n]; if (!c) return;
+  openModal(n, '<ol style="margin-top:4px">' + c.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ol>" +
+    '<a class="btn2" style="display:block;text-align:center;margin-top:14px;text-decoration:none;color:var(--tx)" href="https://www.youtube.com/results?search_query=' + encodeURIComponent(n.replace(/^\d+ /, "") + " técnica") + '" target="_blank" rel="noopener">Ver vídeos en YouTube</a>');
+}
 function mobHTML(k) {
   const m = MOB[k];
-  return '<details class="list"><summary>' + m.n + "<span>" + m.t + " ▾</span></summary>" + m.it.map(function (i) { return '<div class="li"><span>' + i[0] + "</span><b>" + i[1] + "</b></div>"; }).join("") + "</details>";
+  return '<details class="list"><summary>' + m.n + "<span>" + m.t + " ▾</span></summary>" + m.it.map(function (i) { const has = MOBX[i[0]]; return '<div class="li"' + (has ? ' style="cursor:pointer" data-n="' + encodeURIComponent(i[0]) + '" onclick="mobTech(this)"' : "") + "><span>" + i[0] + (has ? ' <span class="mu">›</span>' : "") + "</span><b>" + i[1] + "</b></div>"; }).join("") + (m.it.some(function (i) { return MOBX[i[0]]; }) ? '<p class="sm mu" style="padding:8px 0 10px">Toca un ejercicio para ver cómo se hace.</p>' : "") + "</details>";
 }
 function nutHTML(k) {
   const n = NUT[k || "train"];
