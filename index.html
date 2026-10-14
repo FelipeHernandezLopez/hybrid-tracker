@@ -75,6 +75,10 @@ nav button.on{color:var(--lime)}
 .wod li{padding:6px 0;border-top:1px solid rgba(27,36,4,.15);font-weight:500;font-size:14px}
 .wod .note{font-size:12px;margin-top:10px;opacity:.8}
 .wod .chips{margin-top:10px}
+.wod .how{margin-top:12px;border-top:1px solid rgba(27,36,4,.15);padding-top:10px}
+.wod .how summary{list-style:none;font-weight:700;font-size:13px;cursor:pointer}
+.wod .how summary::-webkit-details-marker{display:none}
+.wod .how p{font-size:13px;margin-top:8px;line-height:1.45}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{border:none;background:var(--c2);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600}
 .wod .chip{background:rgba(27,36,4,.12);color:var(--limeInk)}
@@ -848,10 +852,27 @@ function exHTML(e) {
   return '<div class="ex" onclick="tech(\'' + e.ex + '\')"><div><div class="n">' + x.n + '</div><div class="s">' + (e.kg !== undefined && e.kg !== null ? e.sr + (e.note ? " · " : "") : "") + esc(e.note || "") + "</div></div>" +
     '<div class="k">' + right + "</div></div>";
 }
+// Qué significa cada formato de WOD y cómo hacerlo (desplegable dentro de la tarjeta)
+function wodHow(f) {
+  f = String(f || "");
+  const P = function (a) { return a.map(function (x) { return "<p>" + x + "</p>"; }).join(""); };
+  const fin = "Escala sin miedo: menos peso o menos repeticiones antes que mala técnica. Toca cada ejercicio de abajo para ver cómo se hace.";
+  if (/AMRAP/.test(f)) return P(["<b>AMRAP</b> = <i>As Many Rounds As Possible</i>: tantas rondas como puedas en el tiempo indicado.", "Pon el reloj y repite la lista en orden sin pararlo. Al final apunta rondas + repeticiones (por ejemplo 5 rondas + 12).", "Ritmo: el que puedas mantener hasta el final. La primera ronda debería sentirse al 70-80%. Descansa de pie, 3-5 respiraciones, y sigue.", /suave/.test(f) ? "Hoy es suave: ritmo cómodo, es para mover el cuerpo después de la prueba." : fin]);
+  if (/EMOM/.test(f)) return P(["<b>EMOM</b> = <i>Every Minute On the Minute</i>: al empezar cada minuto haces lo indicado, y lo que sobra del minuto es tu descanso.", "Si dice Min 1, Min 2, Min 3…, cada minuto toca un ejercicio distinto y luego se repite el ciclo.", "Lo ideal es terminar en 35-45 s y descansar 15-25 s. Si empiezas a no llegar a tiempo, quita 1-2 repeticiones y sigue.", "Usa el reloj del gym o un temporizador de intervalos de 1 minuto. " + fin]);
+  if (/Tabata/.test(f)) return P(["<b>Tabata</b>: 8 rondas de 20 s a tope y 10 s de descanso (4 minutos por bloque).", "Cuenta repeticiones en cada ronda: tu marca es la ronda más baja. Intenta que no caiga mucho.", fin]);
+  if (/Chipper/.test(f)) return P(["<b>Chipper</b>: una lista larga que se hace una sola vez, de arriba abajo, \"picando\" cada ejercicio hasta terminarlo.", "Divide desde el principio en bloques pequeños (por ejemplo 50 wall balls = 5×10) y no te pases de ritmo al inicio.", "<b>Cap</b> = tiempo máximo: si llegas, paras y apuntas hasta dónde llegaste. " + fin]);
+  if (/\d+-\d+/.test(f)) return P(["<b>Escalera</b>: haces todos los ejercicios con el primer número de repeticiones, luego con el siguiente, y así (" + esc(f.split(" ")[0]) + ").", "Es <b>por tiempo</b>: lo más rápido posible con buena técnica. El tiempo final es tu marca.", fin]);
+  if (/tiempo|rondas/i.test(f)) return P(["<b>Por tiempo</b> (<i>For time</i>): haces todo lo indicado lo más rápido posible con buena técnica. El tiempo final es tu marca.", /cap/.test(f) ? "<b>Cap</b> = tiempo máximo: si llegas, paras y apuntas hasta dónde llegaste." : "Si son rondas, repite la lista ese número de veces.", "Divide las series grandes desde el inicio (15 wall balls = 8 + 7) y respira entre bloques. " + fin]);
+  if (/Zona 2/.test(f)) return P(["<b>Zona 2</b>: ritmo suave en el que puedes hablar en frases. Pulso entre 115 y 135 (60-70% de tu máximo de 188).", "Si el pulso sube de 140, baja el ritmo. Construye el motor sin cansarte."]);
+  if (/Intervalos|Escalera|Remo 1:1|Umbral|Ski|Mixto|Remo \+/.test(f)) return P(["<b>Intervalos</b>: trabajo fuerte y descanso como se indica. La última repetición debe salir igual de rápida que la primera.", "Si el remo marca un ritmo (split), mantenlo en todas. Damper 5-6 siempre igual para poder comparar.", "Pulso al final de cada repetición fuerte: 160-175. En el descanso deja que baje a ~130."]);
+  if (/simulaci|Simulacro|Compromised/.test(f)) return P(["<b>Simulación de Hyrox</b>: correr + estación, en orden, como en la carrera.", "Corre a tu ritmo de carrera, no más rápido: el objetivo es aprender a correr cansado después de cada estación.", "Cronometra cada parte y apúntalo en notas para comparar en la próxima."]);
+  return "";
+}
 function wodHTML(w, lab) {
   return '<div class="sec">' + lab + '</div><div class="wod"><div class="f">' + esc(w.f) + '</div><div class="t">' + (lab === "Motor" ? "Intervalos" : lab === "Final" ? "Para cerrar" : "Hoy toca") + "</div><ul>" +
     w.it.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
-    (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") + "</div>";
+    (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") +
+    (wodHow(w.f) ? '<details class="how"><summary>¿Qué es y cómo se hace? ▾</summary>' + wodHow(w.f) + "</details>" : "") + "</div>";
 }
 function mobHTML(k) {
   const m = MOB[k];
@@ -1194,7 +1215,11 @@ function renderProg() {
     if (!connParts() && stRaw.indexOf(".") > 0) { try { S.conn = decodeURIComponent(atob(stRaw.slice(stRaw.indexOf(".") + 1).replace(/-/g, "+").replace(/_/g, "/"))); save(); } catch (e) {} }
     history.replaceState(null, "", location.pathname + location.hash); render(); oauthBack(st, code);
   }
-  else { render(); refresh(false); if (connParts() && (S.pushed !== planHash() || S.dirty)) schedPush(); }
+  else {
+    // 14 oct: el 5RM de press militar del 12 oct quedó escrito 60 kg; el real es 42,5 kg
+    if (!S.fixOhp1) { const t = S.tests.find(function (x) { return x.d === "2026-10-12"; }); if (t && +t.ohp === 60) { t.ohp = 42.5; if (+S.lifts.ohp === 60) S.lifts.ohp = 42.5; touch(); S.dirty = true; } S.fixOhp1 = true; save(); }
+    render(); refresh(false); if (connParts() && (S.pushed !== planHash() || S.dirty)) schedPush();
+  }
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return;
     if (openedOn !== todayS()) { openedOn = todayS(); viewDate = todayS(); }
