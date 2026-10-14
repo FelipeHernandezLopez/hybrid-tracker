@@ -140,6 +140,8 @@ details.list[open] summary{border-bottom:1px solid var(--line)}
 .mb ol,.mb ul{padding-left:18px}.mb li{margin:7px 0;color:var(--mu2)}
 .knee{background:rgba(242,185,75,.1);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:13px;margin-top:12px}
 #toast{position:fixed;left:50%;bottom:calc(var(--nav) + 18px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#2B2F33;color:#fff;padding:10px 18px;border-radius:22px;font-size:13px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;max-width:90vw;text-align:center}
+.btn.busy{animation:syncp 1.1s ease-in-out infinite}
+@keyframes syncp{0%,100%{opacity:.5}50%{opacity:1}}
 </style>
 </head>
 <body>
@@ -676,15 +678,20 @@ function applyData(d) {
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
 // El botón "Sincronizar ahora" muestra que está trabajando y cómo terminó
+let _sync = null;
 function syncBtn(txt, end) {
-  const b = document.querySelector('[onclick="refresh(true)"]'); if (!b) return;
-  b.textContent = txt; b.disabled = !end; b.style.opacity = end ? "1" : ".6";
-  if (end) setTimeout(function () { if (tab === "aj") renderAj(); }, 1800);
+  _sync = { txt: txt, end: !!end }; paintSync();
+  clearTimeout(syncBtn._t);
+  if (end) syncBtn._t = setTimeout(function () { _sync = null; if (tab === "aj") renderAj(); }, 4000);
+}
+function paintSync() {
+  const b = document.querySelector('[onclick="refresh(true)"]'); if (!b || !_sync) return;
+  b.textContent = _sync.txt; b.disabled = !_sync.end; b.classList.toggle("busy", !_sync.end);
 }
 async function refresh(manual) {
   if (!connParts()) { if (manual) toast("Pega tu código de conexión en Ajustes"); return; }
   try {
-    if (manual) { syncBtn("Sincronizando…"); toast("Sincronizando con Polar…"); if (applyData(await apiPost({ a: "sync" }))) { toast("Todo al día"); syncBtn("✓ Todo al día", true); } else syncBtn("No se pudo sincronizar", true); }
+    if (manual) { syncBtn("Sincronizando… puede tardar hasta un minuto"); toast("Sincronizando con Polar…"); if (applyData(await apiPost({ a: "sync" }))) { toast("Todo al día"); syncBtn("✓ Todo listo", true); } else syncBtn("No se pudo sincronizar", true); }
     else applyData(await apiGet());
   } catch (e) { if (manual) { toast("No se pudo conectar con la hoja"); syncBtn("No se pudo conectar", true); } }
 }
@@ -1123,7 +1130,7 @@ function renderAj() {
   h += '<div class="sec">Datos</div><div class="card"><p class="sm mu">Todo queda guardado en tu hoja de Google. En el teléfono solo hay una copia.</p><button class="btn2 r" style="width:100%;margin-top:12px" onclick="resetAll()">Borrar la copia del teléfono</button></div>';
   h += sealSVG() + '<p class="sm mu" style="text-align:center;letter-spacing:1px">Colombia · Budapest · Nederland</p>';
   h += '<p class="sm mu" style="text-align:center;margin-top:10px">Pesos y calorías son orientativos. Si la rodilla duele al bajar escaleras o al día siguiente, consulta con un fisio.</p>';
-  $("p-aj").innerHTML = h;
+  $("p-aj").innerHTML = h; paintSync();
 }
 function srcRow(k, n, d, on) {
   return '<div class="row sp"><div><b>' + n + '</b> <span class="pill ' + (on ? "l" : "") + '">' + (on ? "Conectado" : "No conectado") + '</span><div class="sm mu" style="margin-top:3px">' + d + '</div></div>' +
