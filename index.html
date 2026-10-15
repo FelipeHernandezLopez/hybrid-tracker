@@ -822,7 +822,7 @@ function renderHoy() {
   const wi = s.wi;
   const tags = wi ? '<span class="pill l">Semana ' + (wi.w + 1) + " · " + PHASE[wi.ph] + "</span> " + (wi.deload ? '<span class="pill w">Descarga</span>' : "") + (wi.taper ? '<span class="pill w">Taper</span>' : "") : '<span class="pill l">Semana 0 · Pruebas</span>';
   h += '<div class="hero">' + tags + "<h1>" + s.t + "</h1><p>" + s.sub + "</p>" + ART.sky + "</div>";
-  h += weekCardHTML(ds) + actsHTML(ds);
+  h += coachHTML(ds) + weekCardHTML(ds) + actsHTML(ds);
   if (s.why) h += '<div class="knee" style="margin:0 0 12px">' + esc(s.why) + "</div>";
   if (weekOfDay(ds) && ds >= todayS() && !MOVED[ds]) h += '<button class="btn2" style="width:100%;margin-bottom:12px" onclick="choosePick(\'' + ds + '\')">Prefiero otra sesión hoy</button>';
   if (s.warm) h += mobHTML(s.warm);
@@ -1239,7 +1239,8 @@ function lineChart(series, o) {
     if (s.pts.length > 1) g += '<polyline fill="none" stroke="' + c + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"' + (s.dash ? ' stroke-dasharray="5 4"' : "") + ' points="' + s.pts.map(function (p) { return X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1); }).join(" ") + '"/>';
     s.pts.forEach(function (p, i) { const last = i === s.pts.length - 1; g += '<circle cx="' + X(p[0]).toFixed(1) + '" cy="' + Y(p[1]).toFixed(1) + '" r="' + (last ? 3.6 : 2.4) + '" fill="' + c + '"/>'; });
   });
-  g += '<text x="' + L + '" y="' + (H - 6) + '" font-size="9" fill="' + CH.mu + '">' + fdate(d0) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + fdate(d1) + "</text>";
+  const xl = o.xfmt || fdate;
+  g += '<text x="' + L + '" y="' + (H - 6) + '" font-size="9" fill="' + CH.mu + '">' + xl(d0) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + xl(d1) + "</text>";
   const leg = series.length > 1 || o.legend ? '<div class="chips" style="margin-top:6px">' + series.map(function (s) { return '<span class="sm" style="color:' + (s.color || CH.lime) + '">● ' + esc(s.name) + " " + fmt(s.pts[s.pts.length - 1][1]) + "</span>"; }).join("") + "</div>" : "";
   return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:230px;display:block" font-family="Inter,sans-serif">' + g + "</svg>" + leg;
 }
@@ -1275,10 +1276,74 @@ function weeklyAvg(pts, start) {
 // ═══════════════════════════════════════════
 //  PROGRESO · lo mismo que el Panel de la hoja, en el teléfono
 // ═══════════════════════════════════════════
+//  COACH · una tarjeta cada día y un resumen cada lunes, con tus datos (sin internet ni IA)
+// ═══════════════════════════════════════════
+function nightOf(ds) {
+  // la noche más reciente registrada hasta ese día (hoy o ayer)
+  const sl = (S.sleeph || []).filter(function (r) { return r[0] <= ds && r[0] >= addD(ds, -1); }).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; }).pop();
+  if (sl) return { score: chNum(sl[1]), hours: chNum(sl[2]), nr: chNum(sl[3]), ans: chNum(sl[4]) };
+  const r = (S.recov || {})[ds] || (S.recov || {})[addD(ds, -1)];
+  return r ? { score: chNum(r.sleep), hours: null, nr: chNum(r.nr), ans: chNum(r.ans) } : null;
+}
+function avgOf(a) { a = a.filter(function (v) { return v != null; }); return a.length ? a.reduce(function (s, v) { return s + v; }, 0) / a.length : null; }
+function sleepAvg(from, to, i) { return avgOf((S.sleeph || []).filter(function (r) { return r[0] >= from && r[0] <= to; }).map(function (r) { return chNum(r[i]); })); }
+function streakTo(ds) { let n = 0; for (let d = addD(ds, -1); dayActs(d).length; d = addD(d, -1)) n++; return n; }
+function coachDay(ds) {
+  const s = sessionFor(ds), n = nightOf(ds), out = [];
+  const train = s && s.type !== "rest";
+  if (n && ((n.nr != null && n.nr <= 2) || (n.ans != null && n.ans <= -6))) out.push(train ? "Recuperación baja anoche (" + (n.nr != null ? n.nr + "/6" : "ANS " + n.ans) + "): entrena, pero baja un 10-15% los pesos y haz el WOD al 70%." : "Recuperación baja anoche: hoy descansa de verdad y acuéstate temprano.");
+  else if (n && n.hours != null && n.hours < 6) out.push("Dormiste " + String(n.hours).replace(".", ",") + " h: sigue el plan sin buscar récords y hoy intenta dormir 7 h o más.");
+  else if (n && n.nr != null && n.nr >= 5) out.push(train ? "Recuperación muy buena (" + n.nr + "/6): día para apretar. " + (s.key === "M" ? "Mantén el split fuerte en todos los bloques." : s.key === "H" ? "Ve a por un buen tiempo en el WOD." : "Si la última serie sale con 3 o más de sobra, marca \"completé todo\".") : "Recuperación muy buena: aprovecha para moverte suave o hacer movilidad.");
+  else if (n) out.push(train ? "Recuperación normal" + (n.nr != null ? " (" + n.nr + "/6)" : "") + ": sigue el plan tal cual." : "Día de descanso: camina y estira, y llega a tus 180 g de proteína.");
+  else out.push(train ? "Sin datos de sueño de anoche: sigue el plan y escucha al cuerpo." : "Día de descanso: camina, estira y come bien.");
+  const st = streakTo(ds); if (st >= 3 && train) out.push("Llevas " + st + " días seguidos entrenando: después de hoy, descansa.");
+  const wi = posOf(ds);
+  if (wi && !wi.taper) {
+    const wp = weekPlan(wi.w), left = 6 - dow(ds) + 1 - (dow(ds) <= FOOTBALL_DOW ? 1 : 0), pend = wp.order.length - wp.keysReal;
+    if (pend > 0 && pend >= left && dow(ds) >= 3) out.push("Te quedan " + pend + " sesiones clave y " + left + " días: no te saltes ninguna.");
+  }
+  if (dow(ds) === 0) {
+    if (!S.body.some(function (b) { return b.d === ds; })) out.push("Es lunes: pésate en ayunas y mide tu cintura (abajo).");
+    const lastV = (S.vo2h || []).map(function (p) { return p[0]; }).sort().pop();
+    if (!lastV || diff(ds, lastV) >= 12) out.push("Toca Fitness Test: 5 minutos acostado al despertar, en el reloj (Test → Fitness test). Así ves si sube tu VO2.");
+  }
+  return out;
+}
+function coachWeek(ds) {
+  const wi = posOf(ds); if (!wi || wi.w < 1) return null;
+  const w = wi.w - 1, wp = weekPlan(w), ws = addD(START, w * 7), we = addD(ws, 6);
+  const lines = [];
+  const miss = wp.order.filter(function (k) { return wp.doneKeys.indexOf(k) < 0; });
+  lines.push("Sesiones clave: " + wp.keysReal + "/" + wp.order.length + (wp.extras ? " + " + wp.extras + " extra" + (wp.extras > 1 ? "s" : "") : "") + " · " + Math.round(wp.mins / 6) / 10 + " h de entreno.");
+  const s1 = sleepAvg(ws, we, 1), s0 = sleepAvg(addD(ws, -7), addD(we, -7), 1), nr1 = sleepAvg(ws, we, 3);
+  if (s1 != null) lines.push("Sueño: " + Math.round(s1) + "/100" + (s0 != null ? " (" + (s1 >= s0 ? "+" : "") + Math.round(s1 - s0) + " vs la semana anterior)" : "") + (nr1 != null ? " · recuperación " + String(Math.round(nr1 * 10) / 10).replace(".", ",") + "/6" : "") + ".");
+  const wa = S.body.filter(function (b) { return b.waist; });
+  if (wa.length) { const l = wa[wa.length - 1], p = wa.length > 1 ? wa[wa.length - 2] : null; lines.push("Cintura: " + l.waist + " cm" + (p ? " (" + (l.waist - p.waist > 0 ? "+" : "") + Math.round((l.waist - p.waist) * 10) / 10 + ")" : "") + (l.waist > 90 ? " · te faltan " + Math.round((l.waist - 90) * 10) / 10 + " cm para 90." : " · ¡meta cumplida!")); }
+  let goal;
+  if (miss.indexOf("M") >= 0) goal = "esta semana no te saltes el Motor: es lo que más sube tu VO2.";
+  else if (miss.length) goal = "llegar a 4/4: te faltó " + miss.map(function (k) { return KEY_NAME[k]; }).join(" y ") + ".";
+  else if (s1 != null && s1 < 60) goal = "dormir mejor: a la misma hora todas las noches, 7 h o más.";
+  else if (wa.length > 1 && +wa[wa.length - 1].waist >= +wa[wa.length - 2].waist) goal = "cumplir las calorías del día (2.600 entreno · 2.200 descanso) para que baje la cintura.";
+  else goal = "repetir la semana: vas muy bien.";
+  return { title: "Tu semana " + (w + 1) + " · " + fdate(ws) + " – " + fdate(we), lines: lines, goal: goal };
+}
+function coachHTML(ds) {
+  if (ds !== todayS()) return "";
+  const d = coachDay(ds), wk = dow(ds) === 0 ? coachWeek(ds) : null;
+  let h = '<div class="card" style="padding:13px 14px;border:1px solid rgba(198,244,50,.35)"><div class="lbl" style="color:var(--lime);margin-bottom:6px">Coach de hoy</div>' + d.map(function (x) { return '<p style="font-size:13.5px;margin:4px 0">' + esc(x) + "</p>"; }).join("");
+  if (wk) h += '<div class="lbl" style="color:var(--lime);margin:12px 0 6px">' + esc(wk.title) + "</div>" + wk.lines.map(function (x) { return '<p class="sm mu2" style="margin:3px 0">' + esc(x) + "</p>"; }).join("") + '<p style="font-size:13.5px;margin-top:6px"><b>Meta de la semana:</b> ' + esc(wk.goal) + "</p>";
+  return h + "</div>";
+}
+function weekReviewHTML() {
+  const wk = coachWeek(todayS()); if (!wk) return "";
+  return '<div class="card" style="padding:13px 14px;border:1px solid rgba(198,244,50,.35)"><div class="lbl" style="color:var(--lime);margin-bottom:6px">' + esc(wk.title) + "</div>" + wk.lines.map(function (x) { return '<p class="sm mu2" style="margin:3px 0">' + esc(x) + "</p>"; }).join("") + '<p style="font-size:13.5px;margin-top:6px"><b>Meta de esta semana:</b> ' + esc(wk.goal) + "</p></div>";
+}
+
+// ═══════════════════════════════════════════
 function tS(s) { s = Math.round(s); return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60); }
 function sgn(v, u) { v = Math.round(v * 10) / 10; return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v) + (u || ""); }
 function renderProg() {
-  let h = "";
+  let h = weekReviewHTML();
   // 1 · cintura y peso
   const wa = S.body.filter(function (b) { return b.waist; }).map(function (b) { return [b.d, +b.waist]; });
   const wl = wa[wa.length - 1];
@@ -1317,8 +1382,9 @@ function renderProg() {
   // 7 · sueño y recuperación
   const sl = S.sleeph || [], first = sl.length ? sl[0][0] : todayS(), mon = addD(first, -dow(first));
   const ss = weeklyAvg(sl.map(function (r) { return [r[0], r[1]]; }), mon), nr = weeklyAvg(sl.map(function (r) { return [r[0], r[3]]; }), mon);
-  h += chartCard("Sueño · promedio semanal", ss.length ? Math.round(ss[ss.length - 1][1]) : "—", "Puntaje de sueño de Polar (0-100)", lineChart([{ name: "Sueño", color: CH.blue, pts: ss }], { fmt: function (v) { return Math.round(v); }, empty: "Aparece cuando actualices tu hoja" }));
-  h += chartCard("Nightly Recharge · promedio semanal", nr.length ? Math.round(nr[nr.length - 1][1] * 10) / 10 : "—", "De 1 (muy bajo) a 6 (muy bueno)", lineChart([{ name: "Recharge", color: CH.pink, pts: nr }], { empty: "Aparece cuando actualices tu hoja" }));
+  const ln = (S.sleeph || []).filter(function (r) { return chNum(r[1]) != null; }).pop(), lr = (S.sleeph || []).filter(function (r) { return chNum(r[3]) != null; }).pop();
+  h += chartCard("Sueño", ln ? Math.round(ln[1]) : "—", (ln ? "Anoche (" + fdate(ln[0]) + ")" : "") + (ss.length ? " · promedio de esta semana " + Math.round(ss[ss.length - 1][1]) : "") + " · puntaje Polar 0-100", lineChart([{ name: "Sueño", color: CH.blue, pts: ss }], { fmt: function (v) { return Math.round(v); }, xfmt: function (d) { return "sem. " + fdate(d); }, empty: "Aparece cuando actualices tu hoja" }));
+  h += chartCard("Nightly Recharge", lr ? lr[3] + "/6" : "—", (lr ? "Anoche (" + fdate(lr[0]) + ")" : "") + (nr.length ? " · promedio de esta semana " + Math.round(nr[nr.length - 1][1] * 10) / 10 : "") + " · 1 = muy bajo · 6 = muy bueno", lineChart([{ name: "Recharge", color: CH.pink, pts: nr }], { xfmt: function (d) { return "sem. " + fdate(d); }, empty: "Aparece cuando actualices tu hoja" }));
   $("p-prog").innerHTML = h;
 }
 
