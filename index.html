@@ -209,7 +209,7 @@ const DEF = {
   liftsWeek: 0, row2k: "", km1: "", tested: false,
   study: {}, tests: [], body: [], acts: {}, lastSync: 0,
   conn: "", planName: "", strava: false, polar: false, vo2: "", rhr: "", sheetSync: "", pushed: "",
-  actMap: {}, dayPick: {}, recov: {}
+  actMap: {}, dayPick: {}, recov: {}, logs: {}
 };
 let S = load();
 let tab = "hoy";
@@ -220,6 +220,7 @@ function load() {
   try { const p = JSON.parse(localStorage.getItem(LS) || "{}"); const o = Object.assign({}, DEF, p); o.lifts = Object.assign({}, DEF.lifts, p.lifts || {}); o.tests = o.tests || []; o.body = o.body || []; o.actMap = o.actMap || {}; o.dayPick = o.dayPick || {}; o.recov = o.recov || {}; return o; }
   catch (e) { return JSON.parse(JSON.stringify(DEF)); }
 }
+if (!S.logs) S.logs = {};
 function save() { try { localStorage.setItem(LS, JSON.stringify(S)); } catch (e) {} }
 
 // ═══════════════════════════════════════════
@@ -676,6 +677,7 @@ function applyData(d) {
   if (!d || !d.ok) { if (d && d.error) toast("Hoja: " + d.error); return false; }
   S.acts = d.acts || {}; if (d.vo2h) S.vo2h = d.vo2h; if (d.sleeph) S.sleeph = d.sleeph; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr; if (d.recov) S.recov = d.recov; _wk = {};
   mergeFromSheet(d);
+  Object.keys(d.logs || {}).forEach(function (ds) { S.logs[ds] = S.logs[ds] || {}; Object.keys(d.logs[ds]).forEach(function (ex) { if (!S.logs[ds][ex]) S.logs[ds][ex] = d.logs[ds][ex]; }); });
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
 // El botón "Sincronizar ahora" muestra que está trabajando y cómo terminó
@@ -732,10 +734,15 @@ function mergeFromSheet(d) {
 function touch() { S.setAt = Date.now(); }
 let _pt = null;
 function schedPush() { S.dirty = true; save(); clearTimeout(_pt); _pt = setTimeout(pushAll, 2500); }
+function logRows() {
+  const out = [];
+  Object.keys(S.logs).forEach(function (ds) { Object.keys(S.logs[ds]).forEach(function (ex) { const l = S.logs[ds][ex]; if (l && (l.kg !== "" && l.kg != null || l.top)) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: EX[ex] ? EX[ex].n : ex, id: ex, kg: l.kg, top: !!l.top }); }); });
+  return out;
+}
 async function pushAll() {
   if (!connParts()) return;
   try {
-    const r = await apiPost({ a: "push", plan: { name: planName(), start: START, pre: "2026-10-05", race: S.race }, days: planDays(), tests: S.tests, body: S.body, study: S.study,
+    const r = await apiPost({ a: "push", plan: { name: planName(), start: START, pre: "2026-10-05", race: S.race }, days: planDays(), tests: S.tests, body: S.body, study: S.study, logs: logRows(),
       settings: { at: S.setAt || 0, lifts: S.lifts, liftsWeek: S.liftsWeek, row2k: S.row2k, km1: S.km1, bw: S.bw, race: S.race, planName: S.planName, actMap: S.actMap, dayPick: S.dayPick } });
     S.dirty = !(r && r.ok);
     if (!S.dirty) { S.pushed = planHash(); save(); applyData(r); } else save();
@@ -753,7 +760,7 @@ function planDays() {
   const out = [];
   for (let ds = "2026-10-05"; ds <= addD(S.race, 1); ds = addD(ds, 1)) {
     const s = sessionFor(ds); if (!s) continue; const wi = s.wi;
-    const st = (s.str || []).concat(s.knee || []).map(function (e) { return EX[e.ex].n + " " + e.sr + (e.kg === "PC" ? " PC" : e.kg != null ? " " + e.kg + " kg" : ""); }).join(" · ");
+    const st = (s.str || []).concat(s.knee || []).map(function (e) { const g = e.kg === undefined && KG_EX[e.ex] ? accKg(e.ex, ds) : null; return EX[e.ex].n + " " + e.sr + (e.kg === "PC" ? " PC" : e.kg != null ? " " + e.kg + " kg" : g && g.kg ? " " + g.kg + " kg" : ""); }).join(" · ");
     const wd = s.wod ? s.wod.f + ": " + s.wod.it.join(", ") : "";
     out.push({ d: ds, w: wi ? wi.w + 1 : 0, ph: wi ? PHASE[wi.ph] + (wi.deload ? " · pruebas" : wi.taper ? " · taper" : "") : "Pruebas", dia: DF[dow(ds)], ses: sheetName(s, ds), loads: [st, wd].filter(Boolean).join(" | ") });
   }
@@ -881,14 +888,58 @@ function fmtSR(sr) {
   const r = m[2], reps = /^\d+(-\d+)?(\/.+)?$/.test(r);
   return m[1] + (m[1] === "1" ? " serie" : " series") + " × " + (reps ? r.replace(/^(\d+(?:-\d+)?)/, "$1 reps") : r);
 }
+// ═══════════════════════════════════════════
+//  PESOS DE TODO (15 oct): peso de inicio calculado con tus pruebas; si anotas el kg y marcas
+//  "completé todo", la próxima vez sube un poco. Anotar es opcional.
+// ═══════════════════════════════════════════
+const KG_EX = { row: 1, rlunge: "mano", latraise: "mano", calf: "mano", dips: "lastre", hpc: 1, legcurl: 1, revfly: 1, sblunge: 1, backdrag: 1 };
+function dbR(x) { return x < 10 ? Math.round(x) : Math.round(x / 2) * 2; }
+function startKg(ex) {
+  const L = S.lifts;
+  if (ex === "row") return L.bench ? r25(+L.bench * 0.6) : null;
+  if (ex === "rlunge") return L.squat ? dbR(+L.squat * 0.2) : null;
+  if (ex === "latraise") return 8;
+  if (ex === "calf") return 20;
+  if (ex === "hpc") return 60;
+  if (ex === "sblunge") return 20;
+  if (ex === "dips") return 0;
+  return null;      // máquinas: cada una pesa distinto
+}
+function lastLog(ex, before) {
+  const ds = Object.keys(S.logs).filter(function (d) { return d < before && S.logs[d][ex] && S.logs[d][ex].kg !== "" && S.logs[d][ex].kg != null; }).sort().pop();
+  return ds ? Object.assign({ d: ds }, S.logs[ds][ex]) : null;
+}
+function accKg(ex, ds) {
+  const l = lastLog(ex, ds);
+  if (!l) { const k = startKg(ex); return k == null ? null : { kg: k, start: true }; }
+  const kg = +l.kg; if (!l.top) return { kg: kg };
+  const step = KG_EX[ex] === "mano" ? (kg < 10 ? 1 : 2) : 2.5;
+  return { kg: Math.round((kg + step) * 2) / 2, up: true };
+}
+function setKg(ds, ex, v) { const n = parseFloat(String(v).replace(",", ".")); S.logs[ds] = S.logs[ds] || {}; S.logs[ds][ex] = Object.assign({}, S.logs[ds][ex], { kg: isNaN(n) ? "" : n }); touch(); save(); schedPush(); }
+function toggleTop(ds, ex) { S.logs[ds] = S.logs[ds] || {}; const l = S.logs[ds][ex] = S.logs[ds][ex] || {}; l.top = !l.top; touch(); save(); renderHoy(); schedPush(); }
+function kgRow(e, ds, sug, main) {
+  const x = KG_EX[e.ex] || main; if (!x) return "";
+  const l = (S.logs[ds] || {})[e.ex] || {}, per = KG_EX[e.ex] === "mano" ? " por mano" : KG_EX[e.ex] === "lastre" ? " de lastre" : "";
+  return '<div class="row" style="margin-top:10px;gap:8px" onclick="event.stopPropagation()"><input class="inp" style="width:90px;padding:8px 10px" inputmode="decimal" placeholder="' + (sug != null && sug !== "PC" ? sug : "kg") + '" value="' + esc(l.kg == null ? "" : l.kg) + '" onchange="setKg(\'' + ds + "','" + e.ex + '\',this.value)"><span class="sm mu">kg' + per + "</span>" +
+    (main ? "" : '<button class="chip" style="margin-left:auto;' + (l.top ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleTop(\'' + ds + "','" + e.ex + '\')">' + (l.top ? "✓ Completé todo" : "¿Completaste todo?") + "</button>") + "</div>";
+}
 function exHTML(e) {
   const x = EX[e.ex];
   let right;
   if (e.kg != null && e.kg !== "PC") right = "<b>" + e.kg + "</b><small>" + e.unit + "</small>";
   else if (e.kg === "PC") right = "<b>PC</b><small>peso corporal</small>";
   else right = "<b>" + e.sr + "</b><small>" + (/^\d+×/.test(e.sr) ? "series × reps" : "") + "</small>";
-  return '<div class="ex" onclick="tech(\'' + e.ex + '\')"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + x.n + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + "</div></div>" +
-    '<div class="k">' + right + "</div></div>";
+  const ds = viewDate, main = e.kg !== undefined;
+  let tip = "";
+  if (!main && KG_EX[e.ex]) {
+    const g = accKg(e.ex, ds), per = KG_EX[e.ex] === "mano" ? " por mano" : "";
+    if (e.ex === "dips") tip = g && g.kg ? " · lastre " + g.kg + " kg" : " · peso corporal (+5 kg si pasas de 12)";
+    else if (g) { right = "<b>" + g.kg + "</b><small>kg" + per + "</small>"; tip = g.up ? " · ¡sube a " + g.kg + " kg!" : ""; }
+    else tip = " · busca el peso con el que hagas las reps con 2 de sobra";
+  }
+  return '<div class="ex" style="display:block" onclick="tech(\'' + e.ex + '\')"><div class="row sp"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + x.n + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + esc(tip) + "</div></div>" +
+    '<div class="k">' + right + "</div></div>" + kgRow(e, ds, main ? e.kg : (accKg(e.ex, ds) || {}).kg, main && e.kg !== "PC" ? 1 : 0) + "</div>";
 }
 // Qué significa cada formato de WOD y cómo hacerlo (desplegable dentro de la tarjeta)
 function wodHow(f) {
@@ -1244,6 +1295,9 @@ function renderProg() {
   const rm = function (k) { return T.filter(function (t) { return chNum(t[k]) != null; }).map(function (t) { return [t.d, +t[k]]; }); };
   h += chartCard("Torso · 5RM", null, "Banca, press militar y dominada con lastre (kg)",
     lineChart([{ name: "Banca", pts: rm("bench") }, { name: "Press", color: CH.blue, pts: rm("ohp") }, { name: "Dominada +kg", color: CH.white, pts: rm("pull") }]));
+  const lp = function (ex) { return Object.keys(S.logs).sort().filter(function (d) { return S.logs[d][ex] && chNum(S.logs[d][ex].kg) != null; }).map(function (d) { return [d, +S.logs[d][ex].kg]; }); };
+  h += chartCard("Accesorios · kg anotados", null, "Lo que escribes en cada ejercicio",
+    lineChart([{ name: "Remo", pts: lp("row") }, { name: "Zancada/mano", color: CH.orange, pts: lp("rlunge") }, { name: "Curl femoral", color: CH.blue, pts: lp("legcurl") }, { name: "Pájaros", color: CH.white, pts: lp("revfly") }], { empty: "Aparece cuando anotes los kg en tus sesiones" }));
   // 3 · remo y 1 km
   const tt = function (k) { return T.filter(function (t) { return t[k] && parse2k(t[k]); }).map(function (t) { return [t.d, parse2k(t[k])]; }); };
   const r2 = tt("row2k"), k1 = tt("km1");
