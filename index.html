@@ -245,6 +245,7 @@ const EX = {
   row:     { n: "Remo con barra", g: "Accesorio", c: ["Bisagra de cadera, torso a unos 45°, espalda neutra.", "Tira la barra al ombligo apretando la espalda.", "Baja controlado sin perder la posición."] },
   dips:    { n: "Fondos en paralelas", g: "Accesorio", c: ["Hombros abajo, lejos de las orejas.", "Baja hasta que el codo quede a 90°, torso algo inclinado.", "Sube hasta bloquear. Lastra cuando hagas más de 12."] },
   facepull:{ n: "Face pull", g: "Accesorio", c: ["Polea o banda a la altura de la cara, agarre con cuerda.", "Tira hacia la frente separando las manos y rota hacia afuera al final.", "Salud de hombro: ligero y con control."] },
+  revfly:  { n: "Pájaros en máquina (pec deck inverso)", g: "Accesorio", c: ["Sentado mirando a la máquina, pecho contra el respaldo, agarre neutro.", "Abre los brazos hacia atrás con los codos casi estirados, juntando los omóplatos.", "Pausa 1 s atrás y vuelve lento en 2-3 s.", "Sin máquina: pájaros con mancuernas, inclinado sobre un banco a 30-45°."], k: "Trabaja el hombro de atrás y la espalda alta, igual que el face pull: equilibra todo el press y protege el hombro." },
   latraise:{ n: "Elevaciones laterales", g: "Accesorio", c: ["Mancuernas ligeras, codo levemente flexionado.", "Sube hasta la altura del hombro guiando con el codo.", "Baja en 3 segundos sin balanceo."] },
   hpc:     { n: "Hang power clean", g: "Potencia", c: ["Barra a mitad del muslo, espalda neutra, hombros por delante.", "Salta: extiende cadera, rodillas y tobillos de golpe.", "Encoge los hombros y mete los codos rápido para recibir en media sentadilla.", "Rápido y técnico, no pesado y lento."] },
   pushpress:{ n: "Push press", g: "Potencia", c: ["Barra en el rack frontal.", "Pequeño dip de rodillas con el torso vertical.", "Extiende las piernas y usa ese impulso para empujar la barra arriba.", "Bloquea arriba y baja amortiguando con las piernas."] },
@@ -475,7 +476,7 @@ function keySession(k, wi, ds) {
         sup(main("ohp", "ohp", wi, wi.ph === 2 ? 0.85 : 0.9, -1), "A2"),
         sup(acc("row", light ? "2×10" : "3×10", "2 reps en reserva"), "B1"),
         sup(acc("dips", light ? "2×máx" : "3×máx", "Lastra si pasas de 12"), "B2"),
-        sup(acc("facepull", "2×15", "Ligero"), "C1"), sup(acc("latraise", "2×15", "Lento"), "C2")],
+        sup(acc("revfly", "2×15", "Ligero, pausa atrás"), "C1"), sup(acc("latraise", "2×15", "Lento"), "C2")],
       wod: withNote(capWod(W_TUE[rot], 12), lightNote) };
   } else if (k === "M") {
     s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
@@ -874,13 +875,19 @@ function weekCardHTML(ds) {
   const chips = wp.order.map(function (k) { const ok = wp.doneKeys.indexOf(k) >= 0; return '<span class="pill ' + (ok ? "l" : "") + '" style="margin:0 4px 4px 0">' + (ok ? "✓ " : "") + KEY_NAME[k] + "</span>"; }).join("");
   return '<div class="card" style="padding:12px 14px"><div class="row sp"><b>Esta semana</b><span class="sm mu">' + wp.keysReal + " de " + n + " claves · " + wp.extras + " extra" + (wp.extras === 1 ? "" : "s") + " · " + h + " h " + (m < 10 ? "0" : "") + m + '</span></div><div style="margin-top:8px">' + chips + "</div></div>";
 }
+// "5×4" → "5 series × 4 reps": siempre primero las series, luego las repeticiones
+function fmtSR(sr) {
+  const m = String(sr || "").match(/^(\d+)×(.+)$/); if (!m) return String(sr || "");
+  const r = m[2], reps = /^\d+(-\d+)?(\/.+)?$/.test(r);
+  return m[1] + (m[1] === "1" ? " serie" : " series") + " × " + (reps ? r.replace(/^(\d+(?:-\d+)?)/, "$1 reps") : r);
+}
 function exHTML(e) {
   const x = EX[e.ex];
   let right;
   if (e.kg != null && e.kg !== "PC") right = "<b>" + e.kg + "</b><small>" + e.unit + "</small>";
   else if (e.kg === "PC") right = "<b>PC</b><small>peso corporal</small>";
-  else right = "<b>" + e.sr + "</b>";
-  return '<div class="ex" onclick="tech(\'' + e.ex + '\')"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + x.n + '</div><div class="s">' + (e.kg !== undefined && e.kg !== null ? e.sr + (e.note ? " · " : "") : "") + esc(e.note || "") + "</div></div>" +
+  else right = "<b>" + e.sr + "</b><small>" + (/^\d+×/.test(e.sr) ? "series × reps" : "") + "</small>";
+  return '<div class="ex" onclick="tech(\'' + e.ex + '\')"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + x.n + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + "</div></div>" +
     '<div class="k">' + right + "</div></div>";
 }
 // Qué significa cada formato de WOD y cómo hacerlo (desplegable dentro de la tarjeta)
