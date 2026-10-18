@@ -277,12 +277,16 @@ const EX = {
 // ═══════════════════════════════════════════
 //  MOVILIDAD
 // ═══════════════════════════════════════════
+const GEN = [["Pulso: remo, ski o bici suave", "3-4 min"], ["Cuello: giros e inclinaciones", "6-10/dirección"], ["Cintura: círculos de cadera", "6-10/dirección"],
+  ["Brazos: círculos adelante, atrás y cruzados", "10 c/u"], ["Muñecas y tobillos en círculo", "10/dirección"], ["Rodillas: círculos con las dos juntas", "6-10/dirección"],
+  ["Isquios en movimiento: toca tobillo, centro, tobillo", "30 s"], ["Sentadilla pies juntos → arriba toca las puntas", "8"], ["Rotación de torso en rodilla: codo al suelo, mano al cielo", "10/lado"],
+  ["Sentadillas", "10"], ["Sentadillas con salto", "6"], ["Zancadas adelante y atrás", "6/pierna"], ["Burpees lentos", "5"]];
 const MOB = {
-  inf: { n: "Calentamiento tren inferior", t: "10 min", it: [["Remo suave", "3 min"], ["90/90 de cadera", "1 min/lado"], ["Flexor de cadera de rodillas", "45 s/lado"], ["Tobillo a la pared", "10/lado"], ["Puente de glúteo", "15"], ["Sentadilla española", "2×30 s"], ["Series de aproximación del primer ejercicio", "3"]] },
-  sup: { n: "Calentamiento tren superior", t: "10 min", it: [["SkiErg suave", "3 min"], ["Dislocaciones con banda", "15"], ["Gato-vaca", "10"], ["Rotación torácica en cuadrupedia", "8/lado"], ["Face pull con banda", "15"], ["Scap push-ups", "10"], ["Colgado activo de la barra", "30 s"]] },
-  full:{ n: "Calentamiento full body", t: "10 min", it: [["Remo o ski suave", "3 min"], ["Inchworm", "6"], ["World's greatest stretch", "5/lado"], ["90/90 de cadera", "1 min"], ["Dislocaciones con banda", "10"], ["KB swing ligero", "10"], ["Técnica de clean con barra vacía", "2×5"]] },
-  eng: { n: "Calentamiento motor", t: "8 min", it: [["Remo progresivo", "4 min"], ["Ski progresivo", "2 min"], ["Leg swings", "10/lado"], ["2 aceleraciones de 20 s", "—"]] },
-  cool:{ n: "Vuelta a la calma", t: "6 min", it: [["Cuádriceps de pie", "45 s/lado"], ["Isquios", "45 s/lado"], ["Paloma", "45 s/lado"], ["Pecho en la pared", "45 s/lado"], ["Dorsal colgado", "30 s"], ["Respiración nasal tumbado", "1 min"]] },
+  inf: { n: "Calentamiento · pierna", t: "12 min", it: GEN.concat([["Del día: sentadilla española", "2×30 s"], ["Del día: series de aproximación del primer ejercicio", "3"]]) },
+  sup: { n: "Calentamiento · torso", t: "12 min", it: GEN.concat([["Del día: dislocaciones con banda", "15"], ["Del día: aperturas con banda", "15"], ["Del día: series de aproximación del primer ejercicio", "3"]]) },
+  full:{ n: "Calentamiento · full body", t: "12 min", it: GEN.concat([["Del día: KB swing ligero", "10"], ["Del día: técnica de clean con barra vacía", "2×5"]]) },
+  eng: { n: "Calentamiento · motor", t: "11 min", it: GEN.concat([["Del día: remo progresivo", "2 min"]]) },
+  cool:{ n: "Vuelta a la calma", t: "10 min", it: [["Rodillo: cuádriceps, glúteo, gemelo y espalda alta", "5 min"], ["Cuádriceps de pie", "45 s/lado"], ["Paloma", "45 s/lado"], ["Pecho en la pared", "45 s/lado"], ["Respiración con piernas en la pared", "2 min"]] },
   long:{ n: "Movilidad larga", t: "20 min", it: [["Foam roller: cuádriceps, IT, gemelo", "3 min"], ["Couch stretch", "1 min/lado"], ["Paloma", "1 min/lado"], ["Transiciones 90/90", "10"], ["Frog stretch", "1 min"], ["Isquios con banda", "1 min/lado"], ["Cobra → postura del niño", "10"], ["Thread the needle", "8/lado"], ["Colgado de la barra", "2×30 s"], ["Gemelo en la pared", "1 min/lado"]] }
 };
 
@@ -736,7 +740,9 @@ let _pt = null;
 function schedPush() { S.dirty = true; save(); clearTimeout(_pt); _pt = setTimeout(pushAll, 2500); }
 function logRows() {
   const out = [];
-  Object.keys(S.logs).forEach(function (ds) { Object.keys(S.logs[ds]).forEach(function (ex) { const l = S.logs[ds][ex]; if (l && (l.kg !== "" && l.kg != null || l.top)) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: EX[ex] ? EX[ex].n : ex, id: ex, kg: l.kg, top: !!l.top }); }); });
+  Object.keys(S.logs).forEach(function (ds) { Object.keys(S.logs[ds]).forEach(function (ex) { const l = S.logs[ds][ex];
+    if (ex === "wod") { if (l && l.res) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: "WOD " + (l.f || "") + " · resultado " + l.res, id: "wod", kg: "", top: false }); return; }
+    if (l && (l.kg !== "" && l.kg != null || l.top)) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: EX[ex] ? EX[ex].n : ex, id: ex, kg: l.kg, top: !!l.top }); }); });
   return out;
 }
 async function pushAll() {
@@ -922,7 +928,7 @@ function kgRow(e, ds, sug, main) {
   const x = KG_EX[e.ex] || main; if (!x) return "";
   const l = (S.logs[ds] || {})[e.ex] || {}, per = KG_EX[e.ex] === "mano" ? " por mano" : KG_EX[e.ex] === "lastre" ? " de lastre" : "";
   return '<div class="row" style="margin-top:10px;gap:8px" onclick="event.stopPropagation()"><input class="inp" style="width:90px;padding:8px 10px" inputmode="decimal" placeholder="' + (sug != null && sug !== "PC" ? sug : "kg") + '" value="' + esc(l.kg == null ? "" : l.kg) + '" onchange="setKg(\'' + ds + "','" + e.ex + '\',this.value)"><span class="sm mu">kg' + per + "</span>" +
-    (main ? "" : '<button class="chip" style="margin-left:auto;' + (l.top ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleTop(\'' + ds + "','" + e.ex + '\')">' + (l.top ? "✓ Completé todo" : "¿Completaste todo?") + "</button>") + "</div>";
+    ('<button class="chip" style="margin-left:auto;' + (l.top ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleTop(\'' + ds + "','" + e.ex + '\')">' + (l.top ? "✓ Completé todo" : "¿Completaste todo?") + "</button>") + "</div>";
 }
 function exHTML(e) {
   const x = EX[e.ex];
@@ -957,14 +963,51 @@ function wodHow(f) {
   if (/simulaci|Simulacro|Compromised/.test(f)) return P(["<b>Simulación de Hyrox</b>: correr + estación, en orden, como en la carrera.", "Corre a tu ritmo de carrera, no más rápido: el objetivo es aprender a correr cansado después de cada estación.", "Cronometra cada parte y apúntalo en notas para comparar en la próxima."]);
   return "";
 }
+// Ajustes de cada máquina y peso del WOD (Hyrox Open hombres: push 152 kg, pull 103 kg con trineo)
+function wodSet(k) {
+  const ph = (posOf(viewDate) || { ph: 1 }).ph;
+  const SET = { rower: "damper 5-6", ski: "damper 5-6", sledpush: ["~100 kg", "~125 kg", "152 kg (carrera)"][ph - 1] + " en total, trineo incluido",
+    sledpull: ["~70 kg", "~85 kg", "103 kg (carrera)"][ph - 1] + " en total, trineo incluido", farmer: "2 × 24 kg", wallball: "balón de 6 kg, objetivo a 3 m", sblunge: "saco de 20 kg", swing: "KB de 24 kg" };
+  return SET[k] || "";
+}
+function wodRes(ds) { return ((S.logs[ds] || {}).wod || {}).res || ""; }
+function wodSig(w) { return w.f.replace(/ · cap \d+'/, "") + "|" + (w.it[0] || ""); }
+function setWodRes(ds, v, f, sig) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds].wod = { res: String(v || "").trim(), f: f, sig: sig }; touch(); save(); schedPush(); toast("Resultado guardado"); }
+function lastWod(sig, ds) { const d = Object.keys(S.logs).filter(function (x) { return x < ds && S.logs[x].wod && S.logs[x].wod.sig === sig && S.logs[x].wod.res; }).sort().pop(); return d ? { d: d, res: S.logs[d].wod.res } : null; }
 function wodHTML(w, lab) {
   return '<div class="sec">' + lab + '</div><div class="wod"><div class="f">' + esc(w.f) + '</div><div class="t">' + (lab === "Motor" ? "Intervalos" : lab === "Final" ? "Para cerrar" : "Hoy toca") + "</div><ul>" +
     w.it.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
+    (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(wodSet(k)); }).join(" · ") + "</div>" : "") +
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") +
+    (lab === "WOD" ? (function () { const ds = viewDate, sig = wodSig(w), lw = lastWod(sig, ds), amrap = /AMRAP/.test(w.f);
+      return '<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap"><input class="inp" style="width:110px;padding:8px 10px;background:rgba(27,36,4,.12);color:var(--limeInk)" placeholder="' + (amrap ? "5+12" : "14:40") + '" value="' + esc(wodRes(ds)) + '" onchange="setWodRes(\'' + ds + "',this.value,'" + esc(w.f).replace(/'/g, "") + "','" + esc(sig).replace(/'/g, "") + '\')"><span class="sm" style="color:var(--limeInk)">Tu resultado' + (amrap ? " (rondas + reps)" : " (tiempo)") + "</span>" +
+        (lw ? '<span class="sm" style="color:var(--limeInk);opacity:.75;width:100%">Tu última vez (' + fdate(lw.d) + "): <b>" + esc(lw.res) + "</b></span>" : "") + "</div>"; })() : "") +
     (wodHow(w.f) ? '<details class="how"><summary>¿Qué es y cómo se hace? ▾</summary>' + wodHow(w.f) + "</details>" : "") + "</div>";
 }
 // Cómo se hace cada ejercicio de calentamiento, vuelta a la calma y movilidad (toca la fila)
 const MOBX = {
+  "Pulso: remo, ski o bici suave": ["3-4 minutos suave para subir la temperatura antes de mover las articulaciones.", "Deberías poder hablar."],
+  "Cuello: giros e inclinaciones": ["Gira la cabeza a un lado y al otro, luego oreja al hombro y mentón al pecho.", "Lento, en las dos direcciones."],
+  "Cintura: círculos de cadera": ["Manos en la cintura, círculos grandes con la cadera.", "En las dos direcciones."],
+  "Brazos: círculos adelante, atrás y cruzados": ["Círculos adelante, luego atrás, luego abrazos cruzados al frente.", "De pequeños a grandes."],
+  "Muñecas y tobillos en círculo": ["Círculos con las muñecas entrelazadas y luego con cada tobillo apoyado en la punta.", "En las dos direcciones."],
+  "Rodillas: círculos con las dos juntas": ["Pies juntos, manos en las rodillas, rodillas un poco dobladas.", "Círculos suaves en las dos direcciones, sin forzar."],
+  "Isquios en movimiento: toca tobillo, centro, tobillo": ["Pies abiertos más que los hombros, piernas casi estiradas.", "Baja a tocar un tobillo, el centro y el otro tobillo, subiendo entre cada uno. Sin rebotes."],
+  "Sentadilla pies juntos → arriba toca las puntas": ["Pies juntos, baja en sentadilla.", "Al subir, estira las piernas y toca las puntas de los pies."],
+  "Rotación de torso en rodilla: codo al suelo, mano al cielo": ["Zancada con una rodilla en el suelo, la mano contraria apoyada.", "Lleva el codo hacia el suelo junto al pie de adelante, luego gira el tronco y apunta la mano al cielo."],
+  "Sentadillas": ["Sentadilla sin peso a ritmo cómodo, profundidad completa."],
+  "Sentadillas con salto": ["Baja a media sentadilla y salta. Cae suave."],
+  "Zancadas adelante y atrás": ["Paso adelante, vuelve; paso atrás, vuelve. Rodilla en línea con el pie."],
+  "Burpees lentos": ["Al suelo, pecho abajo, arriba y un salto pequeño. Lento: es para calentar."],
+  "Del día: sentadilla española": ["Banda gruesa detrás de las rodillas, anclada a un rack.", "Siéntate atrás con las tibias verticales y aguanta. Prepara tus rodillas para la sentadilla."],
+  "Del día: series de aproximación del primer ejercicio": ["Barra vacía × 8, luego ~50% × 5 y ~70% × 3.", "Después empiezas tus series de trabajo."],
+  "Del día: dislocaciones con banda": ["Banda con agarre ancho, brazos estirados, pásala por encima de la cabeza hasta atrás y vuelve."],
+  "Del día: aperturas con banda": ["Banda frente al pecho, brazos estirados: ábrela juntando los omóplatos."],
+  "Del día: KB swing ligero": ["Kettlebell ligera, bisagra de cadera, empuja la cadera adelante."],
+  "Del día: técnica de clean con barra vacía": ["Barra a medio muslo, salta extendiendo la cadera y recibe en los hombros con codos altos."],
+  "Del día: remo progresivo": ["2 minutos subiendo el ritmo hasta cerca del de los intervalos."],
+  "Rodillo: cuádriceps, glúteo, gemelo y espalda alta": ["Rueda lento cada zona ~1 minuto.", "Donde duela un poco, para 20-30 s y respira. Nunca sobre la rodilla ni la lumbar."],
+  "Respiración con piernas en la pared": ["Boca arriba, piernas apoyadas en la pared.", "Inhala por la nariz 4 s, exhala 6 s. Baja las pulsaciones y empieza la recuperación."],
   "Remo suave": ["Damper 5-6, ritmo conversacional (split ~2:30-2:40).", "Piernas → espalda → brazos al tirar; al volver, brazos → espalda → piernas."],
   "Remo o ski suave": ["3 minutos a ritmo cómodo, subiendo un poco al final.", "Solo para calentar: deberías poder hablar."],
   "Remo progresivo": ["4 minutos: empieza muy suave y sube un poco cada minuto.", "El último minuto, cerca del ritmo de los intervalos."],
@@ -1296,6 +1339,12 @@ function coachDay(ds) {
   else if (n && n.nr != null && n.nr >= 5) out.push(train ? "Recuperación muy buena (" + n.nr + "/6): día para apretar. " + (s.key === "M" ? "Mantén el split fuerte en todos los bloques." : s.key === "H" ? "Ve a por un buen tiempo en el WOD." : "Si la última serie sale con 3 o más de sobra, marca \"completé todo\".") : "Recuperación muy buena: aprovecha para moverte suave o hacer movilidad.");
   else if (n) out.push(train ? "Recuperación normal" + (n.nr != null ? " (" + n.nr + "/6)" : "") + ": sigue el plan tal cual." : "Día de descanso: camina y estira, y llega a tus 180 g de proteína.");
   else out.push(train ? "Sin datos de sueño de anoche: sigue el plan y escucha al cuerpo." : "Día de descanso: camina, estira y come bien.");
+  if (s && s.str) s.str.forEach(function (e) {
+    if (e.kg == null || e.kg === "PC") return;
+    const ls = Object.keys(S.logs).filter(function (d) { return d < ds && S.logs[d][e.ex] && S.logs[d][e.ex].kg !== "" && S.logs[d][e.ex].kg != null; }).sort().slice(-2);
+    if (ls.length === 2 && ls.every(function (d) { return !S.logs[d][e.ex].top; })) out.push("Las últimas 2 veces no completaste todo en " + EX[e.ex].n.toLowerCase() + ": hoy baja un 5% (" + r25(e.kg * 0.95) + " kg).");
+  });
+  if (train && s.wod) out.push("Al terminar, come en la primera hora: proteína + carbohidrato (arroz con pollo, o batido con plátano). Te ayuda a no quedar sin energía.");
   const st = streakTo(ds); if (st >= 3 && train) out.push("Llevas " + st + " días seguidos entrenando: después de hoy, descansa.");
   const wi = posOf(ds);
   if (wi && !wi.taper) {
