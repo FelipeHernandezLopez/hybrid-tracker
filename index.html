@@ -75,6 +75,10 @@ nav button.on{color:var(--lime)}
 .wod li{padding:6px 0;border-top:1px solid rgba(27,36,4,.15);font-weight:500;font-size:14px}
 .wod .note{font-size:12px;margin-top:10px;opacity:.8}
 .wod .chips{margin-top:10px}
+.wbtns{display:flex;flex-direction:column;gap:8px;margin-top:14px;padding-top:12px;border-top:1px dashed rgba(27,36,4,.3)}
+.wbtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1.5px solid rgba(27,36,4,.55);background:transparent;color:var(--limeInk);border-radius:12px;padding:10px 12px;font-size:13px;font-weight:700}
+.wbtn span{font-size:15px;width:18px;text-align:center}
+.wbtn.on{background:var(--limeInk);color:var(--lime);border-color:var(--limeInk)}
 .wod .how{margin-top:12px;border-top:1px solid rgba(27,36,4,.15);padding-top:10px}
 .wod .how summary{list-style:none;font-weight:700;font-size:13px;cursor:pointer}
 .wod .how summary::-webkit-details-marker{display:none}
@@ -999,10 +1003,11 @@ function wodHTML(w, lab) {
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") +
     (lab === "WOD" ? (function () {
       const ds = viewDate, sig = wodSig(w) + (w.short ? "|corto" : ""), lw = lastWod(sig, ds), rs = resSpec(w.f), res = wodRes(ds), skip = res === "no";
-      const fq = esc(w.f).replace(/'/g, ""), sq = esc(sig).replace(/'/g, "");
-      const btn = function (txt, on, js) { return '<button class="chip" style="' + (on ? "background:var(--limeInk);color:var(--lime)" : "") + '" onclick="' + js + '">' + txt + "</button>"; };
-      return '<div class="chips" style="margin-top:12px">' + btn(short ? "✓ Versión corta 6'" : "Poco tiempo: versión corta 6'", short, "toggleShort('" + ds + "')") +
-        btn(skip ? "✓ Hoy no hice el WOD" : "Hoy no hice el WOD", skip, "setWodRes('" + ds + "'," + (skip ? "''" : "'no'") + ",'" + fq + "','" + sq + "')") + "</div>" +
+      // ojo: el apóstrofo de 12' rompía el onclick, por eso se quita ANTES de escapar
+      const fq = esc(w.f.replace(/['"\\]/g, "")), sq = esc(sig.replace(/['"\\]/g, ""));
+      const btn = function (ic, txt, on, js) { return '<button class="wbtn' + (on ? " on" : "") + '" onclick="' + js + '"><span>' + ic + "</span>" + txt + "</button>"; };
+      return '<div class="wbtns">' + btn("⏱", short ? "Versión corta activada · volver a la normal" : "Poco tiempo: versión corta 6'", short, "toggleShort('" + ds + "')") +
+        btn(skip ? "↺" : "✕", skip ? "Anotado: hoy sin WOD · deshacer" : "Hoy no hice el WOD", skip, "setWodRes('" + ds + "'," + (skip ? "''" : "'no'") + ",'" + fq + "','" + sq + "')") + "</div>" +
         (skip ? "" : '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><input class="inp" style="width:110px;padding:8px 10px;background:rgba(27,36,4,.12);color:var(--limeInk)" placeholder="' + rs.ph + '" value="' + esc(res) + '" onchange="setWodRes(\'' + ds + "',this.value,'" + fq + "','" + sq + '\')"><span class="sm" style="color:var(--limeInk)">Tu resultado · ' + rs.lbl + "</span>" +
           (rs.help ? '<span class="sm" style="color:var(--limeInk);opacity:.75;width:100%">' + esc(rs.help) + "</span>" : "") +
           (lw ? '<span class="sm" style="color:var(--limeInk);width:100%">Tu última vez (' + fdate(lw.d) + "): <b>" + esc(lw.res) + "</b></span>" : "") + "</div>");
