@@ -960,7 +960,7 @@ function accKg(ex, ds) {
   const l = lastLog(ex, ds);
   if (!l) { const k = startKg(ex); return k == null ? null : { kg: k, start: true }; }
   const kg = +l.kg;
-  if (fails2(ex, ds)) return { kg: KG_EX[ex.replace(/_alt$/, "")] === "mano" ? Math.max(1, dbR(kg * 0.95)) : r25(kg * 0.95), down: true };
+  if (fails2(ex, ds)) return { kg: KG_EX[ex.replace(/_alt$/, "")] === "mano" ? Math.max(1, Math.min(kg - 1, dbR(kg * 0.95))) : Math.max(2.5, Math.min(kg - 2.5, r25(kg * 0.95))), down: true };
   if (!l.top) return { kg: kg };
   const step = KG_EX[ex.replace(/_alt$/, "")] === "mano" ? (kg < 10 ? 1 : 2) : 2.5;
   return { kg: Math.round((kg + step) * 2) / 2, up: true };
