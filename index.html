@@ -745,8 +745,10 @@ function schedPush() { S.dirty = true; save(); clearTimeout(_pt); _pt = setTimeo
 function logRows() {
   const out = [];
   Object.keys(S.logs).forEach(function (ds) { Object.keys(S.logs[ds]).forEach(function (ex) { const l = S.logs[ds][ex];
-    if (ex === "wod") { if (l && l.res) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: "WOD " + (l.f || "") + (l.res === "no" ? " · no hecho" : " · resultado " + l.res), id: "wod", kg: "", top: false }); return; }
-    if (l && (l.kg !== "" && l.kg != null || l.top)) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: EX[ex] ? EX[ex].n : ex, id: ex, kg: l.kg, top: !!l.top }); }); });
+    if (ex === "subs" || ex === "wodSubs") return;
+    if (ex === "wod") { const wsb = S.logs[ds].wodSubs || {}; if (l && l.res) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: "WOD " + (l.f || "") + (l.res === "no" ? " · no hecho" : " · resultado " + l.res) + (Object.keys(wsb).length ? " · cambios: " + Object.keys(wsb).map(function (k) { return (EX[k] ? EX[k].n : k) + " → " + wsb[k]; }).join(", ") : ""), id: "wod", kg: "", top: false }); return; }
+    const base = ex.replace(/_alt$/, ""), nm = ex !== base ? (subOf(ds, base) || "Alternativa") + " (en vez de " + (EX[base] ? EX[base].n : base) + ")" : EX[ex] ? EX[ex].n : ex;
+    if (l && (l.kg !== "" && l.kg != null || l.top || l.fail)) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: nm + (l.fail ? " · no completé" + (l.reps ? " (" + l.reps + ")" : "") : ""), id: ex, kg: l.kg, top: !!l.top }); }); });
   return out;
 }
 async function pushAll() {
@@ -902,6 +904,37 @@ function fmtSR(sr) {
 //  PESOS DE TODO (15 oct): peso de inicio calculado con tus pruebas; si anotas el kg y marcas
 //  "completé todo", la próxima vez sube un poco. Anotar es opcional.
 // ═══════════════════════════════════════════
+// Alternativas cuando la máquina está ocupada, dañada o no hay material (↔ Cambiar)
+const SUBS = {
+  sledpush: ["Cinta curva empujando con el motor apagado (deadmill)", "Empuje de disco pesado en el suelo"],
+  sledpull: ["Remo con cuerda caminando hacia atrás", "Arrastre de kettlebell pesada con cuerda"],
+  ski: ["Remo · mismas calorías o metros", "Bici · calorías × 1,2"], rower: ["SkiErg · mismas calorías o metros", "Bici · calorías × 1,2"],
+  tread: ["Remo · la mitad de los metros", "Bici · 1 min por cada 200 m"], curve: ["Remo · la mitad de los metros", "Bici · 1 min por cada 200 m"],
+  wallball: ["Thrusters con mancuernas 2×10 kg"], bbj: ["Burpee + salto largo por separado"], sblunge: ["Zancadas con mancuernas 2×10 kg", "Zancada goblet con KB"],
+  farmer: ["Mancuernas pesadas 2×24 kg", "Barra con discos (agarre de farmer)"], swing: ["Swing con mancuerna", "Peso muerto rumano con KB"],
+  thruster: ["Push press + sentadilla por separado"], pushup: ["Push-ups con rodillas", "Press de banca con mancuernas ligero"],
+  burpee: ["Sprawl (sin push-up)", "Saltos al cajón"], pullup: ["Jalón al pecho", "Remo invertido en barra"], goblet: ["Sentadilla con mancuernas", "Prensa"],
+  dbpp: ["Push press con barra"], ttb: ["Elevación de rodillas colgado", "Hollow rocks"], situp: ["Hollow rocks", "Crunch en polea"], hollow: ["Dead bug"],
+  sbclean: ["Clean con mancuerna o KB"], dbsnatch: ["Swing a una mano"], dips: ["Fondos en banco", "Press cerrado con mancuernas"],
+  legcurl: ["Curl femoral con fitball", "Nórdico con banda"], revfly: ["Pájaros con mancuernas en banco inclinado", "Aperturas con banda"],
+  latraise: ["Elevación lateral en polea"], row: ["Remo con mancuerna a una mano", "Remo en polea sentado"], rlunge: ["Sentadilla búlgara", "Subida al cajón"],
+  calf: ["Gemelos en máquina o en la prensa"], frontsq: ["Goblet squat"], hpc: ["Clean con mancuernas"], backdrag: ["Cinta curva caminando hacia atrás", "Step-down lento"]
+};
+function subOf(ds, ex) { return ((S.logs[ds] || {}).subs || {})[ex] || ""; }
+function swapEx(ds, ex) {
+  const cur = subOf(ds, ex), opt = function (v, lbl, on) { return '<button class="btn2" style="width:100%;margin-bottom:8px;text-align:left' + (on ? ";outline:1.5px solid var(--lime)" : "") + '" onclick="setSub(\'' + ds + "','" + ex + "'," + (v == null ? "null" : "'" + encodeURIComponent(v) + "'") + ')">' + esc(lbl) + "</button>"; };
+  openModal("Cambiar ejercicio", '<p class="sm mu" style="margin-bottom:10px">' + esc(EX[ex].n) + " → hoy hago:</p>" + SUBS[ex].map(function (a) { return opt(a, a, cur === a); }).join("") + (cur ? opt(null, "Volver al original: " + EX[ex].n, false) : ""));
+}
+function setSub(ds, ex, v) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds].subs = S.logs[ds].subs || {}; if (v) S.logs[ds].subs[ex] = decodeURIComponent(v); else delete S.logs[ds].subs[ex]; touch(); save(); closeModal(); renderHoy(); schedPush(); }
+function swapWod(ds, m) {
+  const ws = ((S.logs[ds] || {}).wodSubs) || {};
+  let h = '<p class="sm mu" style="margin-bottom:10px">Toca la alternativa del ejercicio que no puedes hacer hoy.</p>';
+  m.filter(function (k) { return SUBS[k]; }).forEach(function (k) {
+    h += '<div class="lbl" style="margin:10px 0 6px">' + esc(EX[k].n) + "</div>" + SUBS[k].concat(ws[k] ? [null] : []).map(function (a) { return '<button class="btn2" style="width:100%;margin-bottom:6px;text-align:left' + (a && ws[k] === a ? ";outline:1.5px solid var(--lime)" : "") + '" onclick="setWodSub(\'' + ds + "','" + k + "'," + (a ? "'" + encodeURIComponent(a) + "'" : "null") + ')">' + esc(a || "Volver al original") + "</button>"; }).join("");
+  });
+  openModal("Cambiar ejercicio del WOD", h);
+}
+function setWodSub(ds, k, v) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds].wodSubs = S.logs[ds].wodSubs || {}; if (v) S.logs[ds].wodSubs[k] = decodeURIComponent(v); else delete S.logs[ds].wodSubs[k]; touch(); save(); closeModal(); renderHoy(); schedPush(); }
 const KG_EX = { row: 1, rlunge: "mano", latraise: "mano", calf: "mano", dips: "lastre", hpc: 1, legcurl: 1, revfly: 1, sblunge: 1, backdrag: 1 };
 function dbR(x) { return x < 10 ? Math.round(x) : Math.round(x / 2) * 2; }
 function startKg(ex) {
@@ -915,6 +948,10 @@ function startKg(ex) {
   if (ex === "dips") return 0;
   return null;      // máquinas: cada una pesa distinto
 }
+function fails2(ex, before) {
+  const ls = Object.keys(S.logs).filter(function (d) { return d < before && S.logs[d][ex] && S.logs[d][ex].kg !== "" && S.logs[d][ex].kg != null; }).sort().slice(-2);
+  return ls.length === 2 && ls.every(function (d) { return S.logs[d][ex].fail; });
+}
 function lastLog(ex, before) {
   const ds = Object.keys(S.logs).filter(function (d) { return d < before && S.logs[d][ex] && S.logs[d][ex].kg !== "" && S.logs[d][ex].kg != null; }).sort().pop();
   return ds ? Object.assign({ d: ds }, S.logs[ds][ex]) : null;
@@ -922,17 +959,27 @@ function lastLog(ex, before) {
 function accKg(ex, ds) {
   const l = lastLog(ex, ds);
   if (!l) { const k = startKg(ex); return k == null ? null : { kg: k, start: true }; }
-  const kg = +l.kg; if (!l.top) return { kg: kg };
-  const step = KG_EX[ex] === "mano" ? (kg < 10 ? 1 : 2) : 2.5;
+  const kg = +l.kg;
+  if (fails2(ex, ds)) return { kg: KG_EX[ex.replace(/_alt$/, "")] === "mano" ? Math.max(1, dbR(kg * 0.95)) : r25(kg * 0.95), down: true };
+  if (!l.top) return { kg: kg };
+  const step = KG_EX[ex.replace(/_alt$/, "")] === "mano" ? (kg < 10 ? 1 : 2) : 2.5;
   return { kg: Math.round((kg + step) * 2) / 2, up: true };
 }
 function setKg(ds, ex, v) { const n = parseFloat(String(v).replace(",", ".")); S.logs[ds] = S.logs[ds] || {}; S.logs[ds][ex] = Object.assign({}, S.logs[ds][ex], { kg: isNaN(n) ? "" : n }); touch(); save(); schedPush(); }
-function toggleTop(ds, ex) { S.logs[ds] = S.logs[ds] || {}; const l = S.logs[ds][ex] = S.logs[ds][ex] || {}; l.top = !l.top; touch(); save(); renderHoy(); schedPush(); }
-function kgRow(e, ds, sug, main) {
-  const x = KG_EX[e.ex] || main; if (!x) return "";
-  const l = (S.logs[ds] || {})[e.ex] || {}, per = KG_EX[e.ex] === "mano" ? " por mano" : KG_EX[e.ex] === "lastre" ? " de lastre" : "";
-  return '<div class="row" style="margin-top:10px;gap:8px" onclick="event.stopPropagation()"><input class="inp" style="width:90px;padding:8px 10px" inputmode="decimal" placeholder="' + (sug != null && sug !== "PC" ? sug : "kg") + '" value="' + esc(l.kg == null ? "" : l.kg) + '" onchange="setKg(\'' + ds + "','" + e.ex + '\',this.value)"><span class="sm mu">kg' + per + "</span>" +
-    ('<button class="chip" style="margin-left:auto;' + (l.top ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleTop(\'' + ds + "','" + e.ex + '\')">' + (l.top ? "✓ Completé todo" : "¿Completaste todo?") + "</button>") + "</div>";
+function toggleTop(ds, ex) {
+  S.logs[ds] = S.logs[ds] || {}; const l = S.logs[ds][ex] = S.logs[ds][ex] || {};
+  if (l.top) { l.top = false; l.fail = true; } else if (l.fail) { l.fail = false; l.reps = ""; } else l.top = true;
+  touch(); save(); renderHoy(); schedPush();
+}
+function setReps(ds, ex, v) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds][ex] = Object.assign({}, S.logs[ds][ex], { reps: String(v || "").trim() }); touch(); save(); schedPush(); }
+function kgRow(e, ds, sug, main, id) {
+  id = id || e.ex; const base = id.replace(/_alt$/, "");
+  const x = KG_EX[base] || main || id !== e.ex; if (!x) return "";
+  const l = (S.logs[ds] || {})[id] || {}, per = KG_EX[base] === "mano" && id === base ? " por mano" : KG_EX[base] === "lastre" ? " de lastre" : "";
+  const st = l.top ? "background:var(--lime);color:var(--limeInk)" : l.fail ? "background:rgba(255,107,94,.18);color:var(--red)" : "";
+  return '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap" onclick="event.stopPropagation()"><input class="inp" style="width:90px;padding:8px 10px" inputmode="decimal" placeholder="' + (sug != null && sug !== "PC" ? sug : "kg") + '" value="' + esc(l.kg == null ? "" : l.kg) + '" onchange="setKg(\'' + ds + "','" + id + '\',this.value)"><span class="sm mu">kg' + per + "</span>" +
+    '<button class="chip" style="margin-left:auto;' + st + '" onclick="toggleTop(\'' + ds + "','" + id + '\')">' + (l.top ? "✓ Completé todo" : l.fail ? "✗ No completé" : "¿Completaste todo?") + "</button>" +
+    (l.fail ? '<input class="inp" style="flex:1;min-width:140px;padding:8px 10px" placeholder="Reps que salieron: 8, 8, 6" value="' + esc(l.reps || "") + '" onchange="setReps(\'' + ds + "','" + id + '\',this.value)">' : "") + "</div>";
 }
 function exHTML(e) {
   const x = EX[e.ex];
@@ -940,16 +987,21 @@ function exHTML(e) {
   if (e.kg != null && e.kg !== "PC") right = "<b>" + e.kg + "</b><small>" + e.unit + "</small>";
   else if (e.kg === "PC") right = "<b>PC</b><small>peso corporal</small>";
   else right = "<b>" + e.sr + "</b><small>" + (/^\d+×/.test(e.sr) ? "series × reps" : "") + "</small>";
-  const ds = viewDate, main = e.kg !== undefined;
+  const ds = viewDate, main = e.kg !== undefined, sub = subOf(ds, e.ex), id = sub ? e.ex + "_alt" : e.ex;
   let tip = "";
-  if (!main && KG_EX[e.ex]) {
+  if (main && typeof e.kg === "number" && fails2(e.ex, ds)) { const k2 = r25(e.kg * 0.95); right = "<b>" + k2 + "</b><small>" + e.unit + "</small>"; tip = " · 2 veces sin completar: hoy " + k2 + " kg (−5%)"; e = Object.assign({}, e, { kg: k2 }); }
+  if (sub) {
+    const g = accKg(id, ds);
+    right = g ? "<b>" + g.kg + "</b><small>kg</small>" : "<b>" + e.sr + "</b><small>" + (/^\d+×/.test(e.sr) ? "series × reps" : "") + "</small>";
+    tip = " · en vez de " + x.n + (g ? "" : " · busca el peso con el que hagas las reps con 2 de sobra");
+  } else if (!main && KG_EX[e.ex]) {
     const g = accKg(e.ex, ds), per = KG_EX[e.ex] === "mano" ? " por mano" : "";
     if (e.ex === "dips") tip = g && g.kg ? " · lastre " + g.kg + " kg" : " · peso corporal (+5 kg si pasas de 12)";
-    else if (g) { right = "<b>" + g.kg + "</b><small>kg" + per + "</small>"; tip = g.up ? " · ¡sube a " + g.kg + " kg!" : ""; }
+    else if (g) { right = "<b>" + g.kg + "</b><small>kg" + per + "</small>"; tip = g.up ? " · ¡sube a " + g.kg + " kg!" : g.down ? " · 2 veces sin completar: baja a " + g.kg + " kg" : ""; }
     else tip = " · busca el peso con el que hagas las reps con 2 de sobra";
   }
-  return '<div class="ex" style="display:block" onclick="tech(\'' + e.ex + '\')"><div class="row sp"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + x.n + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + esc(tip) + "</div></div>" +
-    '<div class="k">' + right + "</div></div>" + kgRow(e, ds, main ? e.kg : (accKg(e.ex, ds) || {}).kg, main && e.kg !== "PC" ? 1 : 0) + "</div>";
+  return '<div class="ex" style="display:block" onclick="tech(\'' + e.ex + '\')"><div class="row sp"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + esc(sub || x.n) + (SUBS[e.ex] ? ' <a class="sm" style="font-weight:600;white-space:nowrap" onclick="event.stopPropagation();swapEx(\'' + ds + "','" + e.ex + '\')">↔ Cambiar</a>' : "") + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + esc(tip) + "</div></div>" +
+    '<div class="k">' + right + "</div></div>" + kgRow(e, ds, main && !sub ? e.kg : (accKg(id, ds) || {}).kg, main && e.kg !== "PC" && !sub ? 1 : 0, id) + "</div>";
 }
 // Qué significa cada formato de WOD y cómo hacerlo (desplegable dentro de la tarjeta)
 function wodHow(f) {
@@ -1002,11 +1054,13 @@ function wodHTML(w, lab) {
     (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(wodSet(k)); }).join(" · ") + "</div>" : "") +
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") +
     (lab === "WOD" ? (function () {
-      const ds = viewDate, sig = wodSig(w) + (w.short ? "|corto" : ""), lw = lastWod(sig, ds), rs = resSpec(w.f), res = wodRes(ds), skip = res === "no";
+      const ds = viewDate, sig = wodSig(w) + (w.short ? "|corto" : "") + (Object.keys(((S.logs[viewDate] || {}).wodSubs) || {}).length ? "|cambios" : ""), lw = lastWod(sig, ds), rs = resSpec(w.f), res = wodRes(ds), skip = res === "no";
       // ojo: el apóstrofo de 12' rompía el onclick, por eso se quita ANTES de escapar
       const fq = esc(w.f.replace(/['"\\]/g, "")), sq = esc(sig.replace(/['"\\]/g, ""));
       const btn = function (ic, txt, on, js) { return '<button class="wbtn' + (on ? " on" : "") + '" onclick="' + js + '"><span>' + ic + "</span>" + txt + "</button>"; };
-      return '<div class="wbtns">' + btn("⏱", short ? "Versión corta activada · volver a la normal" : "Poco tiempo: versión corta 6'", short, "toggleShort('" + ds + "')") +
+      const wsub = ((S.logs[ds] || {}).wodSubs) || {}, mm = (w.m || []).filter(function (k) { return SUBS[k]; });
+      return (Object.keys(wsub).length ? '<div class="note" style="margin-top:10px"><b>Cambios de hoy:</b> ' + Object.keys(wsub).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " → " + esc(wsub[k]); }).join(" · ") + "</div>" : "") +
+        '<div class="wbtns">' + (mm.length ? btn("↔", "Cambiar un ejercicio (máquina ocupada o sin material)", Object.keys(wsub).length > 0, "swapWod('" + ds + "'," + JSON.stringify(mm).replace(/"/g, "&quot;") + ")") : "") + btn("⏱", short ? "Versión corta activada · volver a la normal" : "Poco tiempo: versión corta 6'", short, "toggleShort('" + ds + "')") +
         btn(skip ? "↺" : "✕", skip ? "Anotado: hoy sin WOD · deshacer" : "Hoy no hice el WOD", skip, "setWodRes('" + ds + "'," + (skip ? "''" : "'no'") + ",'" + fq + "','" + sq + "')") + "</div>" +
         (skip ? "" : '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><input class="inp" style="width:110px;padding:8px 10px;background:rgba(27,36,4,.12);color:var(--limeInk)" placeholder="' + rs.ph + '" value="' + esc(res) + '" onchange="setWodRes(\'' + ds + "',this.value,'" + fq + "','" + sq + '\')"><span class="sm" style="color:var(--limeInk)">Tu resultado · ' + rs.lbl + "</span>" +
           (rs.help ? '<span class="sm" style="color:var(--limeInk);opacity:.75;width:100%">' + esc(rs.help) + "</span>" : "") +
@@ -1372,7 +1426,7 @@ function coachDay(ds) {
   if (s && s.str) s.str.forEach(function (e) {
     if (e.kg == null || e.kg === "PC") return;
     const ls = Object.keys(S.logs).filter(function (d) { return d < ds && S.logs[d][e.ex] && S.logs[d][e.ex].kg !== "" && S.logs[d][e.ex].kg != null; }).sort().slice(-2);
-    if (ls.length === 2 && ls.every(function (d) { return !S.logs[d][e.ex].top; })) out.push("Las últimas 2 veces no completaste todo en " + EX[e.ex].n.toLowerCase() + ": hoy baja un 5% (" + r25(e.kg * 0.95) + " kg).");
+    if (ls.length === 2 && ls.every(function (d) { return S.logs[d][e.ex].fail; })) out.push("Las últimas 2 veces no completaste " + EX[e.ex].n.toLowerCase() + ": hoy la app ya te bajó un 5% (" + r25(e.kg * 0.95) + " kg). Recupera la técnica y vuelve a subir.");
   });
   if (train && s.wod) out.push("Al terminar, come en la primera hora: proteína + carbohidrato (arroz con pollo, o batido con plátano). Te ayuda a no quedar sin energía.");
   const st = streakTo(ds); if (st >= 3 && train) out.push("Llevas " + st + " días seguidos entrenando: después de hoy, descansa.");
