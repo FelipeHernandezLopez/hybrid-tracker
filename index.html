@@ -184,7 +184,11 @@ const PRE = {                           // semana 0 · pruebas
 // Solo IDs públicos: las claves secretas viven en el Apps Script de la hoja
 const STRAVA_ID = "246619";
 // Pruebas de la semana 0 que se hicieron tarde: ese día es la prueba y no gasta una sesión clave
-const MOVED = { "2026-10-12": "test_sup" };   // fin de semana con la familia: superior + remo 2k el lunes
+const MOVED = { "2026-10-12": "test_sup",       // fin de semana con la familia: superior + remo 2k el lunes
+  "2026-11-03": "run_pre" };                      // semana de pruebas: el 1 km el martes, en la cinta motorizada
+// Días que Felipe ya decidió (la app los sugiere así; él puede cambiarlos)
+const PLAN_PICK = { "2026-11-04": "H",            // clase de CrossFit = la sesión suave de Hyrox / Full
+  "2026-11-05": "TS" };                           // prueba de torso el jueves (motor: sábado o domingo)
 // Mientras falte el 1 km, la app lo muestra cada día como prueba pendiente
 const KM1_FROM = "2026-10-12";
 const POLAR_ID = "8034e007-b5e5-463d-bb19-13dcebc363d8";
@@ -560,13 +564,13 @@ function weekPlan(w) {
       else if (tight && pending.length > 1) sug.why = "Quedan " + pending.length + " sesiones clave y " + slots + " días: prioridad a lo más importante.";
     }
     if (MOVED[ds]) {
-      const session = special(MOVED[ds], ds, null);
+      const session = special(MOVED[ds], ds, MOVED[ds] === "run_pre" ? wi : null);
       const assigned = acts.map(function (a) { mins += +a.min || 0; extras++; return { a: a, k: null }; });
       streak = acts.length || ds >= t ? streak + 1 : 0;
       days.push({ ds: ds, session: session, assigned: assigned, did: [], sug: sug });
       continue;
     }
-    const pick = S.dayPick[ds];
+    const pick = S.dayPick[ds] || PLAN_PICK[ds];
     const want = pick && pick !== "rest" && !done[pick] ? pick : (pick === "rest" ? null : sug.key);
     // 2) qué cumplió lo que hiciste (Polar), dobles sesiones incluidas
     const assigned = acts.map(function (a) {
@@ -631,9 +635,9 @@ function special(kind, ds, wi) {
     if (wi && (wi.deload || wi.taper)) run = ["30-40 min suave, sin nada de intensidad"];
     return { type: "run", t: "Tenis o carrera", sub: "Elige lo que te apetezca", wi: wi, nut: "high", info: ["Opción carrera:"].concat(run).concat(["Opción tenis: juega y estira 5 min al terminar."]) };
   }
-  if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: null, nut: "high", test: "run_pre", info: ["En la cinta motorizada al 1% (siempre la misma para poder comparar).", "Calienta 10' suave.", "1 km a tope: empieza al ritmo que creas que aguantas y sube 0,5 km/h cada 200 m si vas bien; los últimos 200 m, lo que te quede.", "Luego 20-25' suave, o tenis si te apetece."] };
-  if (kind === "test_motor") return { type: "test", t: "Prueba de motor", sub: "Remo 2k + 1 km · 50 min", wi: wi, nut: "train", test: kind, warm: "eng", cool: "long", str: [],
-    wod: { f: "Pruebas", it: ["2.000 m de remo a tope · damper 5-6", "15' suave: caminar y movilidad", "1 km a tope en cinta motorizada al 1%"], m: ["rower", "tread"], note: "Apunta los dos tiempos abajo." } };
+  if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: wi, nut: "high", test: "run_pre", info: ["Cinta motorizada al 1% de inclinación (siempre la misma para poder comparar). En el reloj: Treadmill running.", "Calentamiento 10': 6' a 9-10 km/h, 2' a 11-12 km/h, 3 aceleraciones de 20 s a 15-16 km/h con 40 s caminando, 2' caminando.", "Prueba: 0-200 m a 15 km/h. Cada 200 m, si vas bien, sube 0,5 km/h (15,5 · 16 · 16,5). Últimos 200 m: lo que te quede. Si un tramo ya es tu límite, no subas más.", "Tu tiempo es el de la cinta al llegar a 1,00 km. Para bajarte: pies a los bordes y agárrate de las barras.", "Enfría 5' caminando o trotando suave y apunta el tiempo abajo."] };
+  if (kind === "test_motor") { const k1 = kmDoneSince(ds); return { type: "test", t: "Prueba de motor", sub: k1 ? "Remo 2k · 35 min" : "Remo 2k + 1 km · 50 min", wi: wi, nut: "train", test: kind, warm: "eng", cool: "long", str: [],
+    wod: k1 ? { f: "Prueba", it: ["2.000 m de remo a tope · damper 5-6"], m: ["rower"], note: "El 1 km ya lo hiciste esta semana. Apunta el tiempo del remo abajo." } : { f: "Pruebas", it: ["2.000 m de remo a tope · damper 5-6", "15' suave: caminar y movilidad", "1 km a tope en cinta motorizada al 1%"], m: ["rower", "tread"], note: "Apunta los dos tiempos abajo." } }; }
   if (kind === "descanso") return { type: "rest", t: "Descanso", sub: "Recupera para lo que viene", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min y movilidad suave.", "Si te sientes muy bien, puedes hacer la sesión clave que toca: elígela abajo."] };
   if (kind === "libre") return { type: "rest", t: "Semana completa", sub: "Las 4 sesiones clave están hechas", wi: wi, nut: "rest", cool: "long", info: ["Hoy: descanso, movilidad o un deporte que te apetezca (cuenta como extra).", "Lo importante de la semana ya está."] };
   if (kind === "domingo") return { type: "rest", t: "Descanso", sub: "Movilidad 20 min", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min suma y ayuda a recuperar.", "Duerme 7-8 h: aquí es donde se construye el cuerpo."] };
@@ -847,7 +851,8 @@ function renderHoy() {
   if (s.wod) h += wodHTML(s.wod, s.type === "engine" ? "Motor" : s.type === "test" ? "Final" : "WOD");
   if (s.kneeAfter) h += kneeH;
   if (s.info) h += '<div class="list">' + s.info.map(function (x) { return '<div class="li"><span>' + esc(x) + "</span></div>"; }).join("") + "</div>";
-  h += testHTML(s, ds) + pendingKmHTML(s, ds);
+  s.ds = ds;
+  h += targetsHTML(s, ds) + testHTML(s, ds) + pendingKmHTML(s, ds);
   if (s.cool) h += mobHTML(s.cool);
   h += bodyHTML(ds) + nutHTML(s.nut) + studyHTML(ds);
   $("p-hoy").innerHTML = h;
@@ -1158,16 +1163,47 @@ function toggleStudy(ds, k) { S.study[ds] = S.study[ds] || {}; S.study[ds][k] = 
 // Resultados de pruebas y medidas: lo único que se apunta a mano
 const TF_LBL = { squat: "Sentadilla kg", trap: "Peso muerto kg", bench: "Banca kg", ohp: "Press militar kg", pull: "Dominada lastre kg", row2k: "Remo 2k m:ss", km1: "1 km cinta m:ss" };
 const LIFT_KEYS = ["squat", "trap", "bench", "ohp", "pull"];
+// ¿hizo el 1 km en los 6 días anteriores? (semana de pruebas)
+function kmDoneSince(ds) { return S.tests.some(function (t) { return t.km1 && t.d < ds && diff(ds, t.d) <= 6; }); }
+// Días de prueba: marca a superar, meta y cuánto subir después de cada serie
+const TGT = { squat: ["Sentadilla", 5, 10], trap: ["Peso muerto", 5, 10], bench: ["Banca", 2.5, 5], ohp: ["Press militar", 2.5, 5], pull: ["Dominada (+kg)", 2.5, 5] };
+let _tj = {};
+function targetsHTML(s, ds) {
+  const f = testFields(s); if (!f.length) return "";
+  let h = '<div class="sec">Tu meta de hoy</div><div class="card" style="padding:12px 14px">';
+  f.forEach(function (k) {
+    if (TGT[k]) {
+      const prev = +S.lifts[k] || 0, a = TGT[k][1], b = TGT[k][2], cur = _tj[k] != null ? _tj[k] : prev;
+      h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="row sp"><b>' + TGT[k][0] + '</b><span class="sm mu">marca a superar <b style="color:var(--tx)">' + (prev || "—") + " kg</b></span></div>" +
+        '<div class="sm mu2">Meta: <b style="color:var(--lime)">' + (prev + a) + "–" + (prev + b) + " kg</b></div>" +
+        '<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><span class="sm mu">Serie de 5 con</span><input class="inp" style="width:74px;padding:6px 8px" inputmode="decimal" value="' + cur + '" onchange="_tj[\'' + k + '\']=parseFloat(this.value.replace(\',\',\'.\'))||0"><span class="sm mu">kg, ¿cómo salió?</span></div>' +
+        '<div class="chips" style="margin-top:6px"><button class="chip" onclick="tj(\'' + k + '\',' + b + ')">Fácil · +' + b + '</button><button class="chip" onclick="tj(\'' + k + '\',' + a + ')">Bien · +' + a + '</button><button class="chip" onclick="tj(\'' + k + '\',0)">Duro · paro</button></div>' +
+        '<div class="sm" id="tjm-' + k + '" style="margin-top:6px;color:var(--lime)"></div></div>';
+    } else if (k === "row2k") {
+      const p = parse2k(S.row2k || ""); h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>Remo 2k</b><div class="sm mu2">Marca a superar <b style="color:var(--tx)">' + (S.row2k || "—") + "</b>" + (p ? " · meta <b style=\"color:var(--lime)\">" + tS(p - 10) + "–" + tS(p - 5) + "</b> · ritmo " + tS((p - 8) / 4) + " /500 m desde el inicio" : "") + "</div></div>";
+    } else if (k === "km1") {
+      const p = parse2k(S.km1 || ""); h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>1 km</b><div class="sm mu2">' + (p ? "Marca a superar <b style=\"color:var(--tx)\">" + S.km1 + "</b> · meta <b style=\"color:var(--lime)\">" + tS(p - 10) + "–" + tS(p - 5) + "</b>" : "Primera vez: empieza a 15 km/h y sube 0,5 km/h cada 200 m si vas bien.") + "</div></div>";
+    }
+  });
+  return h + '<p class="sm mu" style="margin-top:8px">Después de cada serie de 5: <b>Fácil</b> (te quedaban 3+) → sube mucho · <b>Bien</b> (te quedaban ~2) → sube poco · <b>Duro</b> (1 o 0, o la barra lenta) → para: esa es tu marca.</p></div>';
+}
+function tj(k, inc) {
+  const cur = _tj[k] != null ? _tj[k] : +S.lifts[k] || 0, el = document.getElementById("tjm-" + k);
+  if (!inc) { el.textContent = "Esa es tu marca de hoy: " + cur + " kg. Anótala en Resultados."; return; }
+  _tj[k] = cur + inc; el.textContent = "Siguiente serie de 5: " + _tj[k] + " kg. Descansa 3 min."; renderHoyKeep();
+}
+function renderHoyKeep() { const y = $("p-hoy").scrollTop; renderHoy(); $("p-hoy").scrollTop = y; Object.keys(_tj).forEach(function (k) { const el = document.getElementById("tjm-" + k); if (el && !el.textContent) el.textContent = "Siguiente serie de 5: " + _tj[k] + " kg. Descansa 3 min."; }); }
 function testFields(s) {
   if (!s || !s.test) return [];
   if (s.test === "test_inf") return ["squat", "trap"];
   if (s.test === "test_sup") return s.wi ? ["bench", "ohp", "pull"] : ["bench", "ohp", "pull", "row2k"];
-  if (s.test === "test_motor") return ["row2k", "km1"];
+  if (s.test === "test_motor") return kmDoneSince(s.ds || viewDate) ? ["row2k"] : ["row2k", "km1"];
   if (s.test === "run_pre") return ["km1"];
   return [];
 }
 function testHTML(s, ds) {
   const f = testFields(s); if (!f.length) return "";
+  if (s.ds !== ds) s.ds = ds;
   const t = S.tests.find(function (x) { return x.d === ds; }) || {};
   return '<div class="sec">Resultados</div><div class="card"><div class="g2">' + f.map(function (k) {
     const time = k === "row2k" || k === "km1";
