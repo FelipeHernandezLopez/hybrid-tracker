@@ -628,12 +628,12 @@ function special(kind, ds, wi) {
   if (kind === "futbol") return { type: "soccer", t: "Fútbol", sub: "Tu cardio de la semana", wi: wi, nut: "high",
     info: ["Calienta 8 min antes: trote, movilidad de cadera y 3 aceleraciones.", "Después: 5 min de estiramiento de cuádriceps, isquios y aductores.", "Si no hay partido: haz el WOD del martes."] };
   if (kind === "sat") {
-    let run;
-    if (!wi || wi.ph === 1) run = ["40-50 min suave en zona 2 (puedes hablar frases)", "Si la rodilla molesta: 30' remo + 20' cinta caminando inclinada"];
-    else if (wi.ph === 2) run = wi.w % 2 === 0 ? ["Progresivo 50 min: 20' suave + 20' medio + 10' fuerte"] : ["10' suave + 6× (3' fuerte / 2' suave) + 10' suave"];
-    else run = wi.w % 2 === 0 ? ["8× 1 km a ritmo Hyrox en cinta motorizada · 1' descanso"] : ["60-70 min suave, largo y cómodo"];
-    if (wi && (wi.deload || wi.taper)) run = ["30-40 min suave, sin nada de intensidad"];
-    return { type: "run", t: "Tenis o carrera", sub: "Elige lo que te apetezca", wi: wi, nut: "high", info: ["Opción carrera:"].concat(run).concat(["Opción tenis: juega y estira 5 min al terminar."]) };
+    const P = runPaces(); let run;
+    if (!wi || wi.ph === 1) run = ["40-50 min suave en zona 2: " + P.easy + " (pulso 115-135, puedes hablar en frases)", "Si la rodilla molesta: 30' remo + 20' cinta caminando inclinada"];
+    else if (wi.ph === 2) run = wi.w % 2 === 0 ? ["Progresivo 50 min: 20' suave (" + P.easy + ") + 20' a ritmo Hyrox (" + P.hyrox + ") + 10' a umbral (" + P.thr + ")"] : ["10' suave + 6× (3' a umbral " + P.thr + " / 2' suave) + 10' suave"];
+    else run = wi.w % 2 === 0 ? ["8× 1 km a ritmo Hyrox (" + P.hyrox + ") en cinta motorizada · 1' descanso"] : ["60-70 min suave, largo y cómodo (" + P.easy + ")"];
+    if (wi && (wi.deload || wi.taper)) run = ["30-40 min suave, sin nada de intensidad (" + P.easy + ")"];
+    return { type: "run", t: "Carrera", sub: "Tu carrera de la semana · lo que más baja tu tiempo en Hyrox", wi: wi, nut: "high", info: run.concat([P.src, "¿Tenis en vez de carrera? Vale de vez en cuando: cuenta como extra."]) };
   }
   if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: wi, nut: "high", test: "run_pre", info: ["Cinta motorizada al 1% de inclinación (siempre la misma para poder comparar). En el reloj: Treadmill running.", "Calentamiento 10': 6' a 9-10 km/h, 2' a 11-12 km/h, 3 aceleraciones de 20 s a 15-16 km/h con 40 s caminando, 2' caminando.", "Prueba: 0-200 m a 15 km/h. Cada 200 m, si vas bien, sube 0,5 km/h (15,5 · 16 · 16,5). Últimos 200 m: lo que te quede. Si un tramo ya es tu límite, no subas más.", "Tu tiempo es el de la cinta al llegar a 1,00 km. Para bajarte: pies a los bordes y agárrate de las barras.", "Enfría 5' caminando o trotando suave y apunta el tiempo abajo."] };
   if (kind === "test_motor") { const k1 = kmDoneSince(ds); return { type: "test", t: "Prueba de motor", sub: k1 ? "Remo 2k · 35 min" : "Remo 2k + 1 km · 50 min", wi: wi, nut: "train", test: kind, warm: "eng", cool: "long", str: [],
@@ -863,7 +863,7 @@ function actsHTML(ds) {
   const wp = weekOfDay(ds), day = wp ? wp.days[dow(ds)] : null;
   return a.map(function (x) {
     const as = day ? day.assigned.filter(function (y) { return y.a.id === x.id; })[0] : null;
-    const tag = as ? (as.k ? "Cuenta como " + KEY_NAME[as.k] : "Extra · suma a tu semana") : "";
+    const tag = MOVED[ds] ? "Cuenta como " + (sessionFor(ds) || {}).t : as ? (as.k ? "Cuenta como " + KEY_NAME[as.k] : "Extra · suma a tu semana") : "";
     return '<div class="strava"><div class="ic">P</div><div style="flex:1;min-width:0"><b>Hecho · ' + esc(ACT_T[x.t] || x.t) + '</b><div class="sm mu2" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(tag || x.n) + "</div>" +
       (wp && x.id ? '<a class="sm" style="font-weight:600" onclick="changeAct(\'' + esc(x.id) + "','" + ds + '\')">Cambiar</a>' : "") + "</div>" +
       '<div class="sm mu2" style="text-align:right;white-space:nowrap">' + x.min + " min" + (x.km ? "<br>" + x.km + " km" : "") + (x.hr ? "<br>♥ " + x.hr : "") + "</div></div>";
@@ -1028,7 +1028,7 @@ function wodHow(f) {
 function wodSet(k) {
   const ph = (posOf(viewDate) || { ph: 1 }).ph;
   const SET = { rower: "damper 5-6", ski: "damper 5-6", sledpush: ["~100 kg", "~125 kg", "152 kg (carrera)"][ph - 1] + " en total, trineo incluido",
-    sledpull: ["~70 kg", "~85 kg", "103 kg (carrera)"][ph - 1] + " en total, trineo incluido", farmer: "2 × 24 kg", wallball: "balón de 6 kg, objetivo a 3 m", sblunge: "saco de 20 kg", swing: "KB de 24 kg" };
+    sledpull: ["~70 kg", "~85 kg", "103 kg (carrera)"][ph - 1] + " en total, trineo incluido", farmer: "2 × 24 kg", wallball: "balón de 6 kg, objetivo a 3 m", sblunge: "saco de 20 kg", swing: "KB de 24 kg", tread: "tramos cortos/rápidos a " + runPaces().sprint.split(" (")[0] + " · 1 km a ritmo Hyrox " + runPaces().hyrox.split(" (")[0] };
   return SET[k] || "";
 }
 // Qué se anota en cada formato
@@ -1163,6 +1163,13 @@ function toggleStudy(ds, k) { S.study[ds] = S.study[ds] || {}; S.study[ds][k] = 
 // Resultados de pruebas y medidas: lo único que se apunta a mano
 const TF_LBL = { squat: "Sentadilla kg", trap: "Peso muerto kg", bench: "Banca kg", ohp: "Press militar kg", pull: "Dominada lastre kg", row2k: "Remo 2k m:ss", km1: "1 km cinta m:ss" };
 const LIFT_KEYS = ["squat", "trap", "bench", "ohp", "pull"];
+// Ritmos de carrera a partir de la última prueba de 1 km (se recalculan con cada prueba)
+function kmh(sec) { return Math.round(36000 / sec) / 10; }
+function runPaces() {
+  const base = parse2k(S.km1 || "") || 249;   // 4:09 el 3 nov
+  const f = function (a, b) { return String(kmh(b)).replace(".", ",") + "–" + String(kmh(a)).replace(".", ",") + " km/h (" + tS(a) + "–" + tS(b) + " /km)"; };
+  return { sprint: f(base - 9, base - 4), thr: f(base + 25, base + 31), hyrox: f(base + 50, base + 60), easy: f(base + 120, base + 150), src: "Ritmos calculados con tu 1 km de " + tS(base) + ". Se actualizan solos con cada prueba." };
+}
 // ¿hizo el 1 km en los 6 días anteriores? (semana de pruebas)
 function kmDoneSince(ds) { return S.tests.some(function (t) { return t.km1 && t.d < ds && diff(ds, t.d) <= 6; }); }
 // Días de prueba: marca a superar, meta y cuánto subir después de cada serie
@@ -1171,20 +1178,24 @@ let _tj = {};
 function targetsHTML(s, ds) {
   const f = testFields(s); if (!f.length) return "";
   let h = '<div class="sec">Tu meta de hoy</div><div class="card" style="padding:12px 14px">';
+  const before = S.tests.filter(function (t) { return t.d < ds; }), today = S.tests.find(function (t) { return t.d === ds; }) || {};
+  const prevOf = function (k) { const t = before.filter(function (x) { return x[k] != null && x[k] !== ""; }).pop(); return t ? t[k] : ""; };
+  const done = function (k, better) { return today[k] != null && today[k] !== "" ? '<div class="sm" style="color:var(--lime);margin-top:4px">Hoy: <b>' + today[k] + (TGT[k] ? " kg" : "") + "</b> " + (better ? "✓ nueva marca" : "") + "</div>" : ""; };
   f.forEach(function (k) {
     if (TGT[k]) {
-      const prev = +S.lifts[k] || 0, a = TGT[k][1], b = TGT[k][2], cur = _tj[k] != null ? _tj[k] : prev;
+      const prev = +prevOf(k) || 0, a = TGT[k][1], b = TGT[k][2], cur = _tj[k] != null ? _tj[k] : prev;
       h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="row sp"><b>' + TGT[k][0] + '</b><span class="sm mu">marca a superar <b style="color:var(--tx)">' + (prev || "—") + " kg</b></span></div>" +
         '<div class="sm mu2">Meta: <b style="color:var(--lime)">' + (prev + a) + "–" + (prev + b) + " kg</b></div>" +
         '<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><span class="sm mu">Serie de 5 con</span><input class="inp" style="width:74px;padding:6px 8px" inputmode="decimal" value="' + cur + '" onchange="_tj[\'' + k + '\']=parseFloat(this.value.replace(\',\',\'.\'))||0"><span class="sm mu">kg, ¿cómo salió?</span></div>' +
         '<div class="chips" style="margin-top:6px"><button class="chip" onclick="tj(\'' + k + '\',' + b + ')">Fácil · +' + b + '</button><button class="chip" onclick="tj(\'' + k + '\',' + a + ')">Bien · +' + a + '</button><button class="chip" onclick="tj(\'' + k + '\',0)">Duro · paro</button></div>' +
-        '<div class="sm" id="tjm-' + k + '" style="margin-top:6px;color:var(--lime)"></div></div>';
+        '<div class="sm" id="tjm-' + k + '" style="margin-top:6px;color:var(--lime)"></div>' + done(k, +today[k] > prev) + "</div>";
     } else if (k === "row2k") {
-      const p = parse2k(S.row2k || ""); h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>Remo 2k</b><div class="sm mu2">Marca a superar <b style="color:var(--tx)">' + (S.row2k || "—") + "</b>" + (p ? " · meta <b style=\"color:var(--lime)\">" + tS(p - 10) + "–" + tS(p - 5) + "</b> · ritmo " + tS((p - 8) / 4) + " /500 m desde el inicio" : "") + "</div></div>";
+      const pv = prevOf("row2k"), p = parse2k(pv || ""); h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>Remo 2k</b><div class="sm mu2">Marca a superar <b style="color:var(--tx)">' + (pv || "—") + "</b>" + (p ? " · meta <b style=\"color:var(--lime)\">" + tS(p - 10) + "–" + tS(p - 5) + "</b> · ritmo " + tS((p - 8) / 4) + " /500 m desde el inicio" : "") + "</div>" + done("row2k", p && parse2k(today.row2k || "") < p) + "</div>";
     } else if (k === "km1") {
-      const p = parse2k(S.km1 || ""); h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>1 km</b><div class="sm mu2">' + (p ? "Marca a superar <b style=\"color:var(--tx)\">" + S.km1 + "</b> · meta <b style=\"color:var(--lime)\">" + tS(p - 10) + "–" + tS(p - 5) + "</b>" : "Primera vez: empieza a 15 km/h y sube 0,5 km/h cada 200 m si vas bien.") + "</div></div>";
+      const pv = prevOf("km1"), p = parse2k(pv || ""); h += '<div style="padding:8px 0;border-bottom:1px solid var(--line)"><b>1 km</b><div class="sm mu2">' + (p ? "Marca a superar <b style=\"color:var(--tx)\">" + pv + "</b> · meta <b style=\"color:var(--lime)\">" + tS(p - 10) + "–" + tS(p - 5) + "</b>" : "Primera prueba: no hay marca anterior. Empieza a 14-15 km/h y sube 0,5 km/h cada 200 m si vas bien.") + "</div>" + (today.km1 ? '<div class="sm" style="color:var(--lime);margin-top:4px">Hoy: <b>' + today.km1 + "</b> " + (p ? (parse2k(today.km1) < p ? "✓ nueva marca" : "") : "· tu primera marca") + "</div>" : "") + "</div>";
     }
   });
+  if (!f.some(function (k) { return TGT[k]; })) return h + "</div>";
   return h + '<p class="sm mu" style="margin-top:8px">Después de cada serie de 5: <b>Fácil</b> (te quedaban 3+) → sube mucho · <b>Bien</b> (te quedaban ~2) → sube poco · <b>Duro</b> (1 o 0, o la barra lenta) → para: esa es tu marca.</p></div>';
 }
 function tj(k, inc) {
