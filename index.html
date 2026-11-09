@@ -1153,19 +1153,50 @@ function nutHTML(k) {
     '<div class="mac k"><b>' + n.k.toLocaleString("es") + "</b><small>kcal</small></div>" +
     '<div class="mac"><b>' + n.p + '</b><small>Prot g</small></div><div class="mac"><b>' + n.c + '</b><small>Carb g</small></div><div class="mac"><b>' + n.f + "</b><small>Grasa g</small></div></div></div>";
 }
-// Proteína en 1 toque (meta 180 g) + vitaminas. Se guarda en la hoja (Registro) como "Proteína del día".
-const PROT_BTN = [["Huevos + yogur", 40], ["Pollo / carne / pescado 200 g", 45], ["Batido de proteína", 25], ["Yogur griego o cottage", 20], ["Otra comida", 30]];
-function protOf(ds) { return +((S.logs[ds] || {}).prot || {}).kg || 0; }
-function addProt(ds, g) { S.logs[ds] = S.logs[ds] || {}; const p = S.logs[ds].prot = S.logs[ds].prot || {}; p.kg = Math.max(0, (+p.kg || 0) + g); p.items = (p.items || []).concat([g]); touch(); save(); schedPush(); renderHoyKeep(); }
-function undoProt(ds) { const p = (S.logs[ds] || {}).prot; if (!p) return; const last = (p.items || []).pop(); p.kg = Math.max(0, (+p.kg || 0) - (last || 0)); touch(); save(); schedPush(); renderHoyKeep(); }
-function toggleVit(ds) { S.logs[ds] = S.logs[ds] || {}; const v = S.logs[ds].vit = S.logs[ds].vit || {}; v.top = !v.top; touch(); save(); schedPush(); renderHoyKeep(); }
+// Proteína: lista de alimentos con porción y gramos de proteína; tocas + / − y ves lo que marcaste.
+// Se guarda en la hoja (Registro) como "Proteína del día".
+const FOODS = [
+  ["huevo", "Huevo", "1 huevo", 6, 0], ["pollo", "Pechuga de pollo", "100 g cocida", 31, 0], ["atun", "Atún en lata", "1 lata escurrida (~120 g)", 26, 0],
+  ["res", "Carne de res magra", "100 g cocida", 27, 0], ["cerdo", "Carne molida de cerdo", "100 g cocida", 25, 1], ["pescado", "Pescado o salmón", "150 g", 30, 0],
+  ["whey", "Proteína en polvo", "1 scoop (30 g)", 24, 0], ["griego", "Yogur griego", "1 vaso (150 g)", 15, 0], ["cottage", "Cottage cheese", "½ envase (100 g)", 11, 0],
+  ["tofu", "Tofu firme", "100 g", 13, 0], ["gouda", "Queso gouda", "2 lonchas (30 g)", 8, 1], ["leche", "Leche", "1 vaso (250 ml)", 8, 0], ["lentejas", "Lentejas o frijoles", "1 plato (200 g cocidos)", 18, 0]
+];
+const FAT_TXT = "alto en grasa";
+function protDay(ds) { const p = (S.logs[ds] || {}).prot || {}; return p; }
+function protOf(ds) { return +protDay(ds).kg || 0; }
+function setFood(ds, id, d) {
+  const y = $("p-hoy").scrollTop;
+  S.logs[ds] = S.logs[ds] || {}; const p = S.logs[ds].prot = S.logs[ds].prot || {};
+  if (!p.n && +p.kg) p.extra = +p.kg;      // lo anotado con los botones anteriores se conserva
+  p.n = p.n || {};
+  p.n[id] = Math.max(0, (p.n[id] || 0) + d); if (!p.n[id]) delete p.n[id];
+  p.kg = Math.round(FOODS.reduce(function (t, f) { return t + (p.n[f[0]] || 0) * f[3]; }, 0) + (+p.extra || 0));
+  touch(); save(); schedPush(); renderHoy(); $("p-hoy").scrollTop = y;
+}
+function toggleVit(ds) { const y = $("p-hoy").scrollTop; S.logs[ds] = S.logs[ds] || {}; const v = S.logs[ds].vit = S.logs[ds].vit || {}; v.top = !v.top; touch(); save(); schedPush(); renderHoy(); $("p-hoy").scrollTop = y; }
+function protGap(left) {
+  // sugerencia simple para cerrar lo que falta: pechuga, atún, batido y huevos, en ese orden
+  const opts = [[31, function (n) { return n * 100 + " g de pechuga"; }], [26, function (n) { return n + (n > 1 ? " latas" : " lata") + " de atún"; }],
+    [24, function (n) { return n + (n > 1 ? " batidos" : " batido"); }], [6, function (n) { return n + (n > 1 ? " huevos" : " huevo"); }]];
+  const out = []; let r = left;
+  opts.forEach(function (o) { if (r <= 4) return; let n = o[0] >= 20 ? Math.min(2, Math.floor(r / o[0])) : Math.ceil(r / o[0]); if (n > 0) { out.push(o[1](n)); r -= n * o[0]; } });
+  return out.join(" + ");
+}
 function protHTML(ds) {
-  const g = protOf(ds), goal = NUT.train.p, pct = Math.min(100, Math.round(g / goal * 100)), vit = ((S.logs[ds] || {}).vit || {}).top;
-  return '<div class="card" style="padding:12px 14px"><div class="row sp"><b>Proteína de hoy</b><span><b style="color:var(--lime);font-family:\'Barlow Condensed\';font-size:22px">' + g + '</b><span class="sm mu"> / ' + goal + " g</span></span></div>" +
-    '<div style="height:6px;border-radius:3px;background:var(--c2);margin:8px 0 10px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--lime)"></div></div>' +
-    '<div class="chips">' + PROT_BTN.map(function (b) { return '<button class="chip" onclick="addProt(\'' + ds + "'," + b[1] + ')">+' + b[1] + " · " + b[0] + "</button>"; }).join("") +
-    (g ? '<button class="chip" style="color:var(--red)" onclick="undoProt(\'' + ds + '\')">↶ deshacer</button>' : "") + "</div>" +
-    '<button class="chip" style="margin-top:10px;' + (vit ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleVit(\'' + ds + '\')">' + (vit ? "✓ Vitaminas tomadas" : "💊 ¿Tomaste tus vitaminas?") + "</button></div>";
+  const p = protDay(ds), n = p.n || {}, g = protOf(ds), goal = NUT.train.p, pct = Math.min(100, Math.round(g / goal * 100)), vit = ((S.logs[ds] || {}).vit || {}).top;
+  const chosen = FOODS.filter(function (f) { return n[f[0]]; });
+  let h = '<div class="card" style="padding:12px 14px"><div class="row sp"><b>Proteína de hoy</b><span><b style="color:var(--lime);font-family:\'Barlow Condensed\';font-size:26px">' + g + '</b><span class="sm mu"> / ' + goal + " g</span></span></div>" +
+    '<div style="height:8px;border-radius:4px;background:var(--c2);margin:8px 0 8px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--lime)"></div></div>' +
+    '<p class="sm" style="margin-bottom:8px;color:' + (g >= goal ? "var(--lime)" : "var(--mu2)") + '">' + (g >= goal ? "✓ Meta cumplida" : "Te faltan " + (goal - g) + " g · por ejemplo: " + protGap(goal - g)) + "</p>" +
+    (chosen.length || +p.extra || (g && !p.n) ? '<div class="sm mu2" style="margin-bottom:8px">Hoy: ' + chosen.map(function (f) { return "<b style=\"color:var(--tx)\">" + n[f[0]] + "×</b> " + f[1].toLowerCase(); }).concat(+p.extra || (g && !p.n) ? ["<b style=\"color:var(--tx)\">" + (+p.extra || g) + " g</b> anotados antes"] : []).join(" · ") + "</div>" : "") +
+    '<details' + (chosen.length ? "" : " open") + '><summary class="sm" style="cursor:pointer;color:var(--lime);font-weight:600;padding:4px 0 8px">Agregar alimentos ▾</summary>';
+  FOODS.forEach(function (f) {
+    const c = n[f[0]] || 0;
+    h += '<div class="row sp" style="padding:7px 0;border-top:1px solid var(--line)"><div style="min-width:0"><div style="font-size:14px;font-weight:600">' + f[1] + (f[4] ? ' <span class="sm" style="color:var(--warn);font-weight:500">· ' + FAT_TXT + "</span>" : "") + '</div><div class="sm mu">' + f[2] + " = <b style=\"color:var(--tx)\">" + f[3] + " g</b> de proteína</div></div>" +
+      '<div class="row" style="gap:6px;flex-shrink:0"><button class="chip" style="width:34px;padding:7px 0" onclick="setFood(\'' + ds + "','" + f[0] + '\',-1)">−</button>' +
+      '<b style="min-width:22px;text-align:center;color:' + (c ? "var(--lime)" : "var(--mu)") + '">' + c + '</b><button class="chip" style="width:34px;padding:7px 0;' + (c ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="setFood(\'' + ds + "','" + f[0] + '\',1)">+</button></div></div>';
+  });
+  return h + "</details>" + '<button class="chip" style="margin-top:10px;' + (vit ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleVit(\'' + ds + '\')">' + (vit ? "✓ Vitaminas tomadas" : "💊 ¿Tomaste tus vitaminas?") + "</button></div>";
 }
 function studyHTML(ds) {
   const done = S.study[ds] || {};
