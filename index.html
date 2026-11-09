@@ -750,7 +750,7 @@ function logRows() {
   const out = [];
   Object.keys(S.logs).forEach(function (ds) { Object.keys(S.logs[ds]).forEach(function (ex) { const l = S.logs[ds][ex];
     if (ex === "subs" || ex === "wodSubs") return;
-    if (ex === "prot") { if (l && +l.kg) out.push({ d: ds, ses: "", ex: "Proteína del día (g)", id: "prot", kg: +l.kg, top: false }); return; }
+    if (ex === "prot") { if (l && l.kg !== undefined && l.kg !== "") out.push({ d: ds, ses: "", ex: "Proteína del día (g)", id: "prot", kg: +l.kg || 0, top: false }); return; }
     if (ex === "vit") { if (l && l.top) out.push({ d: ds, ses: "", ex: "Vitaminas", id: "vit", kg: "", top: true }); return; }
     if (ex === "wod") { const wsb = S.logs[ds].wodSubs || {}; if (l && l.res) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: "WOD " + (l.f || "") + (l.res === "no" ? " · no hecho" : " · resultado " + l.res) + (Object.keys(wsb).length ? " · cambios: " + Object.keys(wsb).map(function (k) { return (EX[k] ? EX[k].n : k) + " → " + wsb[k]; }).join(", ") : ""), id: "wod", kg: "", top: false }); return; }
     const base = ex.replace(/_alt$/, ""), nm = ex !== base ? (subOf(ds, base) || "Alternativa") + " (en vez de " + (EX[base] ? EX[base].n : base) + ")" : EX[ex] ? EX[ex].n : ex;
@@ -1164,14 +1164,20 @@ const FOODS = [
 const FAT_TXT = "alto en grasa";
 function protDay(ds) { const p = (S.logs[ds] || {}).prot || {}; return p; }
 function protOf(ds) { return +protDay(ds).kg || 0; }
+let _protOpen = null;   // el desplegable de alimentos sigue abierto mientras marcas
 function setFood(ds, id, d) {
-  const y = $("p-hoy").scrollTop;
+  _protOpen = ds; const y = $("p-hoy").scrollTop;
   S.logs[ds] = S.logs[ds] || {}; const p = S.logs[ds].prot = S.logs[ds].prot || {};
   if (!p.n && +p.kg) p.extra = +p.kg;      // lo anotado con los botones anteriores se conserva
   p.n = p.n || {};
   p.n[id] = Math.max(0, (p.n[id] || 0) + d); if (!p.n[id]) delete p.n[id];
   p.kg = Math.round(FOODS.reduce(function (t, f) { return t + (p.n[f[0]] || 0) * f[3]; }, 0) + (+p.extra || 0));
   touch(); save(); schedPush(); renderHoy(); $("p-hoy").scrollTop = y;
+}
+function clearProt(ds) {
+  if (!confirm("¿Borrar toda la proteína anotada hoy y empezar de cero?")) return;
+  const y = $("p-hoy").scrollTop; S.logs[ds] = S.logs[ds] || {}; S.logs[ds].prot = { kg: 0, n: {} }; _protOpen = ds;
+  touch(); save(); schedPush(); renderHoy(); $("p-hoy").scrollTop = y; toast("Proteína de hoy en cero");
 }
 function toggleVit(ds) { const y = $("p-hoy").scrollTop; S.logs[ds] = S.logs[ds] || {}; const v = S.logs[ds].vit = S.logs[ds].vit || {}; v.top = !v.top; touch(); save(); schedPush(); renderHoy(); $("p-hoy").scrollTop = y; }
 function protGap(left) {
@@ -1189,14 +1195,14 @@ function protHTML(ds) {
     '<div style="height:8px;border-radius:4px;background:var(--c2);margin:8px 0 8px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--lime)"></div></div>' +
     '<p class="sm" style="margin-bottom:8px;color:' + (g >= goal ? "var(--lime)" : "var(--mu2)") + '">' + (g >= goal ? "✓ Meta cumplida" : "Te faltan " + (goal - g) + " g · por ejemplo: " + protGap(goal - g)) + "</p>" +
     (chosen.length || +p.extra || (g && !p.n) ? '<div class="sm mu2" style="margin-bottom:8px">Hoy: ' + chosen.map(function (f) { return "<b style=\"color:var(--tx)\">" + n[f[0]] + "×</b> " + f[1].toLowerCase(); }).concat(+p.extra || (g && !p.n) ? ["<b style=\"color:var(--tx)\">" + (+p.extra || g) + " g</b> anotados antes"] : []).join(" · ") + "</div>" : "") +
-    '<details' + (chosen.length ? "" : " open") + '><summary class="sm" style="cursor:pointer;color:var(--lime);font-weight:600;padding:4px 0 8px">Agregar alimentos ▾</summary>';
+    '<details' + (_protOpen === ds || !chosen.length ? " open" : "") + ' ontoggle="_protOpen=this.open?\'' + ds + '\':null"><summary class="sm" style="cursor:pointer;color:var(--lime);font-weight:600;padding:4px 0 8px">Agregar alimentos ▾</summary>';
   FOODS.forEach(function (f) {
     const c = n[f[0]] || 0;
     h += '<div class="row sp" style="padding:7px 0;border-top:1px solid var(--line)"><div style="min-width:0"><div style="font-size:14px;font-weight:600">' + f[1] + (f[4] ? ' <span class="sm" style="color:var(--warn);font-weight:500">· ' + FAT_TXT + "</span>" : "") + '</div><div class="sm mu">' + f[2] + " = <b style=\"color:var(--tx)\">" + f[3] + " g</b> de proteína</div></div>" +
       '<div class="row" style="gap:6px;flex-shrink:0"><button class="chip" style="width:34px;padding:7px 0" onclick="setFood(\'' + ds + "','" + f[0] + '\',-1)">−</button>' +
       '<b style="min-width:22px;text-align:center;color:' + (c ? "var(--lime)" : "var(--mu)") + '">' + c + '</b><button class="chip" style="width:34px;padding:7px 0;' + (c ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="setFood(\'' + ds + "','" + f[0] + '\',1)">+</button></div></div>';
   });
-  return h + "</details>" + '<button class="chip" style="margin-top:10px;' + (vit ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleVit(\'' + ds + '\')">' + (vit ? "✓ Vitaminas tomadas" : "💊 ¿Tomaste tus vitaminas?") + "</button></div>";
+  return h + "</details>" + (g ? '<button class="chip" style="margin-top:10px;margin-right:6px;color:var(--red)" onclick="clearProt(\'' + ds + '\')">✕ Borrar el día</button>' : "") + '<button class="chip" style="margin-top:10px;' + (vit ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleVit(\'' + ds + '\')">' + (vit ? "✓ Vitaminas tomadas" : "💊 ¿Tomaste tus vitaminas?") + "</button></div>";
 }
 function studyHTML(ds) {
   const done = S.study[ds] || {};
