@@ -503,7 +503,7 @@ function keySession(k, wi, ds) {
       knee: (wi.deload || wi.taper) ? [] : [acc("backdrag", "3×20 m", "Pesado, pasos cortos")], kneeAfter: true };
   } else {
     const fs = wi.ph === 1 ? main("frontsq", "squat", wi, 0.8, -1) : main("pushpress", "ohp", wi, 1.15, -1);
-    s = { type: "gym", t: "Full body", sub: "Estilo Hyrox · 60 min", warm: "full", cool: "cool", wi: wi, nut: "train",
+    s = { type: "gym", t: "Full body", sub: "Estilo Hyrox · 60 min · o tu clase de CrossFit", info: ["¿Vas a una clase de CrossFit? Cuenta como esta sesión (una por semana). Si sientes la rodilla, cambia los saltos por step-ups o remo."], warm: "full", cool: "cool", wi: wi, nut: "train",
       str: [acc("hpc", wi.ph === 1 ? "5×3" : "5×2", "Técnica: rápido, RPE 7 (empieza en ~60 kg)"), fs],
       wod: withNote(capWod(W_THU[rot], 15), lightNote),
       knee: [acc("backdrag", light ? "2×20 m" : "4×20 m", "Pesado, pasos cortos")], kneeAfter: true };
@@ -750,6 +750,8 @@ function logRows() {
   const out = [];
   Object.keys(S.logs).forEach(function (ds) { Object.keys(S.logs[ds]).forEach(function (ex) { const l = S.logs[ds][ex];
     if (ex === "subs" || ex === "wodSubs") return;
+    if (ex === "prot") { if (l && +l.kg) out.push({ d: ds, ses: "", ex: "Proteína del día (g)", id: "prot", kg: +l.kg, top: false }); return; }
+    if (ex === "vit") { if (l && l.top) out.push({ d: ds, ses: "", ex: "Vitaminas", id: "vit", kg: "", top: true }); return; }
     if (ex === "wod") { const wsb = S.logs[ds].wodSubs || {}; if (l && l.res) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: "WOD " + (l.f || "") + (l.res === "no" ? " · no hecho" : " · resultado " + l.res) + (Object.keys(wsb).length ? " · cambios: " + Object.keys(wsb).map(function (k) { return (EX[k] ? EX[k].n : k) + " → " + wsb[k]; }).join(", ") : ""), id: "wod", kg: "", top: false }); return; }
     const base = ex.replace(/_alt$/, ""), nm = ex !== base ? (subOf(ds, base) || "Alternativa") + " (en vez de " + (EX[base] ? EX[base].n : base) + ")" : EX[ex] ? EX[ex].n : ex;
     if (l && (l.kg !== "" && l.kg != null || l.top || l.fail)) out.push({ d: ds, ses: (sessionFor(ds) || {}).t || "", ex: nm + (l.fail ? " · no completé" + (l.reps ? " (" + l.reps + ")" : "") : ""), id: ex, kg: l.kg, top: !!l.top }); }); });
@@ -854,7 +856,7 @@ function renderHoy() {
   s.ds = ds;
   h += targetsHTML(s, ds) + testHTML(s, ds) + pendingKmHTML(s, ds);
   if (s.cool) h += mobHTML(s.cool);
-  h += bodyHTML(ds) + nutHTML(s.nut) + studyHTML(ds);
+  h += bodyHTML(ds) + nutHTML(s.nut) + protHTML(ds) + studyHTML(ds);
   $("p-hoy").innerHTML = h;
 }
 function weekOfDay(ds) { const wi = posOf(ds); return wi && !wi.taper && diff(ds, S.race) <= -7 && !PRE[ds] ? weekPlan(wi.w) : null; }
@@ -1151,6 +1153,20 @@ function nutHTML(k) {
     '<div class="mac k"><b>' + n.k.toLocaleString("es") + "</b><small>kcal</small></div>" +
     '<div class="mac"><b>' + n.p + '</b><small>Prot g</small></div><div class="mac"><b>' + n.c + '</b><small>Carb g</small></div><div class="mac"><b>' + n.f + "</b><small>Grasa g</small></div></div></div>";
 }
+// Proteína en 1 toque (meta 180 g) + vitaminas. Se guarda en la hoja (Registro) como "Proteína del día".
+const PROT_BTN = [["Huevos + yogur", 40], ["Pollo / carne / pescado 200 g", 45], ["Batido de proteína", 25], ["Yogur griego o cottage", 20], ["Otra comida", 30]];
+function protOf(ds) { return +((S.logs[ds] || {}).prot || {}).kg || 0; }
+function addProt(ds, g) { S.logs[ds] = S.logs[ds] || {}; const p = S.logs[ds].prot = S.logs[ds].prot || {}; p.kg = Math.max(0, (+p.kg || 0) + g); p.items = (p.items || []).concat([g]); touch(); save(); schedPush(); renderHoyKeep(); }
+function undoProt(ds) { const p = (S.logs[ds] || {}).prot; if (!p) return; const last = (p.items || []).pop(); p.kg = Math.max(0, (+p.kg || 0) - (last || 0)); touch(); save(); schedPush(); renderHoyKeep(); }
+function toggleVit(ds) { S.logs[ds] = S.logs[ds] || {}; const v = S.logs[ds].vit = S.logs[ds].vit || {}; v.top = !v.top; touch(); save(); schedPush(); renderHoyKeep(); }
+function protHTML(ds) {
+  const g = protOf(ds), goal = NUT.train.p, pct = Math.min(100, Math.round(g / goal * 100)), vit = ((S.logs[ds] || {}).vit || {}).top;
+  return '<div class="card" style="padding:12px 14px"><div class="row sp"><b>Proteína de hoy</b><span><b style="color:var(--lime);font-family:\'Barlow Condensed\';font-size:22px">' + g + '</b><span class="sm mu"> / ' + goal + " g</span></span></div>" +
+    '<div style="height:6px;border-radius:3px;background:var(--c2);margin:8px 0 10px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:var(--lime)"></div></div>' +
+    '<div class="chips">' + PROT_BTN.map(function (b) { return '<button class="chip" onclick="addProt(\'' + ds + "'," + b[1] + ')">+' + b[1] + " · " + b[0] + "</button>"; }).join("") +
+    (g ? '<button class="chip" style="color:var(--red)" onclick="undoProt(\'' + ds + '\')">↶ deshacer</button>' : "") + "</div>" +
+    '<button class="chip" style="margin-top:10px;' + (vit ? "background:var(--lime);color:var(--limeInk)" : "") + '" onclick="toggleVit(\'' + ds + '\')">' + (vit ? "✓ Vitaminas tomadas" : "💊 ¿Tomaste tus vitaminas?") + "</button></div>";
+}
 function studyHTML(ds) {
   const done = S.study[ds] || {};
   return '<div class="sec">Estudio</div><div class="study">' + STUDY.map(function (x) {
@@ -1250,14 +1266,16 @@ function saveTest(ds) {
 }
 function bodyHTML(ds) {
   const b = S.body.find(function (x) { return x.d === ds; });
-  if (dow(ds) !== 0 && !b) return "";
-  return '<div class="sec">Medidas del lunes<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">En ayunas</span></div><div class="card"><div class="g2">' +
+  const mon = dow(ds) === 0;
+  if (ds > todayS()) return "";
+  return '<div class="sec">' + (mon ? "Medidas del lunes" : "Peso de hoy · opcional") + '<span class="mu" style="font-family:Inter;letter-spacing:0;text-transform:none;font-size:11px">En ayunas · 3-4 mañanas por semana</span></div><div class="card"><div class="g2">' +
     '<div class="fld"><div class="lbl">Peso kg</div><input class="inp" id="bd-kg" inputmode="decimal" placeholder="' + S.bw + '" value="' + esc(b ? b.kg : "") + '"></div>' +
-    '<div class="fld"><div class="lbl">Cintura cm</div><input class="inp" id="bd-w" inputmode="decimal" placeholder="a la altura del ombligo" value="' + esc(b && b.waist ? b.waist : "") + '"></div></div>' +
-    '<button class="btn2" style="width:100%" onclick="saveBody(\'' + ds + '\')">' + (b ? "Actualizar medidas" : "Guardar medidas") + "</button></div>";
+    (mon || (b && b.waist) ? '<div class="fld"><div class="lbl">Cintura cm</div><input class="inp" id="bd-w" inputmode="decimal" placeholder="a la altura del ombligo" value="' + esc(b && b.waist ? b.waist : "") + '"></div>' : "<div></div>") + "</div>" +
+    '<button class="btn2" style="width:100%" onclick="saveBody(\'' + ds + '\')">' + (b ? "Actualizar" : "Guardar") + "</button>" + (wkAvgKg(ds) ? '<p class="sm mu" style="margin-top:8px">Promedio de esta semana: <b style="color:var(--tx)">' + wkAvgKg(ds) + " kg</b></p>" : "") + "</div>";
 }
+function wkAvgKg(ds) { const ws = addD(ds, -dow(ds)), a = S.body.filter(function (b) { return b.kg && b.d >= ws && b.d <= addD(ws, 6); }); return a.length > 1 ? Math.round(a.reduce(function (x, b) { return x + +b.kg; }, 0) / a.length * 10) / 10 : null; }
 function saveBody(ds) {
-  const kg = parseFloat(($("bd-kg").value || "").replace(",", ".")), w = parseFloat(($("bd-w").value || "").replace(",", "."));
+  const kg = parseFloat(($("bd-kg").value || "").replace(",", ".")), w = $("bd-w") ? parseFloat(($("bd-w").value || "").replace(",", ".")) : NaN;
   if (!(kg > 40 && kg < 200)) { toast("Escribe un peso válido"); return; }
   S.body = S.body.filter(function (x) { return x.d !== ds; }); S.body.push({ d: ds, kg: kg, waist: w > 40 ? w : "" });
   S.body.sort(function (a, b) { return a.d < b.d ? -1 : 1; }); S.bw = kg; touch();
@@ -1475,6 +1493,13 @@ function coachDay(ds) {
     const ls = Object.keys(S.logs).filter(function (d) { return d < ds && S.logs[d][e.ex] && S.logs[d][e.ex].kg !== "" && S.logs[d][e.ex].kg != null; }).sort().slice(-2);
     if (ls.length === 2 && ls.every(function (d) { return S.logs[d][e.ex].fail; })) out.push("Las últimas 2 veces no completaste " + EX[e.ex].n.toLowerCase() + ": hoy la app ya te bajó un 5% (" + r25(e.kg * 0.95) + " kg). Recupera la técnica y vuelve a subir.");
   });
+  const tmw = dow(addD(ds, 1)), work = tmw <= 4;
+  out.push("Esta noche: luz apagada a las " + (work ? "22:30" : "23:30") + " para despertar a las " + (work ? "6:00" : "7:00") + " con 7,5 h de sueño.");
+  const pg = protOf(addD(ds, -1)); if (pg && pg < NUT.train.p * 0.8) out.push("Ayer llegaste a " + pg + " g de proteína (meta " + NUT.train.p + "): empieza hoy con un desayuno de 40 g.");
+  const wiC = posOf(ds);
+  if (wiC) { const ws0 = addD(START, wiC.w * 7); let cf = 0; for (let d = ws0; d <= ds; d = addD(d, 1)) cf += dayActs(d).filter(function (a) { return a.t === "Crossfit" || a.t === "HighIntensityIntervalTraining"; }).length;
+    if (wiC.deload && cf >= 1) out.push("Semana de descarga: mejor sin clases de CrossFit, para que las rodillas y el cuerpo asimilen.");
+    else if (cf >= 2) out.push("Ya van " + cf + " sesiones de CrossFit/HIIT esta semana: con una basta. Cuida las rodillas (sin saltos extra)."); }
   if (train && s.wod) out.push("Al terminar, come en la primera hora: proteína + carbohidrato (arroz con pollo, o batido con plátano). Te ayuda a no quedar sin energía.");
   const st = streakTo(ds); if (st >= 3 && train) out.push("Llevas " + st + " días seguidos entrenando: después de hoy, descansa.");
   const wi = posOf(ds);
@@ -1499,6 +1524,11 @@ function coachWeek(ds) {
   if (s1 != null) lines.push("Sueño: " + Math.round(s1) + "/100" + (s0 != null ? " (" + (s1 >= s0 ? "+" : "") + Math.round(s1 - s0) + " vs la semana anterior)" : "") + (nr1 != null ? " · recuperación " + String(Math.round(nr1 * 10) / 10).replace(".", ",") + "/6" : "") + ".");
   const wa = S.body.filter(function (b) { return b.waist; });
   if (wa.length) { const l = wa[wa.length - 1], p = wa.length > 1 ? wa[wa.length - 2] : null; lines.push("Cintura: " + l.waist + " cm" + (p ? " (" + (l.waist - p.waist > 0 ? "+" : "") + Math.round((l.waist - p.waist) * 10) / 10 + ")" : "") + (l.waist > 90 ? " · te faltan " + Math.round((l.waist - 90) * 10) / 10 + " cm para 90." : " · ¡meta cumplida!")); }
+  const kgw = weeklyAvg(S.body.filter(function (b) { return b.kg; }).map(function (b) { return [b.d, +b.kg]; }), START).filter(function (p) { return p[0] <= ws; }).slice(-2);
+  if (kgw.length && kgw[kgw.length - 1][0] === ws) lines.push("Peso promedio: " + Math.round(kgw[kgw.length - 1][1] * 10) / 10 + " kg" + (kgw.length > 1 ? " (" + sgn(kgw[1][1] - kgw[0][1], " kg") + ")" : "") + ".");
+  const pd7 = []; for (let d = ws; d <= we; d = addD(d, 1)) if (protOf(d)) pd7.push(protOf(d));
+  if (pd7.length) lines.push("Proteína: " + Math.round(pd7.reduce(function (a, b) { return a + b; }, 0) / pd7.length) + " g de promedio (" + pd7.length + " días anotados, meta " + NUT.train.p + ").");
+  const hrs = sleepAvg(ws, we, 2); if (hrs != null && hrs < 7) lines.push("Dormiste " + String(Math.round(hrs * 10) / 10).replace(".", ",") + " h de promedio: la meta es 7 o más.");
   const skips = Object.keys(S.logs).filter(function (d) { return d >= ws && d <= we && S.logs[d].wod && S.logs[d].wod.res === "no"; }).length;
   if (skips) lines.push("WOD sin hacer: " + skips + (skips > 1 ? " días." : " día."));
   let goal;
@@ -1532,8 +1562,10 @@ function renderProg() {
   const wl = wa[wa.length - 1];
   h += chartCard("Cintura", wl ? wl[1] + " cm" : "—", wl ? (wa.length > 1 ? sgn(wl[1] - wa[0][1], " cm") + " desde el inicio · " : "") + (wl[1] > 90 ? "te faltan " + Math.round((wl[1] - 90) * 10) / 10 + " cm" : "¡meta cumplida!") : "Meta: 90 cm",
     lineChart([{ name: "Cintura", pts: wa }], { goal: 90, goalLabel: "Meta 90 cm", empty: "Apunta tu cintura cada lunes" }));
-  const kg = S.body.filter(function (b) { return b.kg; }).map(function (b) { return [b.d, +b.kg]; }), kl = kg[kg.length - 1];
-  h += chartCard("Peso", kl ? kl[1] + " kg" : "—", kl && kg.length > 1 ? sgn(kl[1] - kg[0][1], " kg") + " desde el inicio" : "Cada lunes en ayunas", lineChart([{ name: "Peso", color: CH.white, pts: kg }], { empty: "Apunta tu peso cada lunes" }));
+  const kg = weeklyAvg(S.body.filter(function (b) { return b.kg; }).map(function (b) { return [b.d, +b.kg]; }), START).map(function (p) { return [p[0], Math.round(p[1] * 10) / 10]; }), kl = kg[kg.length - 1];
+  h += chartCard("Peso · promedio semanal", kl ? kl[1] + " kg" : "—", kl && kg.length > 1 ? sgn(kl[1] - kg[0][1], " kg") + " desde la 1ª semana · pésate 3-4 mañanas" : "Pésate 3-4 mañanas por semana", lineChart([{ name: "Peso", color: CH.white, pts: kg }], { empty: "Apunta tu peso en ayunas", xfmt: function (d) { return "sem. " + fdate(d); } }));
+  const pr = Object.keys(S.logs).filter(function (d) { return protOf(d); }).map(function (d) { return [d, protOf(d)]; });
+  h += chartCard("Proteína · promedio semanal", pr.length ? Math.round(weeklyAvg(pr, START).pop()[1]) + " g" : "—", "Meta: " + NUT.train.p + " g al día", lineChart([{ name: "Proteína", color: CH.orange, pts: weeklyAvg(pr, START) }], { goal: NUT.train.p, goalLabel: "Meta " + NUT.train.p + " g", fmt: function (v) { return Math.round(v); }, empty: "Toca los botones de proteína en Hoy", xfmt: function (d) { return "sem. " + fdate(d); } }));
   // 2 · fuerza
   const T = S.tests || [];
   const mx = function (k) { return T.filter(function (t) { return chNum(t[k]) != null; }).map(function (t) { return [t.d, Math.round(+t[k] / 0.87)]; }); };
@@ -1604,6 +1636,7 @@ function renderProg() {
   }
   else {
     // 14 oct: el 5RM de press militar del 12 oct quedó escrito 60 kg; el real es 42,5 kg
+    if (!S.fixPull1) { const t = S.tests.find(function (x) { return x.d === "2026-10-12"; }); if (t && +t.pull === 20) { t.pull = 10; touch(); S.dirty = true; } S.fixPull1 = true; save(); }
     if (!S.fixOhp1) { const t = S.tests.find(function (x) { return x.d === "2026-10-12"; }); if (t && +t.ohp === 60) { t.ohp = 42.5; if (+S.lifts.ohp === 60) S.lifts.ohp = 42.5; touch(); S.dirty = true; } S.fixOhp1 = true; save(); }
     render(); refresh(false); if (connParts() && (S.pushed !== planHash() || S.dirty)) schedPush();
   }
