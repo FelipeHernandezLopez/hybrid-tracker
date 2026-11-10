@@ -316,7 +316,7 @@ const W_TUE = [
   { f: "AMRAP 12'", it: ["6 dominadas", "10 push-ups", "14 cal remo"], m: ["pullup", "pushup", "rower"] },
   { f: "4 rondas por tiempo · cap 16'", it: ["15 cal ski", "12 push press con mancuernas · 17,5 kg", "10 toes to bar"], m: ["ski", "dbpp", "ttb"] },
   { f: "EMOM 12'", it: ["Min 1: 10 fondos", "Min 2: 12 remos con mancuerna/brazo", "Min 3: 12 cal ski"], m: ["dips", "row", "ski"] },
-  { f: "10-8-6-4-2 por tiempo", it: ["Push press con mancuernas · 20 kg", "Dominadas", "200 m remo en cada ronda"], m: ["dbpp", "pullup", "rower"] },
+  { f: "10-8-6-4-2 por tiempo", it: ["Push press con mancuernas · 20 kg", "Dominadas: la mitad (5-4-3-2-1)", "200 m remo en cada ronda"], m: ["dbpp", "pullup", "rower"] },
   { f: "AMRAP 10'", it: ["8 snatch alternos · 20 kg", "10 sit-ups", "12 cal remo"], m: ["dbsnatch", "situp", "rower"] },
   { f: "Tabata x4 (1' entre bloques)", it: ["Ski", "Push-ups", "Hollow hold", "Remo"], m: ["ski", "pushup", "hollow", "rower"] },
   { f: "AMRAP 15'", it: ["5 dominadas", "10 push-ups", "15 KB swings · 24 kg"], m: ["pullup", "pushup", "swing"] }
@@ -326,7 +326,7 @@ const W_WED = [
   { f: "Ski", it: ["4× 1000 m", "2' descanso", "Ritmo constante en todas"], m: ["ski"] },
   { f: "Mixto", it: ["3× 8' alternando 2' remo / 2' ski", "3' suave entre bloques"], m: ["rower", "ski"] },
   { f: "Remo 1:1", it: ["10× (1' fuerte / 1' suave)", "Ritmo: split del 2k − 2 s"], m: ["rower"] },
-  { f: "Escalera remo", it: ["250-500-750-1000-750-500-250 m", "Descanso = la mitad del tiempo de trabajo"], m: ["rower"] },
+  { f: "Escalera remo", it: ["250-500-750-1000-750-500-250 m", "250 y 500 m: muy fuerte (split −2 s) · 750 y 1000 m: fuerte (split +6 s)", "Descanso = la mitad del tiempo de trabajo"], m: ["rower"] },
   { f: "Remo + trineo", it: ["6× (500 m remo + 20 m sled push)", "2' descanso"], m: ["rower", "sledpush"] },
   { f: "Zona 2 · 30'", it: ["10' remo", "10' ski", "10' cinta caminando con 10-12% de inclinación"], m: ["rower", "ski", "tread"] },
   { f: "Umbral", it: ["3× (5' ski + 5' remo)", "Ritmo: split del 2k + 6 s", "2' descanso"], m: ["ski", "rower"] }
@@ -336,9 +336,9 @@ const W_THU = [
   { f: "3 rondas por tiempo", it: ["400 m cinta, ritmo moderado", "15 wall balls · 6 kg", "10 zancadas hacia atrás con sandbag/pierna", "12 cal ski"], m: ["tread", "wallball", "rlunge", "ski"] },
   { f: "Chipper · cap 20'", it: ["50 cal remo", "40 KB swings", "30 wall balls", "20 burpees sin salto", "10 dominadas"], m: ["rower", "swing", "wallball", "burpee", "pullup"] },
   { f: "EMOM 20'", it: ["Min 1: 12 cal ski", "Min 2: 20 m sled push", "Min 3: 50 m farmer carry", "Min 4: 10 burpees sin salto"], m: ["ski", "sledpush", "farmer", "burpee"] },
-  { f: "2 rondas · cap 22'", it: ["1000 m remo", "30 m sled push", "30 m sled pull", "20 wall balls"], m: ["rower", "sledpush", "sledpull", "wallball"] },
+  { f: "2 rondas · cap 22'", it: ["750 m remo", "25 m sled push", "25 m sled pull", "15 wall balls"], m: ["rower", "sledpush", "sledpull", "wallball"] },
   { f: "AMRAP 20'", it: ["250 m ski", "250 m remo", "10 sandbag cleans", "40 m farmer carry"], m: ["ski", "rower", "sbclean", "farmer"] },
-  { f: "Por tiempo · cap 22'", it: ["1000 m ski", "40 zancadas caminando con sandbag", "1000 m remo", "30 wall balls"], m: ["ski", "sblunge", "rower", "wallball"] },
+  { f: "Por tiempo · cap 22'", it: ["750 m ski", "30 zancadas caminando con sandbag", "750 m remo", "30 wall balls"], m: ["ski", "sblunge", "rower", "wallball"] },
   { f: "5 rondas por tiempo", it: ["200 m rápido en cinta", "10 KB swings · 24 kg", "10 push-ups", "10 cal remo"], m: ["tread", "swing", "pushup", "rower"] }
 ];
 const W_HYROX = [
@@ -453,7 +453,7 @@ function capWod(w, max) {
   }
   const c = f.match(/cap (\d+)'/);
   if (c && +c[1] > max) { f = f.replace("cap " + c[1] + "'", "cap " + max + "'"); note = "Máximo " + max + "': si llegas, para y apunta hasta dónde llegaste."; }
-  else if (!c && /por tiempo/.test(f) && !/^\d+-/.test(f)) { f += " · cap " + max + "'"; note = "Máximo " + max + "': si llegas, para y apunta hasta dónde llegaste."; }
+  else if (!c && /por tiempo/.test(f)) { f += " · cap " + max + "'"; note = "Máximo " + max + "': si llegas, para y apunta hasta dónde llegaste."; }
   if (/^Tabata x4/.test(f) && max < 19) { f = f.replace("x4", "x3"); w.it = w.it.slice(0, 3); w.m = (w.m || []).slice(0, 3); }
   w.f = f; w.capNote = note; return w;
 }
@@ -469,7 +469,7 @@ function withNote(w, n) { const t = [w.capNote, n].filter(Boolean).join(" "); re
 const KEY_NAME = { A: "Pierna", B: "Torso", M: "Motor", H: "Hyrox / Full", TI: "Prueba inferior", TS: "Prueba superior", TM: "Prueba de motor" };
 function keySession(k, wi, ds) {
   const rot = wi.w % 8, light = wi.deload || wi.taper;
-  const lightNote = light ? "Semana de descarga: WOD al 70% y sin llegar al fallo." : "";
+  const lightNote = wi.taper ? "Taper antes de la carrera: WOD al 70% y sin llegar al fallo." : light ? "Semana de descarga: WOD al 70% y sin llegar al fallo." : "";
   let s;
   if (k === "TI") s = special("test_inf", ds, wi);
   else if (k === "TS") s = special("test_sup", ds, wi);
@@ -493,7 +493,7 @@ function keySession(k, wi, ds) {
       wod: withNote(capWod(W_TUE[rot], 12), lightNote) };
   } else if (k === "M") {
     s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
-      wod: Object.assign({}, W_WED[rot], { note: (light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote() }) };
+      wod: Object.assign({}, W_WED[rot], { note: (wi.taper ? "Taper: haz 2/3 del volumen. " : light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote() }) };
   } else if (wi.ph === 3) {
     const idx = Math.min(W_HYROX.length - 1, [0, 1, 2, 0, 3, 4][Math.min(5, wi.l)]);
     const deloadWod = { f: "Descarga · técnica de estaciones", it: ["3 rondas suaves:", "500 m ski · 25 m sled push · 25 m sled pull", "500 m remo · 100 m farmer · 20 wall balls"], m: ["ski", "sledpush", "sledpull", "rower", "farmer", "wallball"] };
@@ -626,7 +626,7 @@ function mmss(s) { const m = Math.floor(s / 60), x = s - m * 60; return m + ":" 
 
 function special(kind, ds, wi) {
   if (kind === "futbol") return { type: "soccer", t: "Fútbol", sub: "Tu cardio de la semana", wi: wi, nut: "high",
-    info: ["Calienta 8 min antes: trote, movilidad de cadera y 3 aceleraciones.", "Después: 5 min de estiramiento de cuádriceps, isquios y aductores.", "Si no hay partido: haz el WOD del martes."] };
+    info: ["Calienta 8 min antes: trote, movilidad de cadera y 3 aceleraciones.", "Después: 5 min de estiramiento de cuádriceps, isquios y aductores.", "Si no hay partido: 30-40 min de carrera suave en zona 2, o adelanta una sesión clave que te falte (elígela abajo)."] };
   if (kind === "sat") {
     const P = runPaces(); let run;
     if (!wi || wi.ph === 1) run = ["40-50 min suave en zona 2: " + P.easy + " (pulso 115-135, puedes hablar en frases)", "Si la rodilla molesta: 30' remo + 20' cinta caminando inclinada"];
@@ -828,7 +828,7 @@ function goto(ds) { viewDate = ds; show("hoy"); $("p-hoy").scrollTop = 0; }
 // ═══════════════════════════════════════════
 function renderHoy() {
   const ds = viewDate, s = sessionFor(ds), d = pd(ds);
-  let h = '<div class="datebar"><button onclick="goto(addD(viewDate,-1))">‹</button><div class="d">' + DF[dow(ds)] + " " + d.getDate() + " " + MN[d.getMonth()] +
+  let h = connBanner() + '<div class="datebar"><button onclick="goto(addD(viewDate,-1))">‹</button><div class="d">' + DF[dow(ds)] + " " + d.getDate() + " " + MN[d.getMonth()] +
     "<small>" + (ds === todayS() ? "Hoy" : '<a onclick="goto(todayS())">Volver a hoy</a>') + '</small></div><button onclick="goto(addD(viewDate,1))">›</button></div>';
 
   if (!s) {
@@ -943,7 +943,17 @@ function swapWod(ds, m) {
 }
 function setWodSub(ds, k, v) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds].wodSubs = S.logs[ds].wodSubs || {}; if (v) S.logs[ds].wodSubs[k] = decodeURIComponent(v); else delete S.logs[ds].wodSubs[k]; touch(); save(); closeModal(); renderHoy(); schedPush(); }
 const KG_EX = { row: 1, rlunge: "mano", latraise: "mano", calf: "mano", dips: "lastre", hpc: 1, legcurl: 1, revfly: 1, sblunge: 1, backdrag: 1 };
-function dbR(x) { return x < 10 ? Math.round(x) : Math.round(x / 2) * 2; }
+function dbR(x) { return x < 10 ? Math.round(x) : r25(x); }
+// cuánto subir la próxima vez: mancuernas de 2,5 en 2,5; en máquinas, el salto de placa que ya usaste (curl 42 → 49 = placas de 7 kg)
+function nextStep(ex, kg, ds) {
+  const b = ex.replace(/_alt$/, "");
+  if (KG_EX[b] === "mano") return kg < 10 ? 1 : 2.5;
+  if (b === "legcurl" || b === "revfly") {
+    const ks = Object.keys(S.logs).filter(function (d) { return d < ds && S.logs[d][ex] && chNum(S.logs[d][ex].kg) != null; }).sort().map(function (d) { return +S.logs[d][ex].kg; });
+    for (let i = ks.length - 1; i > 0; i--) { const j = ks[i] - ks[i - 1]; if (j > 0) return j >= 2.5 && j <= 10 ? j : 2.5; }
+  }
+  return 2.5;
+}
 function startKg(ex) {
   const L = S.lifts;
   if (ex === "row") return L.bench ? r25(+L.bench * 0.6) : null;
@@ -969,8 +979,7 @@ function accKg(ex, ds) {
   const kg = +l.kg;
   if (fails2(ex, ds)) return { kg: KG_EX[ex.replace(/_alt$/, "")] === "mano" ? Math.max(1, Math.min(kg - 1, dbR(kg * 0.95))) : Math.max(2.5, Math.min(kg - 2.5, r25(kg * 0.95))), down: true };
   if (!l.top) return { kg: kg };
-  const step = KG_EX[ex.replace(/_alt$/, "")] === "mano" ? (kg < 10 ? 1 : 2) : 2.5;
-  return { kg: Math.round((kg + step) * 2) / 2, up: true };
+  return { kg: Math.round((kg + nextStep(ex, kg, ds)) * 2) / 2, up: true };
 }
 function setKg(ds, ex, v) { const n = parseFloat(String(v).replace(",", ".")); S.logs[ds] = S.logs[ds] || {}; S.logs[ds][ex] = Object.assign({}, S.logs[ds][ex], { kg: isNaN(n) ? "" : n }); touch(); save(); schedPush(); }
 function toggleTop(ds, ex) {
@@ -1007,7 +1016,7 @@ function exHTML(e) {
     else if (g) { right = "<b>" + g.kg + "</b><small>kg" + per + "</small>"; tip = g.up ? " · ¡sube a " + g.kg + " kg!" : g.down ? " · 2 veces sin completar: baja a " + g.kg + " kg" : ""; }
     else tip = " · busca el peso con el que hagas las reps con 2 de sobra";
   }
-  return '<div class="ex" style="display:block" onclick="tech(\'' + e.ex + '\')"><div class="row sp"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + esc(sub || x.n) + (SUBS[e.ex] ? ' <a class="sm" style="font-weight:600;white-space:nowrap" onclick="event.stopPropagation();swapEx(\'' + ds + "','" + e.ex + '\')">↔ Cambiar</a>' : "") + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + esc(tip) + "</div></div>" +
+  return '<div class="ex" style="display:block" onclick="tech(\'' + e.ex + '\')"><div class="row sp"><div><div class="n">' + (e.ss ? '<span class="pill l" style="margin-right:6px;padding:1px 7px">' + e.ss + "</span>" : "") + esc(sub || (e.ex === "pullup" && e.kg === "PC" ? "Dominadas" : x.n)) + (SUBS[e.ex] ? ' <a class="sm" style="font-weight:600;white-space:nowrap" onclick="event.stopPropagation();swapEx(\'' + ds + "','" + e.ex + '\')">↔ Cambiar</a>' : "") + '</div><div class="s">' + esc(fmtSR(e.sr)) + (e.note ? " · " : "") + esc(e.note || "") + esc(tip) + "</div></div>" +
     '<div class="k">' + right + "</div></div>" + kgRow(e, ds, main && !sub ? e.kg : (accKg(id, ds) || {}).kg, main && e.kg !== "PC" && !sub ? 1 : 0, id) + "</div>";
 }
 // Qué significa cada formato de WOD y cómo hacerlo (desplegable dentro de la tarjeta)
@@ -1038,7 +1047,7 @@ function resSpec(f) {
   if (/AMRAP/.test(f)) return { ph: "5+25", lbl: "Rondas + reps sueltas", help: "Rondas completas + las repeticiones que hiciste de la ronda sin terminar, sumando todos los ejercicios. Ej.: 5 rondas, y en la 6ª hiciste 12 cal + 10 push-ups + 3 swings = 5+25." };
   if (/EMOM/.test(f)) return { ph: "12/12", lbl: "Minutos completados", help: "Cuántos minutos terminaste a tiempo del total. Ej.: 11/12 si en uno no llegaste." };
   if (/Tabata/.test(f)) return { ph: "8", lbl: "Reps de la ronda más baja", help: "Tu marca en Tabata es la ronda con menos repeticiones." };
-  if (/tiempo|Chipper|rondas|cap/i.test(f)) return { ph: "14:40", lbl: "Tiempo", help: "El tiempo final. Si llegaste al cap, escribe CAP + las reps que te faltaron (ej. CAP+20)." };
+  if (/tiempo|Chipper|rondas|cap/i.test(f)) { const cm = f.match(/cap (\d+)'/); return { ph: "mm:ss", lbl: "Tiempo", help: "Arranca el cronómetro, haz todo lo más rápido que puedas y al terminar apunta tu tiempo final (ej. 9:45)." + (cm ? " Tienes un máximo de " + cm[1] + " minutos (el cap): si se acaban antes de terminar, para y escribe CAP + las reps que te faltaron (ej. CAP+20)." : "") }; }
   return { ph: "", lbl: "Notas", help: "" };
 }
 // Versión corta (6 min) para días con poco tiempo
@@ -1059,7 +1068,7 @@ function wodHTML(w, lab) {
   return '<div class="sec">' + lab + '</div><div class="wod"><div class="f">' + esc(w.f) + '</div><div class="t">' + (lab === "Motor" ? "Intervalos" : lab === "Final" ? "Para cerrar" : "Hoy toca") + "</div><ul>" +
     w.it.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
     (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(wodSet(k)); }).join(" · ") + "</div>" : "") +
-    (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + EX[k].n + "</button>"; }).join("") + "</div>" : "") +
+    (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + (k === "pullup" ? "Dominadas" : EX[k].n) + "</button>"; }).join("") + "</div>" : "") +
     (lab === "WOD" ? (function () {
       const ds = viewDate, sig = wodSig(w) + (w.short ? "|corto" : "") + (Object.keys(((S.logs[viewDate] || {}).wodSubs) || {}).length ? "|cambios" : ""), lw = lastWod(sig, ds), rs = resSpec(w.f), res = wodRes(ds), skip = res === "no";
       // ojo: el apóstrofo de 12' rompía el onclick, por eso se quita ANTES de escapar
@@ -1423,10 +1432,32 @@ function srcRow(k, n, d, on) {
   return '<div class="row sp"><div><b>' + n + '</b> <span class="pill ' + (on ? "l" : "") + '">' + (on ? "Conectado" : "No conectado") + '</span><div class="sm mu" style="margin-top:3px">' + d + '</div></div>' +
     (on ? '<button class="btn2" onclick="disconnect(\'' + k + '\')">Quitar</button>' : '<button class="btn2 ' + (k === "strava" ? "s" : "") + '" onclick="oauthGo(\'' + k + '\')">Conectar</button>') + "</div>";
 }
-function saveConn() {
+async function saveConn() {
   S.conn = normConn($("aj-conn").value); save();
   if (!connParts()) { toast("El código no parece correcto: debe terminar en ?k=…"); return; }
-  toast("Conectando con la hoja…"); pushAll().then(function () { renderAj(); });
+  // primero se LEE la hoja (tus datos vuelven), después se guarda lo nuevo
+  toast("Conectando con tu hoja…");
+  try { applyData(await apiGet()); keepConn(); schedPush(); toast("Conectada: tus datos están de vuelta"); }
+  catch (e) { toast("No se pudo conectar con la hoja"); }
+  render(); renderAj();
+}
+// 10 nov: el iPhone a veces borra la memoria de la app. El código queda también en la dirección
+// de la app (así "Agregar a inicio" lo guarda dentro del ícono) y en una cookie de respaldo.
+function keepConn() {
+  if (!connParts()) return; const c = normConn(S.conn);
+  try { document.cookie = "hyc=" + encodeURIComponent(c) + ";max-age=31536000;path=/;SameSite=Lax"; } catch (e) {}
+  if (!/[?#&]c=/.test(location.search + location.hash) && !/[?&]code=/.test(location.search))
+    try { history.replaceState(null, "", location.pathname + "?c=" + encodeURIComponent(c) + location.hash); } catch (e) {}
+}
+function connFromCookie() {
+  if (connParts()) return; const m = document.cookie.match(/(?:^|; )hyc=([^;]+)/);
+  if (m) try { S.conn = decodeURIComponent(m[1]); save(); } catch (e) {}
+}
+function connBanner() {
+  if (connParts()) return "";
+  return '<div class="card" style="border:1px solid rgba(255,122,107,.55);padding:13px 14px"><b style="color:var(--red)">Sin conexión a tu hoja</b>' +
+    '<p class="sm mu2" style="margin:4px 0 10px">Lo que ves son valores de fábrica. Tus datos están a salvo en tu hoja de Google: conéctala para recuperarlos.</p>' +
+    '<button class="btn" onclick="show(\'aj\');setTimeout(function(){const i=$(\'aj-conn\');if(i){i.scrollIntoView({block:\'center\'});i.focus();}},80)">Conectar ahora</button></div>';
 }
 function lf(k, l) { return '<div class="fld"><div class="lbl">' + l + '</div><input class="inp" id="lf-' + k + '" inputmode="decimal" value="' + (S.lifts[k] == null ? "" : S.lifts[k]) + '"></div>'; }
 function saveLifts() {
@@ -1444,54 +1475,76 @@ function resetAll() { if (!confirm("¿Borrar la copia del teléfono? Tu hoja de 
 const CH = { lime: "#F4B860", white: "#E8F2EC", orange: "#7DD3C0", blue: "#7DB8FF", pink: "#FF8FB1", mu: "#8FB0A3", grid: "rgba(255,255,255,.07)" };
 function chNum(v) { return v === "" || v == null || isNaN(+v) ? null : +v; }
 // series: [{ name, color, pts: [[ds, value]], dash }] · o: { goal, goalLabel, fmt, invert, h }
+function niceStep(range, n, time) {
+  const raw = (range || 1) / n;
+  if (time) { const c = [1, 2, 5, 10, 15, 20, 30, 60, 120, 300]; for (let i = 0; i < c.length; i++) if (c[i] >= raw) return c[i]; return 600; }
+  const p = Math.pow(10, Math.floor(Math.log10(raw))), m = raw / p;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * p;
+}
+function numES(v) { return String(Math.round(v * 10) / 10).replace(".", ","); }
 function lineChart(series, o) {
-  o = o || {}; const W = 320, H = o.h || 150, L = 36, R = 12, T = 12, B = 22;
+  o = o || {}; const W = 320, H = o.h || 160, L = 36, R = 10, T = 16, B = 24, PX = 14;
   series = series.map(function (s) { return Object.assign({}, s, { pts: s.pts.filter(function (p) { return p[0] && chNum(p[1]) != null; }).map(function (p) { return [p[0], +p[1]]; }).sort(function (a, b) { return a[0] < b[0] ? -1 : 1; }) }); }).filter(function (s) { return s.pts.length; });
-  if (!series.length) return '<p class="sm mu" style="padding:18px 0;text-align:center">' + (o.empty || "No data yet") + "</p>";
-  const fmt = o.fmt || function (v) { return String(Math.round(v * 10) / 10); };
+  if (!series.length) return '<p class="sm mu" style="padding:18px 0;text-align:center">' + (o.empty || "Aún sin datos") + "</p>";
+  const time = o.fmt === tS, fmt = o.fmt || numES;
   const ds = [], vs = [];
   series.forEach(function (s) { s.pts.forEach(function (p) { ds.push(p[0]); vs.push(p[1]); }); });
   const goals = o.goals || (o.goal != null ? [{ v: o.goal, label: o.goalLabel }] : []);
   goals.forEach(function (x) { vs.push(x.v); });
   let d0 = ds.reduce(function (a, b) { return a < b ? a : b; }), d1 = ds.reduce(function (a, b) { return a > b ? a : b; });
-  if (d0 === d1) { d0 = addD(d0, -7); d1 = addD(d1, 7); }
-  let v0 = Math.min.apply(null, vs), v1 = Math.max.apply(null, vs);
-  const pos = v0 >= 0, pad = (v1 - v0) * 0.12 || Math.max(1, Math.abs(v1) * 0.05); v0 -= pad; v1 += pad; if (pos && v0 < 0) v0 = 0;
+  const one = d0 === d1;
+  // escala con números redondos y aire arriba y abajo para las etiquetas
+  let lo = Math.min.apply(null, vs), hi = Math.max.apply(null, vs); if (lo === hi) { lo -= time ? 5 : 1; hi += time ? 5 : 1; }
+  const step = niceStep(hi - lo, 3, time);
+  let v0 = Math.floor(lo / step) * step, v1 = Math.ceil(hi / step) * step;
+  if (lo - v0 < step * 0.3) v0 -= step; if (v1 - hi < step * 0.3) v1 += step; if (lo >= 0 && v0 < 0) v0 = 0;
   const span = diff(d1, d0) || 1;
-  const X = function (d) { return L + (W - L - R) * diff(d, d0) / span; };
+  const X = function (d) { return one ? (L + W - R) / 2 : L + PX + (W - L - R - 2 * PX) * diff(d, d0) / span; };
   const Y = function (v) { const f = (v - v0) / (v1 - v0); return o.invert ? T + (H - T - B) * f : H - B - (H - T - B) * f; };
   let g = "";
-  for (let i = 0; i <= 3; i++) { const v = v0 + (v1 - v0) * i / 3, y = Y(v); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + CH.grid + '"/><text x="' + (L - 5) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + fmt(v) + "</text>"; }
-  goals.forEach(function (x) { const c = x.color || CH.lime, y = Y(x.v).toFixed(1); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="' + c + '" stroke-dasharray="4 4" opacity=".7"/><text x="' + (W - R) + '" y="' + (+y - 4) + '" text-anchor="end" font-size="9" font-weight="600" fill="' + c + '">' + esc(x.label || fmt(x.v)) + "</text>"; });
+  for (let v = v0; v <= v1 + step / 1000; v += step) { const y = Y(v); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + CH.grid + '"/><text x="' + (L - 6) + '" y="' + (y + 3.5).toFixed(1) + '" text-anchor="end" font-size="10" fill="' + CH.mu + '">' + fmt(v) + "</text>"; }
+  goals.forEach(function (x) { const c = x.color || CH.lime, y = Y(x.v).toFixed(1); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="' + c + '" stroke-dasharray="4 4" opacity=".6"/><text x="' + (L + 4) + '" y="' + (+y - 4) + '" font-size="10" font-weight="700" fill="' + c + '">' + esc(x.label || fmt(x.v)) + "</text>"; });
+  const total = series.reduce(function (n, s) { return n + s.pts.length; }, 0);
   series.forEach(function (s) {
     const c = s.color || CH.lime;
     if (s.pts.length > 1) g += '<polyline fill="none" stroke="' + c + '" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"' + (s.dash ? ' stroke-dasharray="5 4"' : "") + ' points="' + s.pts.map(function (p) { return X(p[0]).toFixed(1) + "," + Y(p[1]).toFixed(1); }).join(" ") + '"/>';
-    s.pts.forEach(function (p, i) { const last = i === s.pts.length - 1; g += '<circle cx="' + X(p[0]).toFixed(1) + '" cy="' + Y(p[1]).toFixed(1) + '" r="' + (last ? 3.6 : 2.4) + '" fill="' + c + '"/>'; });
+    s.pts.forEach(function (p, i) {
+      const last = i === s.pts.length - 1, x = X(p[0]), y = Y(p[1]);
+      g += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (last ? 3.8 : 2.8) + '" fill="' + c + '"/>';
+      // el número exacto encima de cada punto (si son muchos, solo el primero y el último)
+      // si otra línea está más arriba en esa fecha, la etiqueta va debajo del punto para no pisarse
+      const below = series.some(function (o2) { return o2 !== s && o2.pts.some(function (q) { return q[0] === p[0] && (o.invert ? q[1] < p[1] : q[1] > p[1]) && Math.abs(Y(q[1]) - y) < 22; }); });
+      if (total <= 12 || last || i === 0) g += '<text x="' + x.toFixed(1) + '" y="' + (below ? y + 16 : y - 8).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + c + '">' + fmt(p[1]) + "</text>";
+    });
   });
-  const xl = o.xfmt || fdate;
-  g += '<text x="' + L + '" y="' + (H - 6) + '" font-size="9" fill="' + CH.mu + '">' + xl(d0) + '</text><text x="' + (W - R) + '" y="' + (H - 6) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + xl(d1) + "</text>";
+  // fechas: debajo de cada punto (máximo 5, repartidas)
+  const xl = o.xfmt || fdate, ud = ds.filter(function (d, i) { return ds.indexOf(d) === i; }).sort();
+  const pick = ud.length <= 5 ? ud : [0, 1, 2, 3, 4].map(function (i) { return ud[Math.round(i * (ud.length - 1) / 4)]; });
+  pick.forEach(function (d) { g += '<text x="' + X(d).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle" font-size="10" fill="' + CH.mu + '">' + xl(d) + "</text>"; });
   const leg = series.length > 1 || o.legend ? '<div class="chips" style="margin-top:6px">' + series.map(function (s) { return '<span class="sm" style="color:' + (s.color || CH.lime) + '">● ' + esc(s.name) + " " + fmt(s.pts[s.pts.length - 1][1]) + "</span>"; }).join("") + "</div>" : "";
-  return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:230px;display:block" font-family="Inter,sans-serif">' + g + "</svg>" + leg;
+  return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:240px;display:block;overflow:visible" font-family="Manrope,sans-serif">' + g + "</svg>" + leg;
 }
 // bars: [{ label, a, b }] stacked (a = main colour, b = second) · o: { aName, bName, goal, aColor, bColor, fmt }
 function barChart(bars, o) {
   o = o || {}; if (!bars.length) return '<p class="sm mu" style="padding:18px 0;text-align:center">No data yet</p>';
-  const W = 320, H = o.h || 140, L = 26, R = 8, T = 12, B = 20;
-  const max = Math.max(o.goal || 0, Math.max.apply(null, bars.map(function (b) { return (b.a || 0) + (b.b || 0); }))) * 1.12 || 1;
+  const W = 320, H = o.h || 150, L = 28, R = 8, T = 16, B = 22;
+  const top = Math.max(o.goal || 0, Math.max.apply(null, bars.map(function (b) { return (b.a || 0) + (b.b || 0); }))) || 1;
+  const bstep = niceStep(top, 2), max = Math.ceil(top * 1.1 / bstep) * bstep;
   const n = bars.length, bw = Math.min(26, (W - L - R) / n * 0.62), step = (W - L - R) / n;
   const Y = function (v) { return H - B - (H - T - B) * v / max; };
-  const fmt = o.fmt || function (v) { return String(Math.round(v)); };
+  const fmt = o.fmt || numES;
   let g = "";
-  for (let i = 0; i <= 2; i++) { const v = max * i / 2, y = Y(v); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + CH.grid + '"/><text x="' + (L - 4) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end" font-size="9" fill="' + CH.mu + '">' + fmt(v) + "</text>"; }
+  for (let v = 0; v <= max + bstep / 1000; v += bstep) { const y = Y(v); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="' + CH.grid + '"/><text x="' + (L - 4) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end" font-size="10" fill="' + CH.mu + '">' + fmt(v) + "</text>"; }
   if (o.goal) { const y = Y(o.goal).toFixed(1); g += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y + '" y2="' + y + '" stroke="' + CH.lime + '" stroke-dasharray="4 4" opacity=".6"/>'; }
   bars.forEach(function (b, i) {
     const x = L + step * i + (step - bw) / 2, a = b.a || 0, c = b.b || 0;
     if (a) g += '<rect x="' + x.toFixed(1) + '" y="' + Y(a).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (Y(0) - Y(a)).toFixed(1) + '" rx="3" fill="' + (o.aColor || CH.lime) + '"/>';
-    if (c) g += '<rect x="' + x.toFixed(1) + '" y="' + Y(a + c).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (Y(a) - Y(a + c)).toFixed(1) + '" rx="3" fill="' + (o.bColor || "#4A4F45") + '"/>';
-    if (n <= 16 || i % 2 === 0) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="9" fill="' + CH.mu + '">' + esc(b.label) + "</text>";
+    if (c) g += '<rect x="' + x.toFixed(1) + '" y="' + Y(a + c).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + (Y(a) - Y(a + c)).toFixed(1) + '" rx="3" fill="' + (o.bColor || "#3E6B5C") + '"/>';
+    if (a + c && n <= 14) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (Y(a + c) - 4).toFixed(1) + '" text-anchor="middle" font-size="10" font-weight="700" fill="' + (o.aColor || CH.lime) + '">' + fmt(a + c) + "</text>";
+    if (n <= 16 || i % 2 === 0) g += '<text x="' + (x + bw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="10" fill="' + CH.mu + '">' + esc(b.label) + "</text>";
   });
   const leg = o.bName ? '<div class="chips" style="margin-top:6px"><span class="sm" style="color:' + (o.aColor || CH.lime) + '">● ' + esc(o.aName) + '</span><span class="sm mu">● ' + esc(o.bName) + "</span></div>" : "";
-  return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:230px;display:block" font-family="Inter,sans-serif">' + g + "</svg>" + leg;
+  return '<svg viewBox="0 0 ' + W + " " + H + '" style="width:100%;height:auto;max-height:230px;display:block;overflow:visible" font-family="Manrope,sans-serif">' + g + "</svg>" + leg;
 }
 function chartCard(title, big, sub, svg) {
   return '<div class="card" style="padding:13px 14px 12px"><div class="row sp" style="align-items:flex-start"><div><div class="lbl" style="margin:0">' + esc(title) + "</div>" + (sub ? '<div class="sm mu">' + sub + "</div>" : "") + '</div><b style="font-family:Manrope;font-size:24px;line-height:1;color:var(--lime);white-space:nowrap">' + (big == null ? "" : big) + '</b></div><div style="margin-top:8px">' + svg + "</div></div>";
@@ -1591,9 +1644,34 @@ function weekReviewHTML() {
 
 // ═══════════════════════════════════════════
 function tS(s) { s = Math.round(s); return Math.floor(s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60); }
-function sgn(v, u) { v = Math.round(v * 10) / 10; return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v) + (u || ""); }
+function sgn(v, u) { v = Math.round(v * 10) / 10; return (v > 0 ? "+" : v < 0 ? "−" : "±") + String(Math.abs(v)).replace(".", ",") + (u || ""); }
+// Mis pruebas: cada prueba con su fecha y su número exacto
+const TEST_ROWS = [["squat", "Sentadilla · 5RM"], ["trap", "Peso muerto · 5RM"], ["bench", "Banca · 5RM"], ["ohp", "Press militar · 5RM"], ["pull", "Dominada · 5RM con lastre"], ["row2k", "Remo 2.000 m", 1], ["km1", "1 km en cinta", 1]];
+function nextTestTxt() {
+  const c = posOf(todayS()); if (!c) return "";
+  if (c.deload) return "Esta semana toca prueba";
+  for (let w = c.w + 1; w < c.T; w++) { const wi = weekInfo(w); if (wi.deload) return "Próximas: semana " + (w + 1) + " · " + fdate(addD(START, w * 7)); if (wi.taper) break; }
+  return "";
+}
+function testsHTML() {
+  const T = (S.tests || []).slice().sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+  let rows = "";
+  TEST_ROWS.forEach(function (r) {
+    const k = r[0], t = r[2];
+    const pts = T.filter(function (x) { return t ? parse2k(x[k]) : chNum(x[k]) != null; }).map(function (x) { return [x.d, t ? parse2k(x[k]) : +x[k]]; });
+    if (!pts.length) return;
+    const f = function (v) { return t ? tS(v) : (k === "pull" ? "+" : "") + numES(v) + " kg"; };
+    const last = pts[pts.length - 1], prev = pts.length > 1 ? pts[pts.length - 2] : null;
+    let dl = "";
+    if (prev) { const dv = last[1] - prev[1], good = t ? dv < 0 : dv > 0; dl = ' <span class="sm" style="font-weight:700;color:' + (dv === 0 ? "var(--mu)" : good ? "var(--ok)" : "var(--warn)") + '">' + sgn(dv, t ? " s" : " kg") + "</span>"; }
+    rows += '<div style="padding:10px 0;border-top:1px solid var(--line)"><div class="row sp"><b style="font-size:14px">' + r[1] + '</b><span style="white-space:nowrap"><b style="color:var(--lime);font-size:16px">' + f(last[1]) + "</b>" + dl + "</span></div>" +
+      '<div class="sm mu" style="margin-top:4px;line-height:1.7">' + pts.map(function (p) { return fdate(p[0]) + ' <b style="color:var(--mu2);font-weight:600">' + f(p[1]) + "</b>"; }).join(" &nbsp;→&nbsp; ") + "</div></div>";
+  });
+  return '<div class="card" style="padding:13px 14px 4px"><div class="row sp" style="margin-bottom:4px"><b>Mis pruebas</b><span class="sm mu">' + nextTestTxt() + "</span></div>" +
+    (rows || '<p class="sm mu" style="padding:10px 0 12px">Aparecen cuando apuntes tus pruebas</p>') + "</div>";
+}
 function renderProg() {
-  let h = weekReviewHTML();
+  let h = connBanner() + weekReviewHTML();
   // 1 · cintura y peso
   const wa = S.body.filter(function (b) { return b.waist; }).map(function (b) { return [b.d, +b.waist]; });
   const wl = wa[wa.length - 1];
@@ -1603,6 +1681,7 @@ function renderProg() {
   h += chartCard("Peso · promedio semanal", kl ? kl[1] + " kg" : "—", kl && kg.length > 1 ? sgn(kl[1] - kg[0][1], " kg") + " desde la 1ª semana · pésate 3-4 mañanas" : "Pésate 3-4 mañanas por semana", lineChart([{ name: "Peso", color: CH.white, pts: kg }], { empty: "Apunta tu peso en ayunas", xfmt: function (d) { return "sem. " + fdate(d); } }));
   const pr = Object.keys(S.logs).filter(function (d) { return protOf(d); }).map(function (d) { return [d, protOf(d)]; });
   h += chartCard("Proteína · promedio semanal", pr.length ? Math.round(weeklyAvg(pr, START).pop()[1]) + " g" : "—", "Meta: " + NUT.train.p + " g al día", lineChart([{ name: "Proteína", color: CH.orange, pts: weeklyAvg(pr, START) }], { goal: NUT.train.p, goalLabel: "Meta " + NUT.train.p + " g", fmt: function (v) { return Math.round(v); }, empty: "Toca los botones de proteína en Hoy", xfmt: function (d) { return "sem. " + fdate(d); } }));
+  h += testsHTML();
   // 2 · fuerza
   const T = S.tests || [];
   const mx = function (k) { return T.filter(function (t) { return chNum(t[k]) != null; }).map(function (t) { return [t.d, Math.round(+t[k] / 0.87)]; }); };
@@ -1622,11 +1701,11 @@ function renderProg() {
   h += chartCard("1 km · cinta", k1.length ? tS(k1[k1.length - 1][1]) : "—", "Más bajo = mejor", lineChart([{ name: "1 km", color: CH.orange, pts: k1 }], { invert: true, fmt: tS, empty: "Aparece cuando hagas tu prueba de 1 km" }));
   // 4 y 5 · semanas
   const cw = posOf(todayS()), bars = [], mins = [];
-  for (let w = 0; cw && w <= cw.w; w++) { const wp = weekPlan(w); bars.push({ label: "S" + (w + 1), a: wp.keysReal, b: wp.extras }); mins.push({ label: "S" + (w + 1), a: wp.mins }); }
+  for (let w = 0; cw && w <= cw.w; w++) { const wp = weekPlan(w); bars.push({ label: "S" + (w + 1), a: wp.keysReal, b: wp.extras }); mins.push({ label: "S" + (w + 1), a: Math.round(wp.mins / 6) / 10 }); }
   const lb = bars[bars.length - 1];
-  h += chartCard("Sesiones por semana", lb ? lb.a + "/4" : "—", "Clave hechas (lima) + extras", barChart(bars, { goal: 4, aName: "Clave", bName: "Extras" }));
+  h += chartCard("Sesiones por semana", lb ? lb.a + "/4" : "—", "Clave hechas + extras", barChart(bars, { goal: 4, aName: "Clave", bName: "Extras" }));
   const lm = mins[mins.length - 1];
-  h += chartCard("Minutos por semana", lm ? Math.round(lm.a / 6) / 10 + " h" : "—", "Todo lo que registra Polar", barChart(mins, { aColor: CH.white }));
+  h += chartCard("Horas por semana", lm ? numES(lm.a) + " h" : "—", "Todo lo que registra Polar", barChart(mins, { aColor: CH.white }));
   // 6 · VO2 máx
   const vo = (S.vo2h || []).filter(function (p) { return chNum(p[1]) != null; });
   h += chartCard("VO2 máx · Polar", vo.length ? vo[vo.length - 1][1] : S.vo2 || "—", vo.length > 1 ? sgn(vo[vo.length - 1][1] - vo[0][1]) + " desde la 1ª medición · Fitness Test" : "Se actualiza con el Fitness Test del reloj",
@@ -1649,6 +1728,7 @@ function renderProg() {
   // Link personal: …/hybrid-tracker/#c=<código>. Así el código no depende de que el teléfono lo recuerde.
   const hm = (location.search + location.hash).match(/[?#&]c=([^&#]+)/);
   if (hm) { try { const c = decodeURIComponent(hm[1]); if (c !== S.conn) { S.conn = c; save(); } } catch (e) {} }
+  connFromCookie();
   const q = new URLSearchParams(location.search);
   const code = q.get("code"), stRaw = q.get("state") || "";
   const st = stRaw.split(".")[0];
@@ -1669,13 +1749,13 @@ function renderProg() {
   if (code && (st === "strava" || st === "polar")) {
     // El código de conexión viaja en "state": al volver de Polar puede abrirse otro contexto sin datos guardados
     if (!connParts() && stRaw.indexOf(".") > 0) { try { S.conn = decodeURIComponent(atob(stRaw.slice(stRaw.indexOf(".") + 1).replace(/-/g, "+").replace(/_/g, "/"))); save(); } catch (e) {} }
-    history.replaceState(null, "", location.pathname + location.hash); render(); oauthBack(st, code);
+    history.replaceState(null, "", location.pathname + location.hash); keepConn(); render(); oauthBack(st, code);
   }
   else {
     // 14 oct: el 5RM de press militar del 12 oct quedó escrito 60 kg; el real es 42,5 kg
     if (!S.fixPull1) { const t = S.tests.find(function (x) { return x.d === "2026-10-12"; }); if (t && +t.pull === 20) { t.pull = 10; touch(); S.dirty = true; } S.fixPull1 = true; save(); }
     if (!S.fixOhp1) { const t = S.tests.find(function (x) { return x.d === "2026-10-12"; }); if (t && +t.ohp === 60) { t.ohp = 42.5; if (+S.lifts.ohp === 60) S.lifts.ohp = 42.5; touch(); S.dirty = true; } S.fixOhp1 = true; save(); }
-    render(); refresh(false); if (connParts() && (S.pushed !== planHash() || S.dirty)) schedPush();
+    render(); keepConn(); refresh(false); if (connParts() && (S.pushed !== planHash() || S.dirty)) schedPush();
   }
   document.addEventListener("visibilitychange", function () {
     if (document.hidden) return;
