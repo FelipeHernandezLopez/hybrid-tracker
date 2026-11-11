@@ -426,15 +426,29 @@ function scheme(wi) {
   return [{ s: 4, r: 5, p: 0.85 }, { s: 4, r: 4, p: 0.9 }, { s: 3, r: 3, p: 0.95 }][i];
 }
 // Cada bloque de 4 semanas terminado sube el 5RM de referencia (+5 kg piernas, +2,5 kg torso), hasta la fase 3
-function blocks(wi) { const wEff = Math.min(wi.w, wi.p3); return Math.max(0, Math.floor((wEff - S.liftsWeek) / 4)); }
+// 11 nov: una semana que ya terminó usa los 5RM que tenías ENTONCES (las pruebas hechas hasta su lunes),
+// así una prueba nueva nunca cambia el plan del pasado. Esta semana y las que vienen usan tus 5RM actuales.
+function liftCtx(wi) {
+  const ws = addD(START, wi.w * 7);
+  if (addD(ws, 7) > todayS()) return { L: S.lifts, lw: S.liftsWeek };
+  const L = Object.assign({}, S.lifts); let lw = 0;
+  const T = (S.tests || []).slice().sort(function (a, b) { return a.d < b.d ? -1 : 1; });
+  LIFT_KEYS.forEach(function (k) {
+    const has = T.filter(function (t) { return chNum(t[k]) != null; }); if (!has.length) return;
+    const t = has.filter(function (x) { return x.d <= ws; }).pop() || has[0];
+    L[k] = +t[k]; const p = posOf(t.d); lw = Math.max(lw, p ? p.w + 1 : 0);
+  });
+  return { L: L, lw: lw };
+}
+function blocks(wi, lw) { const wEff = Math.min(wi.w, wi.p3); return Math.max(0, Math.floor((wEff - (lw == null ? S.liftsWeek : lw)) / 4)); }
 function kg(key, pct, wi) {
-  const base = parseFloat(S.lifts[key]); if (!base && key !== "pull") return null;
+  const cx = liftCtx(wi), base = parseFloat(cx.L[key]); if (!base && key !== "pull") return null;
   const inc = (key === "squat" || key === "trap") ? 5 : 2.5;
   if (key === "pull") {
-    const tot = (S.bw + (base || 0) + inc * blocks(wi)) * pct - S.bw;
+    const tot = (S.bw + (base || 0) + inc * blocks(wi, cx.lw)) * pct - S.bw;
     return tot <= 1 ? "PC" : r25(tot);
   }
-  return r25((base + inc * blocks(wi)) * pct);
+  return r25((base + inc * blocks(wi, cx.lw)) * pct);
 }
 function main(ex, key, wi, mult, setsAdj) {
   const sc = scheme(wi); const v = kg(key, sc.p * (mult || 1), wi);
@@ -689,7 +703,11 @@ function applyData(d) {
   if (!d || !d.ok) { if (d && d.error) toast("Hoja: " + d.error); return false; }
   S.acts = d.acts || {}; if (d.vo2h) S.vo2h = d.vo2h; if (d.sleeph) S.sleeph = d.sleeph; if (d.vo2) S.vo2 = d.vo2; if (d.rhr) S.rhr = d.rhr; if (d.recov) S.recov = d.recov; _wk = {};
   mergeFromSheet(d);
-  Object.keys(d.logs || {}).forEach(function (ds) { S.logs[ds] = S.logs[ds] || {}; Object.keys(d.logs[ds]).forEach(function (ex) { if (!S.logs[ds][ex]) S.logs[ds][ex] = d.logs[ds][ex]; }); });
+  Object.keys(d.logs || {}).forEach(function (ds) { S.logs[ds] = S.logs[ds] || {}; Object.keys(d.logs[ds]).forEach(function (ex) {
+    // 11 nov: antes la copia del teléfono siempre ganaba y dos copias distintas se pisaban en la hoja.
+    // Ahora, en los días pasados, lo que dice la hoja es la verdad (se conservan solo los detalles que la hoja no guarda).
+    if (!S.logs[ds][ex] || (!S.dirty && ds < todayS())) S.logs[ds][ex] = Object.assign({}, S.logs[ds][ex], d.logs[ds][ex]);
+  }); });
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
 }
 // El botón "Sincronizar ahora" muestra que está trabajando y cómo terminó
