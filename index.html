@@ -17,7 +17,7 @@
 <style>
 :root{--bg:#0F2621;--c1:#18382F;--c2:#22463B;--line:rgba(232,242,236,.08);--tx:#E8F2EC;--mu:#8FB0A3;--mu2:#B7CEC5;--lime:#F4B860;--limeInk:#3A2604;--ok:#7FD6A0;--warn:#F5A97F;--red:#FF7A6B;--strava:#FC4C02;--nav:62px;--hdr:56px}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;overflow:hidden}
+html{background:#0B1F1B;height:100%;min-height:-webkit-fill-available;overflow:hidden}body{position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;min-height:-webkit-fill-available;overflow:hidden}@supports (height:100lvh){html,body{height:100lvh}}
 body{background:var(--bg);color:var(--tx);font:500 14px/1.5 Manrope,-apple-system,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
 button{font-family:inherit;color:inherit}
 a{color:var(--lime)}
@@ -326,7 +326,7 @@ const W_WED = [
   { f: "Ski", it: ["4× 1000 m", "2' descanso", "Ritmo constante en todas"], m: ["ski"] },
   { f: "Mixto", it: ["3× 8' alternando 2' remo / 2' ski", "3' suave entre bloques"], m: ["rower", "ski"] },
   { f: "Remo 1:1", it: ["10× (1' fuerte / 1' suave)", "Ritmo: split del 2k − 2 s"], m: ["rower"] },
-  { f: "Escalera remo", it: ["250-500-750-1000-750-500-250 m", "250 y 500 m: muy fuerte (split −2 s) · 750 y 1000 m: fuerte (split +6 s)", "Descanso = la mitad del tiempo de trabajo"], m: ["rower"] },
+  { f: "Escalera remo", it: ["7 tramos sueltos: 250-500-750-1000-750-500-250 m", "Cada tramo es un esfuerzo aparte: al terminar te bajas del remo y descansas quieto. NO es seguido.", "250 y 500 m: muy fuerte (split −2 s) · 750 y 1000 m: fuerte (split +6 s)", "Descanso = la mitad de lo que tardaste en el tramo. El ritmo suave solo sirve para enfriar al final.", "@LADDER"], m: ["rower"] },
   { f: "Remo + trineo", it: ["6× (500 m remo + 20 m sled push)", "2' descanso"], m: ["rower", "sledpush"] },
   { f: "Zona 2 · 30'", it: ["10' remo", "10' ski", "10' cinta caminando con 10-12% de inclinación"], m: ["rower", "ski", "tread"] },
   { f: "Umbral", it: ["3× (5' ski + 5' remo)", "Ritmo: split del 2k + 6 s", "2' descanso"], m: ["ski", "rower"] }
@@ -629,6 +629,12 @@ function sessionFor(ds) {
   if (wi.taper) return fixedFor(ds, wi);
   return weekPlan(wi.w).days[dow(ds)].session;
 }
+function ladderTable() {
+  const p = S.row2k ? parse2k(S.row2k) : null; if (!p) return "Haz la prueba de 2.000 m para ver tus tiempos y descansos.";
+  const sp = p / 4, hd = sp - 2, st = sp + 6, rows = [[250, hd], [500, hd], [750, st], [1000, st], [750, st], [500, hd], [250, hd]];
+  const t = function (x) { x = Math.round(x); return Math.floor(x / 60) + ":" + (x % 60 < 10 ? "0" : "") + (x % 60); };
+  return rows.map(function (r, i) { const w = r[0] / 500 * r[1]; return (i + 1) + ". " + r[0] + " m a " + t(r[1]) + "/500 m = " + t(w) + (i < 6 ? " · descansa " + t(w / 2) : " · fin"); }).join("<br>");
+}
 function paceNote() {
   if (!S.row2k) return "Haz la prueba de 2.000 m de remo para ver tus ritmos.";
   const p = parse2k(S.row2k); if (!p) return "";
@@ -797,7 +803,7 @@ function planDays() {
   for (let ds = "2026-10-05"; ds <= addD(S.race, 1); ds = addD(ds, 1)) {
     const s = sessionFor(ds); if (!s) continue; const wi = s.wi;
     const st = (s.str || []).concat(s.knee || []).map(function (e) { const g = e.kg === undefined && KG_EX[e.ex] ? accKg(e.ex, ds) : null; return EX[e.ex].n + " " + e.sr + (e.kg === "PC" ? " PC" : e.kg != null ? " " + e.kg + " kg" : g && g.kg ? " " + g.kg + " kg" : ""); }).join(" · ");
-    const wd = s.wod ? s.wod.f + ": " + s.wod.it.join(", ") : "";
+    const wd = s.wod ? s.wod.f + ": " + s.wod.it.map(function (i) { return i === "@LADDER" ? "" : i; }).join(", ") : "";
     out.push({ d: ds, w: wi ? wi.w + 1 : 0, ph: wi ? PHASE[wi.ph] + (wi.deload ? " · pruebas" : wi.taper ? " · taper" : "") : "Pruebas", dia: DF[dow(ds)], ses: sheetName(s, ds), loads: [st, wd].filter(Boolean).join(" | ") });
   }
   return out;
@@ -1084,7 +1090,7 @@ function lastWod(sig, ds) { const d = Object.keys(S.logs).filter(function (x) { 
 function wodHTML(w, lab) {
   const short = lab === "WOD" && S.wodShort && S.wodShort[viewDate]; if (short) w = shortWod(w);
   return '<div class="sec">' + lab + '</div><div class="wod"><div class="f">' + esc(w.f) + '</div><div class="t">' + (lab === "Motor" ? "Intervalos" : lab === "Final" ? "Para cerrar" : "Hoy toca") + "</div><ul>" +
-    w.it.map(function (i) { return "<li>" + esc(i) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
+    w.it.map(function (i) { return "<li>" + (i === "@LADDER" ? ladderTable() : esc(i)) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
     (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(wodSet(k)); }).join(" · ") + "</div>" : "") +
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + (k === "pullup" ? "Dominadas" : EX[k].n) + "</button>"; }).join("") + "</div>" : "") +
     (lab === "WOD" ? (function () {
@@ -1597,7 +1603,7 @@ function coachDay(ds) {
   const s = sessionFor(ds), n = nightOf(ds), out = [];
   const train = s && s.type !== "rest";
   if (n && ((n.nr != null && n.nr <= 2) || (n.ans != null && n.ans <= -6))) out.push(train ? "Recuperación baja anoche (" + (n.nr != null ? n.nr + "/6" : "ANS " + n.ans) + "): entrena, pero baja un 10-15% los pesos y haz el WOD al 70%." : "Recuperación baja anoche: hoy descansa de verdad y acuéstate temprano.");
-  else if (n && n.hours != null && n.hours < 6) out.push("Dormiste " + String(n.hours).replace(".", ",") + " h: sigue el plan sin buscar récords y hoy intenta dormir 7 h o más.");
+  else if (n && n.hours != null && n.hours < 6) out.push("Polar marca " + String(n.hours).replace(".", ",") + " h de sueño, pero puede ser una sincronización incompleta del reloj: abre Polar Flow, sincroniza y mira otra vez. Si es cierto, sigue el plan sin buscar récords y hoy intenta dormir 7 h o más.");
   else if (n && n.nr != null && n.nr >= 5) out.push(train ? "Recuperación muy buena (" + n.nr + "/6): día para apretar. " + (s.key === "M" ? "Mantén el split fuerte en todos los bloques." : s.key === "H" ? "Ve a por un buen tiempo en el WOD." : "Si la última serie sale con 3 o más de sobra, marca \"completé todo\".") : "Recuperación muy buena: aprovecha para moverte suave o hacer movilidad.");
   else if (n) out.push(train ? "Recuperación normal" + (n.nr != null ? " (" + n.nr + "/6)" : "") + ": sigue el plan tal cual." : "Día de descanso: camina y estira, y llega a tus 180 g de proteína.");
   else out.push(train ? "Sin datos de sueño de anoche: sigue el plan y escucha al cuerpo." : "Día de descanso: camina, estira y come bien.");
