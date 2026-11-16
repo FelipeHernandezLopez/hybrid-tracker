@@ -189,6 +189,11 @@ const MOVED = { "2026-10-12": "test_sup",       // fin de semana con la familia:
 // Días que Felipe ya decidió (la app los sugiere así; él puede cambiarlos)
 const PLAN_PICK = { "2026-11-04": "H",            // clase de CrossFit = la sesión suave de Hyrox / Full
   "2026-11-05": "TS" };                           // prueba de torso el jueves (motor: sábado o domingo)
+// Vacaciones en Austria (snowboard): esos días no hay sesiones clave ni cuentan como saltados.
+// La semana de pruebas de la fase 2 caía justo en el viaje: pasa a la semana siguiente (4 ene).
+const AWAY = { from: "2026-12-26", to: "2027-01-01", t: "Vacaciones · snowboard" };
+function isAway(ds) { return ds >= AWAY.from && ds <= AWAY.to; }
+const VAC_W = Math.floor(diff("2026-12-28", START) / 7);
 // Mientras falte el 1 km, la app lo muestra cada día como prueba pendiente
 const KM1_FROM = "2026-10-12";
 const POLAR_ID = "8034e007-b5e5-463d-bb19-13dcebc363d8";
@@ -407,9 +412,11 @@ function weekInfo(w) {
   if (w < 8) { ph = 1; l = w; }
   else if (w < p3) { ph = 2; l = w - 8; }
   else { ph = 3; l = w - p3; }
+  const away = ph === 2 && w === VAC_W;
+  if (ph === 2 && w > VAC_W) l = l - 1;      // la semana del viaje no cuenta: las pruebas pasan a la siguiente
   const taper = w >= T - 2;
-  const deload = !taper && l % 4 === 3;
-  return { w: w, T: T, ph: ph, l: l, deload: deload, taper: taper, p3: p3 };
+  const deload = !taper && !away && l % 4 === 3;
+  return { w: w, T: T, ph: ph, l: l, deload: deload, taper: taper, p3: p3, away: away };
 }
 function posOf(ds) {
   const d = diff(ds, START);
@@ -421,6 +428,7 @@ function posOf(ds) {
 
 // Esquema de series para los básicos: s × r al p % del 5RM
 function scheme(wi) {
+  if (wi.away) return { s: 3, r: 5, p: 0.65 };
   if (wi.taper) return { s: 3, r: 3, p: 0.8 };
   if (wi.deload) return { s: 3, r: 5, p: 0.65 };
   const i = wi.l % 4;
@@ -499,7 +507,7 @@ function keySession(k, wi, ds) {
         sup(ph1 ? acc("legcurl", light ? "2×10" : "3×8-10", "Bajada en 3 s · nórdico con banda de vez en cuando") : acc("fitcurl", light ? "2×10" : "3×10", "Bajada en 3 s · con una pierna cuando sea fácil"), "A2")],
       knee: [acc("spanish", "45 s", "Pesada: banda gruesa y bien atrás"), acc("stepdown", "8/pierna", "Bajada en 3-4 s"),
         acc("tke", "15", "Pausa de 2 s arriba"), acc("tibialis", "15", ""), acc("calf", "12", ph1 ? "Pesado, pausa arriba" : "Pesado")],
-      wod: withNote(capWod(W_MON[rot], 12), lightNote) };
+      wod: withNote(light ? capWod(W_MON[rot], 12) : applyLevel(capWod(W_MON[rot], 12), ds), lightNote) };
   } else if (k === "B") {
     s = { type: "gym", t: "Fuerza superior", sub: "+ WOD · 60 min", warm: "sup", cool: "cool", wi: wi, nut: "train",
       str: [main("bench", "bench", wi), sup(main("pullup", "pull", wi), "A1"),
@@ -508,7 +516,7 @@ function keySession(k, wi, ds) {
         sup(acc("dips", light ? "2×máx" : "3×máx", "Lastra si pasas de 12"), "B2"),
         acc(wi.ph === 1 ? "revfly" : "dbfly", "2×15", "Ligero, pausa atrás · si no sacas las 15, baja el peso · descansa 60 s entre series"),
         acc("latraise", "2×15", "Lento · descansa 60 s · si falta tiempo, quita esta primero")],
-      wod: withNote(capWod(W_TUE[rot], 12), lightNote) };
+      wod: withNote(light ? capWod(W_TUE[rot], 12) : applyLevel(capWod(W_TUE[rot], 12), ds), lightNote) };
   } else if (k === "M") {
     s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
       wod: Object.assign({}, W_WED[rot], { note: (wi.taper ? "Taper: haz 2/3 del volumen. " : light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote() }) };
@@ -523,7 +531,7 @@ function keySession(k, wi, ds) {
     const fs = wi.ph === 1 ? main("frontsq", "squat", wi, 0.8, -1) : main("pushpress", "ohp", wi, 1.15, -1);
     s = { type: "gym", t: "Full body", sub: "Estilo Hyrox · 60 min · o tu clase de CrossFit", info: ["¿Vas a una clase de CrossFit? Cuenta como esta sesión (una por semana). Si sientes la rodilla, cambia los saltos por step-ups o remo."], warm: "full", cool: "cool", wi: wi, nut: "train",
       str: [acc("hpc", wi.ph === 1 ? "5×3" : "5×2", "Técnica: rápido, RPE 7 (empieza en ~60 kg)"), fs],
-      wod: withNote(capWod(W_THU[rot], 15), lightNote),
+      wod: withNote(light ? capWod(W_THU[rot], 15) : applyLevel(capWod(W_THU[rot], 15), ds), lightNote),
       knee: [acc("backdrag", light ? "2×20 m" : "4×20 m", "Pesado, pasos cortos")], kneeAfter: true };
   }
   s.key = k; return s;
@@ -551,8 +559,8 @@ function playedFootball(ds) { return (S.acts[ds] || []).some(function (a) { retu
 function weekPlan(w) {
   if (_wk[w]) return _wk[w];
   const wi = weekInfo(w), ws = addD(START, w * 7), t = todayS();
-  const order = wi.deload ? ["TI", "TS", "TM", "H"] : ["A", "B", "M", "H"];
-  const prio = wi.deload ? ["TI", "TS", "TM", "H"] : ["A", "H", "B", "M"];
+  const order = wi.away ? [] : wi.deload ? ["TI", "TS", "TM", "H"] : ["A", "B", "M", "H"];
+  const prio = wi.away ? [] : wi.deload ? ["TI", "TS", "TM", "H"] : ["A", "H", "B", "M"];
   const done = {}, days = [];
   let streak = 0, keysReal = 0, extras = 0, mins = 0;
   // racha de días activos que viene de la semana anterior
@@ -562,7 +570,7 @@ function weekPlan(w) {
     const pending = order.filter(function (k) { return !done[k]; });
     // 1) qué sugeriría la app este día, con lo hecho hasta ayer
     let sug = { special: null, key: null, why: "" };
-    let slots = 0; for (let x = d; x < 7; x++) if (x !== FOOTBALL_DOW) slots++;
+    let slots = 0; for (let x = d; x < 7; x++) if (x !== FOOTBALL_DOW && !isAway(addD(ws, x))) slots++;
     const tight = slots <= pending.length;
     const tired = streak >= 3, poor = poorRecovery(ds);
     const nearFootball = d === FOOTBALL_DOW - 1 || d === FOOTBALL_DOW + 1 || playedFootball(addD(ds, -1));
@@ -581,8 +589,8 @@ function weekPlan(w) {
       if (poor) sug.why = "Polar marca recuperación baja: baja un 10-15% las cargas.";
       else if (tight && pending.length > 1) sug.why = "Quedan " + pending.length + " sesiones clave y " + slots + " días: prioridad a lo más importante.";
     }
-    if (MOVED[ds]) {
-      const session = special(MOVED[ds], ds, MOVED[ds] === "run_pre" ? wi : null);
+    if (MOVED[ds] || isAway(ds)) {
+      const session = isAway(ds) ? special("nieve", ds, wi) : special(MOVED[ds], ds, MOVED[ds] === "run_pre" ? wi : null);
       const assigned = acts.map(function (a) { mins += +a.min || 0; extras++; return { a: a, k: null }; });
       streak = acts.length || ds >= t ? streak + 1 : 0;
       days.push({ ds: ds, session: session, assigned: assigned, did: [], sug: sug });
@@ -656,12 +664,19 @@ function special(kind, ds, wi) {
     if (!wi || wi.ph === 1) run = ["40-50 min suave en zona 2: " + P.easy + " (pulso 115-135, puedes hablar en frases)", "Si la rodilla molesta: 30' remo + 20' cinta caminando inclinada"];
     else if (wi.ph === 2) run = wi.w % 2 === 0 ? ["Progresivo 50 min: 20' suave (" + P.easy + ") + 20' a ritmo Hyrox (" + P.hyrox + ") + 10' a umbral (" + P.thr + ")"] : ["10' suave + 6× (3' a umbral " + P.thr + " / 2' suave) + 10' suave"];
     else run = wi.w % 2 === 0 ? ["8× 1 km a ritmo Hyrox (" + P.hyrox + ") en cinta motorizada · 1' descanso"] : ["60-70 min suave, largo y cómodo (" + P.easy + ")"];
-    if (wi && (wi.deload || wi.taper)) run = ["30-40 min suave, sin nada de intensidad (" + P.easy + ")"];
+    if (wi && (wi.deload || wi.taper || wi.away)) run = ["30-40 min suave, sin nada de intensidad (" + P.easy + ")"];
     return { type: "run", t: "Carrera", sub: "Tu carrera de la semana · lo que más baja tu tiempo en Hyrox", wi: wi, nut: "high", info: run.concat([P.src, "¿Tenis en vez de carrera? Vale de vez en cuando: cuenta como extra."]) };
   }
   if (kind === "run_pre") return { type: "run", t: "Test 1 km + suave", sub: "45 min", wi: wi, nut: "high", test: "run_pre", info: ["Cinta motorizada al 1% de inclinación (siempre la misma para poder comparar). En el reloj: Treadmill running.", "Calentamiento 10': 6' a 9-10 km/h, 2' a 11-12 km/h, 3 aceleraciones de 20 s a 15-16 km/h con 40 s caminando, 2' caminando.", "Prueba: 0-200 m a 15 km/h. Cada 200 m, si vas bien, sube 0,5 km/h (15,5 · 16 · 16,5). Últimos 200 m: lo que te quede. Si un tramo ya es tu límite, no subas más.", "Tu tiempo es el de la cinta al llegar a 1,00 km. Para bajarte: pies a los bordes y agárrate de las barras.", "Enfría 5' caminando o trotando suave y apunta el tiempo abajo."] };
   if (kind === "test_motor") { const k1 = kmDoneSince(ds); return { type: "test", t: "Prueba de motor", sub: k1 ? "Remo 2k · 35 min" : "Remo 2k + 1 km · 50 min", wi: wi, nut: "train", test: kind, warm: "eng", cool: "long", str: [],
     wod: k1 ? { f: "Prueba", it: ["2.000 m de remo a tope · damper 5-6"], m: ["rower"], note: "El 1 km ya lo hiciste esta semana. Apunta el tiempo del remo abajo." } : { f: "Pruebas", it: ["2.000 m de remo a tope · damper 5-6", "15' suave: caminar y movilidad", "1 km a tope en cinta motorizada al 1%"], m: ["rower", "tread"], note: "Apunta los dos tiempos abajo." } }; }
+  if (kind === "nieve") return { type: "rest", t: AWAY.t, sub: "Austria · esto también es entrenamiento", wi: wi, nut: "high", info: [
+    "Antes de subir, 8-10 min en el hotel: 20 sentadillas, 10 zancadas por pierna, círculos de rodilla y cadera, 10 rotaciones de tronco.",
+    "Graba cada día en el reloj como Snowboarding: llega solo a tu hoja como actividad extra.",
+    "Rodillas: la última bajada del día es la de más lesiones. Si te pesan las piernas, para antes.",
+    "Casco siempre. Agua aunque haga frío, y proteína en cada comida (meta 180 g).",
+    "Por la noche: 10 min de movilidad (cuádriceps, cadera, espalda) y dormir 7-8 h.",
+    "Las pruebas de fuerza y motor pasan a la semana del 4 de enero."] };
   if (kind === "descanso") return { type: "rest", t: "Descanso", sub: "Recupera para lo que viene", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min y movilidad suave.", "Si te sientes muy bien, puedes hacer la sesión clave que toca: elígela abajo."] };
   if (kind === "libre") return { type: "rest", t: "Semana completa", sub: "Las 4 sesiones clave están hechas", wi: wi, nut: "rest", cool: "long", info: ["Hoy: descanso, movilidad o un deporte que te apetezca (cuenta como extra).", "Lo importante de la semana ya está."] };
   if (kind === "domingo") return { type: "rest", t: "Descanso", sub: "Movilidad 20 min", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min suma y ayuda a recuperar.", "Duerme 7-8 h: aquí es donde se construye el cuerpo."] };
@@ -718,7 +733,31 @@ function applyData(d) {
     // Ahora, en los días pasados, lo que dice la hoja es la verdad (se conservan solo los detalles que la hoja no guarda).
     if (!S.logs[ds][ex] || (!S.dirty && ds < todayS())) S.logs[ds][ex] = Object.assign({}, S.logs[ds][ex], d.logs[ds][ex]);
   }); });
+  restoreFromText(d.logs);
   S.strava = !!d.strava; S.polar = !!d.polar; S.sheetSync = d.lastSync || ""; S.lastSync = Date.now(); save(); render(); return true;
+}
+// 17 nov: la hoja guarda el texto de cada fila (resultado del WOD, "no completé", el ejercicio que cambiaste).
+// Si el teléfono perdió su memoria, se recupera de ese texto. Nunca pisa lo que el teléfono ya tiene.
+function nameToEx(n) { return Object.keys(EX).filter(function (k) { return EX[k].n === n; })[0] || null; }
+function restoreFromText(logs) {
+  Object.keys(logs || {}).forEach(function (ds) { Object.keys(logs[ds]).forEach(function (ex) {
+    const L = S.logs[ds] && S.logs[ds][ex]; if (!L) return;
+    const t = String(L.t || logs[ds][ex].t || ""); delete L.t; if (!t) return;
+    if (ex === "wod") {
+      if (L.res) return;
+      const m = t.match(/^WOD (.*?) · (no hecho|resultado (.+?))(?: · cambios: (.*))?$/); if (!m) return;
+      L.f = L.f || m[1]; L.res = m[2] === "no hecho" ? "no" : m[3];
+      if (m[4] && !Object.keys(S.logs[ds].wodSubs || {}).length) {
+        const ws = {}; m[4].split(", ").forEach(function (p) { const q = p.split(" → "), k = nameToEx(q[0]); if (k && q[1]) ws[k] = q[1]; });
+        if (Object.keys(ws).length) S.logs[ds].wodSubs = ws;
+      }
+      if (!L.sig) { try { const s = sessionFor(ds); if (s && s.wod) L.sig = wodSig(s.wod) + (L.f !== s.wod.f && /6'/.test(L.f) ? "|corto" : "") + (m[4] ? "|cambios" : ""); } catch (e) {} }
+      return;
+    }
+    const base = ex.replace(/_alt$/, "");
+    if (/ · no completé/.test(t) && !L.fail && !L.top) { L.fail = true; const rm = t.match(/no completé \((.+)\)$/); if (rm && !L.reps) L.reps = rm[1]; }
+    if (ex !== base && !subOf(ds, base)) { const sm = t.match(/^(.*?) \(en vez de /); if (sm && sm[1] !== "Alternativa") { S.logs[ds].subs = S.logs[ds].subs || {}; S.logs[ds].subs[base] = sm[1]; } }
+  }); });
 }
 // El botón "Sincronizar ahora" muestra que está trabajando y cómo terminó
 let _sync = null;
@@ -1075,18 +1114,62 @@ function wodSet(k) {
 // Cuánto del cap usaste: dos WODs seguidos por debajo del 75% => sube la carga; dos sin terminar => baja
 function wodRatio(l) {
   if (!l || !l.res || l.res === "no") return null;
-  const cm = String(l.f || "").match(/cap (\d+)'/); if (!cm) return null;
+  const cm = String(l.f || "").match(/cap (\d+)/); if (!cm) return null;   // el texto guardado va sin el apóstrofo (cap 12)
   if (/^cap/i.test(String(l.res).trim())) return 1.2;
   const t = String(l.res).trim().match(/^(\d+):(\d{2})$/); if (!t) return null;
   return (+t[1] + +t[2] / 60) / +cm[1];
+}
+// 17 nov: la app aplica sola la regla. El nivel de un día sale SOLO de los WODs anteriores a ese día,
+// así que un resultado nuevo nunca cambia el WOD de hoy ni el pasado. Antes del 17 nov todo queda como estaba.
+const LVL_FROM = "2026-11-17";
+function wodLevel(ds) {
+  if (ds < LVL_FROM) return 0;
+  let lvl = 0, win = [];
+  Object.keys(S.logs).filter(function (d) { return d < ds && S.logs[d].wod; }).sort().forEach(function (d) {
+    const r = wodRatio(S.logs[d].wod); if (r == null) return;
+    win.push(r); if (win.length > 2) win.shift();
+    if (d < LVL_FROM) return;                 // lo de antes solo sirve de punto de partida, nunca cambia el nivel
+    if (win.length === 2 && win.every(function (x) { return x < 0.75; })) { lvl = Math.min(2, lvl + 1); win = []; }
+    else if (win.length === 2 && win.every(function (x) { return x >= 1; })) { lvl = Math.max(-2, lvl - 1); win = []; }
+  });
+  return lvl;
+}
+const KB_STEPS = [16, 20, 24, 28, 32];
+function lvlItem(x, lvl) {
+  if (/wall ball/i.test(x)) return x;                         // el balón de 6 kg es el de la carrera
+  const km = x.match(/(\d+(?:,\d+)?) kg/);
+  if (km) {
+    const v = parseFloat(km[1].replace(",", "."));
+    let nv;
+    if (/KB|swing|goblet|farmer/i.test(x) && KB_STEPS.indexOf(v) >= 0) { const i = KB_STEPS.indexOf(v); nv = i >= 0 ? KB_STEPS[Math.max(0, Math.min(KB_STEPS.length - 1, i + lvl))] : v + 4 * lvl; }
+    else nv = Math.max(2.5, v + 2.5 * lvl);
+    return x.replace(km[0], String(nv).replace(".", ",") + " kg");
+  }
+  const cm = x.match(/^(Min \d+: )?(\d+)( .*)$/);
+  if (cm) {
+    const n = +cm[2], m = /^ m\b/.test(cm[3]);
+    if (m && n < 100) return x;                               // trineo y farmer: distancias de la carrera, no se tocan
+    let nv = n * Math.pow(lvl > 0 ? 1.1 : 0.9, Math.abs(lvl));
+    nv = m ? Math.max(50, Math.round(nv / 50) * 50) : Math.max(1, Math.round(nv));
+    return (cm[1] || "") + nv + cm[3];
+  }
+  return x;
+}
+function applyLevel(w, ds) {
+  const lvl = wodLevel(ds); if (!lvl) return w;
+  w = Object.assign({}, w, { lvl: lvl, it: w.it.map(function (x) { return lvlItem(x, lvl); }) });
+  const t = lvl > 0 ? "Nivel +" + lvl + ": la regla del 75% subió la carga porque terminaste 2 WODs seguidos muy por debajo del cap."
+    : "Nivel " + lvl + ": la regla del cap bajó la carga porque no terminaste 2 WODs seguidos.";
+  w.capNote = [w.capNote, t].filter(Boolean).join(" ");
+  return w;
 }
 function wodRuleTxt(ds, l) {
   const rows = Object.keys(S.logs).filter(function (d) { return d <= ds && S.logs[d].wod && wodRatio(S.logs[d].wod) != null; }).sort().slice(-2).map(function (d) { return wodRatio(S.logs[d].wod); });
   const r = wodRatio(l), out = [];
   const two = rows.length === 2 && rows.every(function (x) { return x >= 1; });
   if (r != null && !two) out.push(r >= 1 ? "No terminaste dentro del cap." : "Terminaste al " + Math.round(r * 100) + "% del cap.");
-  if (rows.length === 2 && rows.every(function (x) { return x < 0.75; })) out.push("Tus 2 últimos WODs con cap quedaron por debajo del 75%: la próxima vez sube la carga o las repeticiones.");
-  else if (rows.length === 2 && rows.every(function (x) { return x >= 1; })) out.push("No terminaste dentro del cap 2 veces seguidas: la próxima vez baja la carga o las repeticiones un 10%.");
+  if (rows.length === 2 && rows.every(function (x) { return x < 0.75; })) out.push("Tus 2 últimos WODs con cap quedaron por debajo del 75%: la app sube la carga en tu próximo WOD.");
+  else if (rows.length === 2 && rows.every(function (x) { return x >= 1; })) out.push("No terminaste dentro del cap 2 veces seguidas: la app baja la carga en tu próximo WOD.");
   return out.join(" ");
 }
 // Qué se anota en cada formato
@@ -1107,14 +1190,14 @@ function shortWod(w) {
 }
 function toggleShort(ds) { S.wodShort = S.wodShort || {}; if (S.wodShort[ds]) delete S.wodShort[ds]; else S.wodShort[ds] = true; touch(); save(); renderHoy(); }
 function wodRes(ds) { return ((S.logs[ds] || {}).wod || {}).res || ""; }
-function wodSig(w) { return w.f.replace(/ · cap \d+'/, "") + "|" + (w.it[0] || ""); }
+function wodSig(w) { return w.f.replace(/ · cap \d+'/, "") + "|" + (w.it[0] || "") + (w.lvl ? "|n" + w.lvl : ""); }
 function setWodRes(ds, v, f, sig) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds].wod = { res: String(v || "").trim(), f: f, sig: sig }; touch(); save(); schedPush(); toast(v === "no" ? "Anotado: hoy sin WOD" : v ? "Resultado guardado" : "Borrado"); renderHoy(); }
 function lastWod(sig, ds) { const d = Object.keys(S.logs).filter(function (x) { return x < ds && S.logs[x].wod && S.logs[x].wod.sig === sig && S.logs[x].wod.res && S.logs[x].wod.res !== "no"; }).sort().pop(); return d ? { d: d, res: S.logs[d].wod.res } : null; }
 function wodHTML(w, lab) {
   const short = lab === "WOD" && S.wodShort && S.wodShort[viewDate]; if (short) w = shortWod(w);
   return '<div class="sec">' + lab + '</div><div class="wod"><div class="f">' + esc(w.f) + '</div><div class="t">' + (lab === "Motor" ? "Intervalos" : lab === "Final" ? "Para cerrar" : "Hoy toca") + "</div><ul>" +
     w.it.map(function (i) { return "<li>" + (i === "@LADDER" ? ladderTable() : esc(i)) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
-    (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(wodSet(k)); }).join(" · ") + "</div>" : "") +
+    (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(w.lvl && k === "swing" ? lvlItem("KB " + wodSet(k), w.lvl).replace(/^KB /, "") : wodSet(k)); }).join(" · ") + "</div>" : "") +
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + (k === "pullup" ? "Dominadas" : EX[k].n) + "</button>"; }).join("") + "</div>" : "") +
     (lab === "WOD" ? (function () {
       const ds = viewDate, sig = wodSig(w) + (w.short ? "|corto" : "") + (Object.keys(((S.logs[viewDate] || {}).wodSubs) || {}).length ? "|cambios" : ""), lw = lastWod(sig, ds), rs = resSpec(w.f), res = wodRes(ds), skip = res === "no";
