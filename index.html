@@ -255,6 +255,9 @@ const EX = {
   dips:    { n: "Fondos en paralelas", g: "Accesorio", c: ["Hombros abajo, lejos de las orejas.", "Baja hasta que el codo quede a 90°, torso algo inclinado.", "Sube hasta bloquear. Lastra cuando hagas más de 12."] },
   facepull:{ n: "Face pull", g: "Accesorio", c: ["Polea o banda a la altura de la cara, agarre con cuerda.", "Tira hacia la frente separando las manos y rota hacia afuera al final.", "Salud de hombro: ligero y con control."] },
   revfly:  { n: "Pájaros en máquina (pec deck inverso)", g: "Accesorio", c: ["Sentado mirando a la máquina, pecho contra el respaldo, agarre neutro.", "Abre los brazos hacia atrás con los codos casi estirados, juntando los omóplatos.", "Pausa 1 s atrás y vuelve lento en 2-3 s.", "Sin máquina: pájaros con mancuernas, inclinado sobre un banco a 30-45°."], k: "Trabaja el hombro de atrás y la espalda alta, igual que el face pull: equilibra todo el press y protege el hombro." },
+  dbrow:   { n: "Remo con mancuerna a una mano", g: "Accesorio", kg: true, c: ["Una rodilla y una mano en el banco, espalda plana, la otra mano con la mancuerna.", "Tira el codo hacia la cadera, no hacia el techo, apretando la espalda.", "Baja lento hasta estirar el brazo sin girar el tronco."] },
+  fitcurl: { n: "Curl femoral con fitball", g: "Accesorio", c: ["Acostado boca arriba, talones sobre el fitball, cadera arriba.", "Dobla las rodillas llevando el balón hacia los glúteos sin dejar caer la cadera.", "Estira en 3 segundos. Si es fácil, hazlo con una pierna."], k: "Isquios fuertes estabilizan la rodilla." },
+  dbfly:   { n: "Pájaros con mancuernas (banco inclinado)", g: "Accesorio", kg: true, c: ["Pecho sobre un banco a 30-45°, mancuernas ligeras colgando.", "Abre los brazos con los codos casi estirados juntando los omóplatos.", "Pausa 1 s arriba y baja en 2-3 s."], k: "Hombro de atrás y espalda alta, como los pájaros en máquina." },
   latraise:{ n: "Elevaciones laterales", g: "Accesorio", c: ["Mancuernas ligeras, codo levemente flexionado.", "Sube hasta la altura del hombro guiando con el codo.", "Baja en 3 segundos sin balanceo."] },
   hpc:     { n: "Hang power clean", g: "Potencia", c: ["Barra a mitad del muslo, espalda neutra, hombros por delante.", "Salta: extiende cadera, rodillas y tobillos de golpe.", "Encoge los hombros y mete los codos rápido para recibir en media sentadilla.", "Rápido y técnico, no pesado y lento."] },
   pushpress:{ n: "Push press", g: "Potencia", c: ["Barra en el rack frontal.", "Pequeño dip de rodillas con el torso vertical.", "Extiende las piernas y usa ese impulso para empujar la barra arriba.", "Bloquea arriba y baja amortiguando con las piernas."] },
@@ -493,7 +496,7 @@ function keySession(k, wi, ds) {
     s = { type: "gym", t: "Fuerza inferior", sub: "+ rodilla + WOD · 60 min", warm: "inf", cool: "cool", wi: wi, nut: "train", kneeCircuit: true,
       str: [main("boxsq", "squat", wi), main("trap", "trap", wi, 1, -1),
         sup(ph1 ? acc("rlunge", light ? "2×8/pierna" : "3×8/pierna", "Mancuernas pesadas, 2 reps en reserva") : acc("sblunge", light ? "2×10/pierna" : "3×10/pierna", "Caminando con sandbag de 20 kg"), "A1"),
-        sup(acc("legcurl", light ? "2×10" : "3×8-10", "Bajada en 3 s · nórdico con banda de vez en cuando"), "A2")],
+        sup(ph1 ? acc("legcurl", light ? "2×10" : "3×8-10", "Bajada en 3 s · nórdico con banda de vez en cuando") : acc("fitcurl", light ? "2×10" : "3×10", "Bajada en 3 s · con una pierna cuando sea fácil"), "A2")],
       knee: [acc("spanish", "45 s", "Pesada: banda gruesa y bien atrás"), acc("stepdown", "8/pierna", "Bajada en 3-4 s"),
         acc("tke", "15", "Pausa de 2 s arriba"), acc("tibialis", "15", ""), acc("calf", "12", ph1 ? "Pesado, pausa arriba" : "Pesado")],
       wod: withNote(capWod(W_MON[rot], 12), lightNote) };
@@ -501,9 +504,10 @@ function keySession(k, wi, ds) {
     s = { type: "gym", t: "Fuerza superior", sub: "+ WOD · 60 min", warm: "sup", cool: "cool", wi: wi, nut: "train",
       str: [main("bench", "bench", wi), sup(main("pullup", "pull", wi), "A1"),
         sup(main("ohp", "ohp", wi, wi.ph === 2 ? 0.85 : 0.9, -1), "A2"),
-        sup(acc("row", light ? "2×10" : "3×10", "2 reps en reserva"), "B1"),
+        sup(wi.ph === 1 ? acc("row", light ? "2×10" : "3×10", "2 reps en reserva") : acc("dbrow", light ? "2×10" : "3×10", "Por lado · 2 reps en reserva"), "B1"),
         sup(acc("dips", light ? "2×máx" : "3×máx", "Lastra si pasas de 12"), "B2"),
-        sup(acc("revfly", "2×15", "Ligero, pausa atrás"), "C1"), sup(acc("latraise", "2×15", "Lento"), "C2")],
+        acc(wi.ph === 1 ? "revfly" : "dbfly", "2×15", "Ligero, pausa atrás · si no sacas las 15, baja el peso · descansa 60 s entre series"),
+        acc("latraise", "2×15", "Lento · descansa 60 s · si falta tiempo, quita esta primero")],
       wod: withNote(capWod(W_TUE[rot], 12), lightNote) };
   } else if (k === "M") {
     s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
@@ -966,7 +970,7 @@ function swapWod(ds, m) {
   openModal("Cambiar ejercicio del WOD", h);
 }
 function setWodSub(ds, k, v) { S.logs[ds] = S.logs[ds] || {}; S.logs[ds].wodSubs = S.logs[ds].wodSubs || {}; if (v) S.logs[ds].wodSubs[k] = decodeURIComponent(v); else delete S.logs[ds].wodSubs[k]; touch(); save(); closeModal(); renderHoy(); schedPush(); }
-const KG_EX = { row: 1, rlunge: "mano", latraise: "mano", calf: "mano", dips: "lastre", hpc: 1, legcurl: 1, revfly: 1, sblunge: 1, backdrag: 1 };
+const KG_EX = { dbrow: "mano", dbfly: "mano", row: 1, rlunge: "mano", latraise: "mano", calf: "mano", dips: "lastre", hpc: 1, legcurl: 1, revfly: 1, sblunge: 1, backdrag: 1 };
 function dbR(x) { return x < 10 ? Math.round(x) : r25(x); }
 // cuánto subir la próxima vez: mancuernas de 2,5 en 2,5; en máquinas, el salto de placa que ya usaste (curl 42 → 49 = placas de 7 kg)
 function nextStep(ex, kg, ds) {
@@ -983,6 +987,8 @@ function startKg(ex) {
   if (ex === "row") return L.bench ? r25(+L.bench * 0.6) : null;
   if (ex === "rlunge") return L.squat ? dbR(+L.squat * 0.2) : null;
   if (ex === "latraise") return 8;
+  if (ex === "dbrow") return L.bench ? dbR(+L.bench * 0.25) : null;
+  if (ex === "dbfly") return 6;
   if (ex === "calf") return 20;
   if (ex === "hpc") return 60;
   if (ex === "sblunge") return 20;
@@ -1066,6 +1072,23 @@ function wodSet(k) {
     sledpull: ["~70 kg", "~85 kg", "103 kg (carrera)"][ph - 1] + " en total, trineo incluido", farmer: "2 × 24 kg", wallball: "balón de 6 kg, objetivo a 3 m", sblunge: "saco de 20 kg", swing: "KB de 24 kg", tread: "tramos cortos/rápidos a " + runPaces().sprint.split(" (")[0] + " · 1 km a ritmo Hyrox " + runPaces().hyrox.split(" (")[0] };
   return SET[k] || "";
 }
+// Cuánto del cap usaste: dos WODs seguidos por debajo del 75% => sube la carga; dos sin terminar => baja
+function wodRatio(l) {
+  if (!l || !l.res || l.res === "no") return null;
+  const cm = String(l.f || "").match(/cap (\d+)'/); if (!cm) return null;
+  if (/^cap/i.test(String(l.res).trim())) return 1.2;
+  const t = String(l.res).trim().match(/^(\d+):(\d{2})$/); if (!t) return null;
+  return (+t[1] + +t[2] / 60) / +cm[1];
+}
+function wodRuleTxt(ds, l) {
+  const rows = Object.keys(S.logs).filter(function (d) { return d <= ds && S.logs[d].wod && wodRatio(S.logs[d].wod) != null; }).sort().slice(-2).map(function (d) { return wodRatio(S.logs[d].wod); });
+  const r = wodRatio(l), out = [];
+  const two = rows.length === 2 && rows.every(function (x) { return x >= 1; });
+  if (r != null && !two) out.push(r >= 1 ? "No terminaste dentro del cap." : "Terminaste al " + Math.round(r * 100) + "% del cap.");
+  if (rows.length === 2 && rows.every(function (x) { return x < 0.75; })) out.push("Tus 2 últimos WODs con cap quedaron por debajo del 75%: la próxima vez sube la carga o las repeticiones.");
+  else if (rows.length === 2 && rows.every(function (x) { return x >= 1; })) out.push("No terminaste dentro del cap 2 veces seguidas: la próxima vez baja la carga o las repeticiones un 10%.");
+  return out.join(" ");
+}
 // Qué se anota en cada formato
 function resSpec(f) {
   if (/AMRAP/.test(f)) return { ph: "5+25", lbl: "Rondas + reps sueltas", help: "Rondas completas + las repeticiones que hiciste de la ronda sin terminar, sumando todos los ejercicios. Ej.: 5 rondas, y en la 6ª hiciste 12 cal + 10 push-ups + 3 swings = 5+25." };
@@ -1104,6 +1127,7 @@ function wodHTML(w, lab) {
         btn(skip ? "↺" : "✕", skip ? "Anotado: hoy sin WOD · deshacer" : "Hoy no hice el WOD", skip, "setWodRes('" + ds + "'," + (skip ? "''" : "'no'") + ",'" + fq + "','" + sq + "')") + "</div>" +
         (skip ? "" : '<div class="row" style="margin-top:10px;gap:8px;flex-wrap:wrap"><input class="inp" style="width:110px;padding:8px 10px;background:rgba(58,38,4,.12);color:var(--limeInk)" placeholder="' + rs.ph + '" value="' + esc(res) + '" onchange="setWodRes(\'' + ds + "',this.value,'" + fq + "','" + sq + '\')"><span class="sm" style="color:var(--limeInk)">Tu resultado · ' + rs.lbl + "</span>" +
           (rs.help ? '<span class="sm" style="color:var(--limeInk);opacity:.75;width:100%">' + esc(rs.help) + "</span>" : "") +
+          (res && wodRuleTxt(ds, (S.logs[ds] || {}).wod) ? '<span class="sm" style="color:var(--limeInk);width:100%"><b>' + esc(wodRuleTxt(ds, (S.logs[ds] || {}).wod)) + "</b></span>" : "") +
           (lw ? '<span class="sm" style="color:var(--limeInk);width:100%">Tu última vez (' + fdate(lw.d) + "): <b>" + esc(lw.res) + "</b></span>" : "") + "</div>");
     })() : "") +
     (wodHow(w.f) ? '<details class="how"><summary>¿Qué es y cómo se hace? ▾</summary>' + wodHow(w.f) + "</details>" : "") + "</div>";
@@ -1701,7 +1725,7 @@ function testsHTML() {
 }
 // Historial: qué hiciste cada día, con qué peso y con qué series, para comparar dentro de un mes
 let _histView = "sem";
-const HIST_ORDER = ["boxsq", "trap", "frontsq", "bench", "ohp", "pullup", "hpc", "row", "dips", "rlunge", "sblunge", "legcurl", "revfly", "latraise", "calf", "backdrag", "pushpress"];
+const HIST_ORDER = ["boxsq", "trap", "frontsq", "bench", "ohp", "pullup", "hpc", "row", "dips", "rlunge", "sblunge", "legcurl", "fitcurl", "revfly", "dbfly", "dbrow", "latraise", "calf", "backdrag", "pushpress"];
 const E1RM = { boxsq: 1, trap: 1, frontsq: 1, bench: 1, ohp: 1, row: 1, pushpress: 1 };
 function dayLogItems(ds) {
   const L = S.logs[ds] || {}; let s = null; try { s = sessionFor(ds); } catch (e) {}
