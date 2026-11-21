@@ -206,9 +206,9 @@ const PHASE = ["", "Verse bien", "Motor", "Hyrox"];
 const PHASE_SUB = ["", "Fuerza + WODs, recomposición", "Volumen de motor y fuerza pesada", "Específico, simulacros y taper"];
 
 const NUT = {
-  train: { k: 2600, p: 180, c: 300, f: 75, lbl: "Día de entreno" },
-  high:  { k: 2800, p: 180, c: 350, f: 75, lbl: "Fútbol / carrera / tenis" },
-  rest:  { k: 2200, p: 180, c: 200, f: 75, lbl: "Descanso" }
+  train: { k: 2600, p: 160, c: 320, f: 75, lbl: "Día de entreno" },
+  high:  { k: 2800, p: 160, c: 370, f: 75, lbl: "Fútbol / carrera / tenis" },
+  rest:  { k: 2200, p: 160, c: 220, f: 75, lbl: "Descanso" }
 };
 const STUDY = [
   { k: "read",  i: "📖", n: "Lectura",  min: 20 },
@@ -674,7 +674,7 @@ function special(kind, ds, wi) {
     "Antes de subir, 8-10 min en el hotel: 20 sentadillas, 10 zancadas por pierna, círculos de rodilla y cadera, 10 rotaciones de tronco.",
     "Graba cada día en el reloj como Snowboarding: llega solo a tu hoja como actividad extra.",
     "Rodillas: la última bajada del día es la de más lesiones. Si te pesan las piernas, para antes.",
-    "Casco siempre. Agua aunque haga frío, y proteína en cada comida (meta 180 g).",
+    "Casco siempre. Agua aunque haga frío, y proteína en cada comida (meta 160 g).",
     "Por la noche: 10 min de movilidad (cuádriceps, cadera, espalda) y dormir 7-8 h.",
     "Las pruebas de fuerza y motor pasan a la semana del 4 de enero."] };
   if (kind === "descanso") return { type: "rest", t: "Descanso", sub: "Recupera para lo que viene", wi: wi, nut: "rest", cool: "long", info: ["Caminar 30-60 min y movilidad suave.", "Si te sientes muy bien, puedes hacer la sesión clave que toca: elígela abajo."] };
@@ -1712,7 +1712,7 @@ function coachDay(ds) {
   if (n && ((n.nr != null && n.nr <= 2) || (n.ans != null && n.ans <= -6))) out.push(train ? "Recuperación baja anoche (" + (n.nr != null ? n.nr + "/6" : "ANS " + n.ans) + "): entrena, pero baja un 10-15% los pesos y haz el WOD al 70%." : "Recuperación baja anoche: hoy descansa de verdad y acuéstate temprano.");
   else if (n && n.hours != null && n.hours < 6) out.push("Polar marca " + String(n.hours).replace(".", ",") + " h de sueño, pero puede ser una sincronización incompleta del reloj: abre Polar Flow, sincroniza y mira otra vez. Si es cierto, sigue el plan sin buscar récords y hoy intenta dormir 7 h o más.");
   else if (n && n.nr != null && n.nr >= 5) out.push(train ? "Recuperación muy buena (" + n.nr + "/6): día para apretar. " + (s.key === "M" ? "Mantén el split fuerte en todos los bloques." : s.key === "H" ? "Ve a por un buen tiempo en el WOD." : "Si la última serie sale con 3 o más de sobra, marca \"completé todo\".") : "Recuperación muy buena: aprovecha para moverte suave o hacer movilidad.");
-  else if (n) out.push(train ? "Recuperación normal" + (n.nr != null ? " (" + n.nr + "/6)" : "") + ": sigue el plan tal cual." : "Día de descanso: camina y estira, y llega a tus 180 g de proteína.");
+  else if (n) out.push(train ? "Recuperación normal" + (n.nr != null ? " (" + n.nr + "/6)" : "") + ": sigue el plan tal cual." : "Día de descanso: camina y estira, y llega a tus 160 g de proteína.");
   else out.push(train ? "Sin datos de sueño de anoche: sigue el plan y escucha al cuerpo." : "Día de descanso: camina, estira y come bien.");
   if (s && s.str) s.str.forEach(function (e) {
     if (e.kg == null || e.kg === "PC") return;
