@@ -1710,7 +1710,7 @@ function coachDay(ds) {
   const s = sessionFor(ds), n = nightOf(ds), out = [];
   const train = s && s.type !== "rest";
   if (n && ((n.nr != null && n.nr <= 2) || (n.ans != null && n.ans <= -6))) out.push(train ? "Recuperación baja anoche (" + (n.nr != null ? n.nr + "/6" : "ANS " + n.ans) + "): entrena, pero baja un 10-15% los pesos y haz el WOD al 70%." : "Recuperación baja anoche: hoy descansa de verdad y acuéstate temprano.");
-  else if (n && n.hours != null && n.hours < 6) out.push("Polar marca " + String(n.hours).replace(".", ",") + " h de sueño, pero puede ser una sincronización incompleta del reloj: abre Polar Flow, sincroniza y mira otra vez. Si es cierto, sigue el plan sin buscar récords y hoy intenta dormir 7 h o más.");
+  else if (n && n.hours != null && n.hours < 6) out.push("Dormiste " + String(n.hours).replace(".", ",") + " h según Polar: sigue el plan sin buscar récords y hoy intenta dormir 7 h o más.");
   else if (n && n.nr != null && n.nr >= 5) out.push(train ? "Recuperación muy buena (" + n.nr + "/6): día para apretar. " + (s.key === "M" ? "Mantén el split fuerte en todos los bloques." : s.key === "H" ? "Ve a por un buen tiempo en el WOD." : "Si la última serie sale con 3 o más de sobra, marca \"completé todo\".") : "Recuperación muy buena: aprovecha para moverte suave o hacer movilidad.");
   else if (n) out.push(train ? "Recuperación normal" + (n.nr != null ? " (" + n.nr + "/6)" : "") + ": sigue el plan tal cual." : "Día de descanso: camina y estira, y llega a tus 160 g de proteína.");
   else out.push(train ? "Sin datos de sueño de anoche: sigue el plan y escucha al cuerpo." : "Día de descanso: camina, estira y come bien.");
