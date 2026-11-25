@@ -1770,11 +1770,79 @@ function coachWeek(ds) {
   else goal = "repetir la semana: vas muy bien.";
   return { title: "Tu semana " + (w + 1) + " · " + fdate(ws) + " – " + fdate(we), lines: lines, goal: goal };
 }
+// ═══ COACH CON IA (25 nov): Claude lee tus datos y escribe. Sin clave o sin internet, queda el coach de reglas de arriba.
+// Tres momentos: la mañana (sola), al terminar la sesión (botón) y el domingo (resumen de la semana).
+function cNum(v) { const x = chNum(v); return x == null ? undefined : x; }
+function cDay(d) {
+  const o = { fecha: d, dia: DF[dow(d)] }, s = sessionFor(d);
+  if (s) { o.plan = s.t + (s.sub ? " · " + s.sub : "");
+    if (s.str && s.str.length) o.plan_ejercicios = s.str.map(function (e) { return (EX[e.ex] ? EX[e.ex].n : e.ex) + " " + (e.sr || "") + (e.kg != null && e.kg !== "" ? " @ " + e.kg + " " + (e.unit || "kg") : ""); });
+    if (s.wod) o.plan_wod = s.wod.f + ": " + (s.wod.it || []).join(" / "); }
+  const L = S.logs[d] || {}, hecho = [];
+  Object.keys(L).forEach(function (k) { const l = L[k]; if (!l || k === "prot") return;
+    if (k === "wod") { hecho.push(l.res == null && l.t ? l.t : "WOD " + (l.f || "") + ": " + (l.res === "no" ? "NO HECHO" : l.res ? "resultado " + l.res : "sin resultado")); return; }
+    hecho.push((l.t || (EX[k] ? EX[k].n : k)) + (l.kg !== "" && l.kg != null ? " " + l.kg + " kg" : "") + (l.top ? " · completó todo" : l.fail ? " · NO completó" : "")); });
+  if (hecho.length) o.registro = hecho;
+  const a = (S.acts[d] || []).map(function (x) { return x.n + " " + x.min + " min" + (x.hr ? " · FC media " + x.hr : "") + (x.km ? " · " + x.km + " km" : ""); });
+  if (a.length) o.polar = a;
+  const sl = (S.sleeph || []).filter(function (r) { return r[0] === d; })[0];
+  if (sl) o.noche = { horas_sueno: cNum(sl[2]), score_sueno: cNum(sl[1]), recarga_nocturna_1a6: cNum(sl[3]), ans: cNum(sl[4]) };
+  const pg = protOf(d); if (pg) o.proteina_g = pg;
+  return o;
+}
+function coachCtx(ds, kind) {
+  const wi = posOf(ds), o = { tipo: kind, hoy: ds + " (" + DF[dow(ds)] + ")", hora: new Date().toTimeString().slice(0, 5), dias_al_hyrox: diff(S.race, ds) };
+  try {
+    if (wi) o.semana = { numero: wi.w + 1, fase: PHASE[wi.ph], descarga_y_pruebas: !!wi.deload, taper: !!wi.taper };
+    o.marcas_5RM = { sentadilla: S.lifts.squat, peso_muerto: S.lifts.trap, banca: S.lifts.bench, press_militar: S.lifts.ohp, dominada_lastre: S.lifts.pull, remo_2k: S.row2k, km_1: S.km1 };
+    const nt = nextTestTxt(); if (nt) o.proximas_pruebas = nt;
+    o.metas = { proteina_g: NUT.train.p, kcal_entreno: NUT.train.k, kcal_descanso: NUT.rest.k, sueno_h: 7.5, cintura_cm: 90, zona2_pulso: "115-135" };
+    o.peso = (S.body || []).slice(-5).map(function (b) { return b.d + ": " + b.kg + " kg" + (b.waist ? ", cintura " + b.waist : ""); });
+    if (S.vo2) o.vo2max = S.vo2; if (S.rhr) o.fc_reposo = S.rhr;
+    const n = kind === "week" ? 13 : 6, dias = [];
+    for (let d = addD(ds, -n); d <= ds; d = addD(d, 1)) dias.push(cDay(d));
+    o.dias = dias;
+    if (wi) { const wp = weekPlan(wi.w); o.semana_actual = { claves: wp.order.map(function (k) { return KEY_NAME[k]; }), hechas: wp.doneKeys.map(function (k) { return KEY_NAME[k]; }), extras: wp.extras, horas: Math.round(wp.mins / 6) / 10 }; }
+    if (kind !== "week") { const t = sessionFor(addD(ds, 1)); if (t) o.manana = t.t; }
+    o.notas_de_la_app = coachDay(ds);
+  } catch (e) { o.error_armando = String(e); }
+  return JSON.stringify(o);
+}
+const _cReq = {};
+function coachAI(ds, kind, force) {
+  const id = ds + "|" + kind;
+  if (_cReq[id] === "busy" || (!force && _cReq[id])) return;
+  if (!connParts()) return;
+  _cReq[id] = "busy"; if (force) renderHoyKeep();
+  apiPost({ a: "coach", kind: kind, ds: ds, ctx: coachCtx(ds, kind), force: !!force }).then(function (r) {
+    _cReq[id] = "done";
+    if (r && r.ok && r.text) {
+      S.coachAI = S.coachAI || {}; S.coachAI[id] = r.text;
+      const ks = Object.keys(S.coachAI).sort(); while (ks.length > 40) delete S.coachAI[ks.shift()];
+      save();
+    } else if (force) toast(r && r.error === "sin clave" ? "Falta la clave del coach en la hoja" : "El coach no respondió: prueba en un rato");
+    if (viewDate === ds && tab === "hoy") renderHoyKeep();
+  }).catch(function () { _cReq[id] = "done"; if (force) toast("Sin conexión: prueba en un rato"); if (viewDate === ds && tab === "hoy") renderHoyKeep(); });
+}
+function cText(t) { return String(t).split(/\n+/).filter(Boolean).map(function (x) { return '<p style="font-size:13.5px;margin:4px 0">' + esc(x) + "</p>"; }).join(""); }
 function coachHTML(ds) {
   if (ds !== todayS()) return "";
-  const d = coachDay(ds), wk = dow(ds) === 0 ? coachWeek(ds) : null;
-  let h = '<div class="card" style="padding:13px 14px;border:1px solid rgba(244,184,96,.35)"><div class="lbl" style="color:var(--lime);margin-bottom:6px">Coach de hoy</div>' + d.map(function (x) { return '<p style="font-size:13.5px;margin:4px 0">' + esc(x) + "</p>"; }).join("");
-  if (wk) h += '<div class="lbl" style="color:var(--lime);margin:12px 0 6px">' + esc(wk.title) + "</div>" + wk.lines.map(function (x) { return '<p class="sm mu2" style="margin:3px 0">' + esc(x) + "</p>"; }).join("") + '<p style="font-size:13.5px;margin-top:6px"><b>Meta de la semana:</b> ' + esc(wk.goal) + "</p>";
+  const A = S.coachAI || {}, s = sessionFor(ds), train = s && s.type !== "rest", sun = dow(ds) === 6;
+  const mo = A[ds + "|morning"], se = A[ds + "|session"], wkAI = A[ds + "|week"], wkPrev = dow(ds) === 0 ? A[addD(ds, -1) + "|week"] : null;
+  // la mañana espera a tener la noche de Polar (o hasta las 9:00), para no gastar el mensaje del día sin datos de sueño
+  if (!mo && ((S.sleeph || []).some(function (r) { return r[0] === ds; }) || new Date().getHours() >= 9)) coachAI(ds, "morning");
+  if (sun && !wkAI && new Date().getHours() >= 18) coachAI(ds, "week");
+  const busy = function (k) { return _cReq[ds + "|" + k] === "busy"; };
+  const btn = function (txt, k, force) { return '<button class="btn2" style="width:100%;margin-top:10px" onclick="coachAI(\'' + ds + "','" + k + "'," + (force ? "true" : "false") + ')">' + (busy(k) ? "El coach está leyendo tus datos…" : txt) + "</button>"; };
+  let h = '<div class="card" style="padding:13px 14px;border:1px solid rgba(244,184,96,.35)"><div class="lbl" style="color:var(--lime);margin-bottom:6px">Coach de hoy</div>';
+  h += mo ? cText(mo) : coachDay(ds).map(function (x) { return '<p style="font-size:13.5px;margin:4px 0">' + esc(x) + "</p>"; }).join("");
+  if (se) h += '<div class="lbl" style="color:var(--lime);margin:12px 0 6px">Tu sesión de hoy</div>' + cText(se);
+  if (train || dayActs(ds).length) h += btn(se ? "Ya anoté más: pídele otra vez" : "Terminé · feedback del coach", "session", true);
+  if (wkAI) h += '<div class="lbl" style="color:var(--lime);margin:12px 0 6px">Tu semana</div>' + cText(wkAI);
+  if (sun) h += btn(wkAI ? "Rehacer el resumen de la semana" : "Resumen de la semana", "week", true);
+  if (wkPrev) h += '<div class="lbl" style="color:var(--lime);margin:12px 0 6px">Tu semana que pasó</div>' + cText(wkPrev);
+  else { const wk = dow(ds) === 0 ? coachWeek(ds) : null;
+    if (wk) h += '<div class="lbl" style="color:var(--lime);margin:12px 0 6px">' + esc(wk.title) + "</div>" + wk.lines.map(function (x) { return '<p class="sm mu2" style="margin:3px 0">' + esc(x) + "</p>"; }).join("") + '<p style="font-size:13.5px;margin-top:6px"><b>Meta de la semana:</b> ' + esc(wk.goal) + "</p>"; }
   return h + "</div>";
 }
 function weekReviewHTML() {
