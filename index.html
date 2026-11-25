@@ -519,7 +519,7 @@ function keySession(k, wi, ds) {
       wod: withNote(light ? capWod(W_TUE[rot], 12) : applyLevel(capWod(W_TUE[rot], 12), ds), lightNote) };
   } else if (k === "M") {
     s = { type: "engine", t: "Motor", sub: "Intervalos + movilidad larga · 60 min", warm: "eng", cool: "long", wi: wi, nut: "train", str: [],
-      wod: Object.assign({}, W_WED[rot], { note: (wi.taper ? "Taper: haz 2/3 del volumen. " : light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote() }) };
+      wod: Object.assign({}, W_WED[rot], { note: (wi.taper ? "Taper: haz 2/3 del volumen. " : light ? "Descarga: haz 2/3 del volumen. " : "") + paceNote(/Zona 2/.test(W_WED[rot].f)) }) };
   } else if (wi.ph === 3) {
     const idx = Math.min(W_HYROX.length - 1, [0, 1, 2, 0, 3, 4][Math.min(5, wi.l)]);
     const deloadWod = { f: "Descarga · técnica de estaciones", it: ["3 rondas suaves:", "500 m ski · 25 m sled push · 25 m sled pull", "500 m remo · 100 m farmer · 20 wall balls"], m: ["ski", "sledpush", "sledpull", "rower", "farmer", "wallball"] };
@@ -647,10 +647,13 @@ function ladderTable() {
   const t = function (x) { x = Math.round(x); return Math.floor(x / 60) + ":" + (x % 60 < 10 ? "0" : "") + (x % 60); };
   return rows.map(function (r, i) { const w = r[0] / 500 * r[1]; return (i + 1) + ". " + r[0] + " m a " + t(r[1]) + "/500 m = " + t(w) + (i < 6 ? " · descansa " + t(w / 2) : " · fin"); }).join("<br>");
 }
-function paceNote() {
-  if (!S.row2k) return "Haz la prueba de 2.000 m de remo para ver tus ritmos.";
-  const p = parse2k(S.row2k); if (!p) return "";
+function paceNote(z2) {
+  // 25 nov: en zona 2 solo el ritmo suave y el tope de pulso; los ritmos fuertes confundían
+  const z2tail = "Pulso por debajo de 135: si sube, ve más lento. Remo 18-20 paladas por minuto, SkiErg unos 35 tirones por minuto.";
+  if (!S.row2k) return z2 ? "Hoy suave. " + z2tail : "Haz la prueba de 2.000 m de remo para ver tus ritmos.";
+  const p = parse2k(S.row2k); if (!p) return z2 ? "Hoy suave. " + z2tail : "";
   const sp = p / 4;
+  if (z2) { const r = function (x) { x = Math.round(x); return Math.floor(x / 60) + ":" + (x % 60 < 10 ? "0" : "") + (x % 60); }; return "Hoy suave. Remo y SkiErg a " + r(sp + 32) + "–" + r(sp + 35) + " /500 m. " + z2tail; }
   return "Tus ritmos en el monitor (/500m): split del 2k " + mmss(sp) + " · fuerte +6 s = " + mmss(sp + 6) + " · muy fuerte −2 s = " + mmss(sp - 2) + " · suave ≈ " + mmss(sp + 30);
 }
 function parse2k(t) { const m = String(t).match(/^(\d{1,2}):(\d{2})(?:\.(\d))?$/); return m ? (+m[1] * 60 + +m[2] + (m[3] ? +m[3] / 10 : 0)) : null; }
@@ -1099,13 +1102,14 @@ function wodHow(f) {
   if (/Chipper/.test(f)) return P(["<b>Chipper</b>: una lista larga que se hace una sola vez, de arriba abajo, \"picando\" cada ejercicio hasta terminarlo.", "Divide desde el principio en bloques pequeños (por ejemplo 50 wall balls = 5×10) y no te pases de ritmo al inicio.", "<b>Cap</b> = tiempo máximo: si llegas, paras y apuntas hasta dónde llegaste. " + fin]);
   if (/\d+-\d+/.test(f)) return P(["<b>Escalera</b>: haces todos los ejercicios con el primer número de repeticiones, luego con el siguiente, y así (" + esc(f.split(" ")[0]) + ").", "Es <b>por tiempo</b>: lo más rápido posible con buena técnica. El tiempo final es tu marca.", fin]);
   if (/tiempo|rondas/i.test(f)) return P(["<b>Por tiempo</b> (<i>For time</i>): haces todo lo indicado lo más rápido posible con buena técnica. El tiempo final es tu marca.", /cap/.test(f) ? "<b>Cap</b> = tiempo máximo: si llegas, paras y apuntas hasta dónde llegaste." : "Si son rondas, repite la lista ese número de veces.", "Divide las series grandes desde el inicio (15 wall balls = 8 + 7) y respira entre bloques. " + fin]);
-  if (/Zona 2/.test(f)) return P(["<b>Zona 2</b>: ritmo suave en el que puedes hablar en frases. Pulso entre 115 y 135 (60-70% de tu máximo de 188).", "Si el pulso sube de 140, baja el ritmo. Construye el motor sin cansarte."]);
+  if (/Zona 2/.test(f)) return P(["<b>Zona 2</b>: ritmo suave en el que puedes hablar en frases. Pulso entre 115 y 135 (60-70% de tu máximo de 188).", "Si el pulso sube de 135, baja el ritmo. Construye el motor sin cansarte."]);
   if (/Intervalos|Escalera|Remo 1:1|Umbral|Ski|Mixto|Remo \+/.test(f)) return P(["<b>Intervalos</b>: tramos fuertes y suaves seguidos. Lo \"suave\" es seguir remando despacio, no parar (salvo que diga descanso). Por ejemplo 5× (4' fuerte / 2' suave) = 5 bloques de 6 minutos seguidos, 30 minutos sin bajarte.", "<b>Split</b> = el tiempo que tardarías en remar 500 m a ese ritmo. En el monitor del remo es el número grande que dice <b>/500m</b>: más bajo = más rápido. Tus ritmos están arriba de esta tarjeta.", "<b>Fuerte</b>: mantén el split indicado, unas 24-28 paladas por minuto (s/m). <b>Suave</b>: unos 30 s más lento que tu split del 2k, 18-20 s/m, respirando.", "Damper 5-6 siempre igual. La última repetición debe salir igual que la primera: si no llegas al split, baja 2-3 s en las siguientes.", "Pulso al final de cada tramo fuerte: 160-175. En el suave deja que baje a ~130."]);
   if (/simulaci|Simulacro|Compromised/.test(f)) return P(["<b>Simulación de Hyrox</b>: correr + estación, en orden, como en la carrera.", "Corre a tu ritmo de carrera, no más rápido: el objetivo es aprender a correr cansado después de cada estación.", "Cronometra cada parte y apúntalo en notas para comparar en la próxima."]);
   return "";
 }
 // Ajustes de cada máquina y peso del WOD (Hyrox Open hombres: push 152 kg, pull 103 kg con trineo)
-function wodSet(k) {
+function wodSet(k, z2) {
+  if (z2) return { rower: "damper 5-6", ski: "damper 5-6", tread: "caminar 4,5–5,5 km/h con 10–12 % de inclinación" }[k] || "";
   const ph = (posOf(viewDate) || { ph: 1 }).ph;
   const SET = { rower: "damper 5-6", ski: "damper 5-6", sledpush: ["~100 kg", "~125 kg", "152 kg (carrera)"][ph - 1] + " en total, trineo incluido",
     sledpull: ["~70 kg", "~85 kg", "103 kg (carrera)"][ph - 1] + " en total, trineo incluido", farmer: "2 × 24 kg", wallball: "balón de 6 kg, objetivo a 3 m", sblunge: "saco de 20 kg", swing: "KB de 24 kg", tread: "tramos cortos/rápidos a " + runPaces().sprint.split(" (")[0] + " · 1 km a ritmo Hyrox " + runPaces().hyrox.split(" (")[0] };
@@ -1197,7 +1201,7 @@ function wodHTML(w, lab) {
   const short = lab === "WOD" && S.wodShort && S.wodShort[viewDate]; if (short) w = shortWod(w);
   return '<div class="sec">' + lab + '</div><div class="wod"><div class="f">' + esc(w.f) + '</div><div class="t">' + (lab === "Motor" ? "Intervalos" : lab === "Final" ? "Para cerrar" : "Hoy toca") + "</div><ul>" +
     w.it.map(function (i) { return "<li>" + (i === "@LADDER" ? ladderTable() : esc(i)) + "</li>"; }).join("") + "</ul>" + (w.note ? '<div class="note">' + esc(w.note) + "</div>" : "") +
-    (w.m && w.m.some(function (k) { return wodSet(k); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(w.lvl && k === "swing" ? lvlItem("KB " + wodSet(k), w.lvl).replace(/^KB /, "") : wodSet(k)); }).join(" · ") + "</div>" : "") +
+    (w.m && w.m.some(function (k) { return wodSet(k, /Zona 2/.test(w.f)); }) ? '<div class="note" style="margin-top:10px"><b>Ajustes:</b> ' + w.m.filter(function (k) { return wodSet(k, /Zona 2/.test(w.f)); }).map(function (k) { return esc(EX[k].n.replace(/ \(.*\)/, "")) + " " + esc(w.lvl && k === "swing" ? lvlItem("KB " + wodSet(k), w.lvl).replace(/^KB /, "") : wodSet(k, /Zona 2/.test(w.f))); }).join(" · ") + "</div>" : "") +
     (w.m && w.m.length ? '<div class="chips">' + w.m.map(function (k) { return '<button class="chip" onclick="tech(\'' + k + '\')">' + (k === "pullup" ? "Dominadas" : EX[k].n) + "</button>"; }).join("") + "</div>" : "") +
     (lab === "WOD" ? (function () {
       const ds = viewDate, sig = wodSig(w) + (w.short ? "|corto" : "") + (Object.keys(((S.logs[viewDate] || {}).wodSubs) || {}).length ? "|cambios" : ""), lw = lastWod(sig, ds), rs = resSpec(w.f), res = wodRes(ds), skip = res === "no";
