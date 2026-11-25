@@ -1783,7 +1783,7 @@ function cDay(d) {
     if (k === "wod") { hecho.push(l.res == null && l.t ? l.t : "WOD " + (l.f || "") + ": " + (l.res === "no" ? "NO HECHO" : l.res ? "resultado " + l.res : "sin resultado")); return; }
     hecho.push((l.t || (EX[k] ? EX[k].n : k)) + (l.kg !== "" && l.kg != null ? " " + l.kg + " kg" : "") + (l.top ? " · completó todo" : l.fail ? " · NO completó" : "")); });
   if (hecho.length) o.registro = hecho;
-  const a = (S.acts[d] || []).map(function (x) { return x.n + " " + x.min + " min" + (x.hr ? " · FC media " + x.hr : "") + (x.km ? " · " + x.km + " km" : ""); });
+  const a = (S.acts[d] || []).map(function (x) { return x.n + " " + x.min + " min" + (x.hr ? " · FC media " + x.hr : "") + (x.km ? " · " + x.km + " km" : "") + (x.z ? " · minutos por zona de pulso: " + x.z : ""); });
   if (a.length) o.polar = a;
   const sl = (S.sleeph || []).filter(function (r) { return r[0] === d; })[0];
   if (sl) o.noche = { horas_sueno: cNum(sl[2]), score_sueno: cNum(sl[1]), recarga_nocturna_1a6: cNum(sl[3]), ans: cNum(sl[4]) };
